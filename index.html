@@ -197,6 +197,28 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .tile .own{position:absolute;top:12px;right:12px;background:#1d7a3c;color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .hit{position:absolute;top:12px;right:12px;background:#e5383b;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .mv{display:block;font-size:13px;font-weight:700}
+.cotd{display:grid;grid-template-columns:110px minmax(0,1fr);gap:14px;align-items:center;width:100%;text-align:left;background:var(--paper)!important;color:var(--ink)!important;border:0;border-radius:20px;padding:12px;min-height:0;white-space:normal;font-weight:500;box-shadow:0 6px 18px #0002}
+.cotd img,.cotd .ph{width:110px;aspect-ratio:63/88;border-radius:8px;object-fit:cover;box-shadow:0 6px 14px #0003}
+.cotd b{display:block;font-size:20px;line-height:1.15}.cotd .p{display:block;font-size:26px;font-weight:800;margin-top:6px}.cotd small{display:block;color:var(--soft)}
+.gamebanner{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;width:100%;margin-top:18px;background:linear-gradient(120deg,#16141a,#2b2440)!important;color:#fff!important;border:0;border-radius:20px;padding:14px 16px;text-align:left;white-space:normal;min-height:0;font-weight:500}
+.gamebanner .gb-ic{width:46px;height:46px;border-radius:14px;background:var(--foil);display:grid;place-items:center;color:#16141a;font-weight:800;font-size:14px}
+.gamebanner b{display:block;font-size:18px}.gamebanner small{opacity:.8;font-size:13px}.gamebanner>span:last-child{font-size:28px;opacity:.6}
+.achrow{display:flex;gap:10px;overflow-x:auto;padding:2px 2px 10px}
+.ach{flex:none;width:92px;text-align:center;font-size:12px;font-weight:500;line-height:1.2}
+.ach i{display:grid;place-items:center;width:64px;height:64px;margin:0 auto 6px;border-radius:50%;font-style:normal;font-size:28px;background:var(--paper);box-shadow:0 4px 12px #0002}
+.ach.on i{background:var(--foil)}.ach.off{opacity:.45}.ach.off i{filter:grayscale(1)}
+.achgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:12px}
+.ach small{display:block;color:var(--soft);font-size:11px;margin-top:2px}
+.gscore{display:flex;gap:12px;margin-bottom:12px}.gscore div{flex:1;background:var(--paper);border-radius:16px;padding:10px 14px}.gscore b{font-size:28px;font-weight:800;display:block}.gscore span{font-size:13px;color:var(--soft)}
+.gboard{display:grid;grid-template-columns:1fr 1fr;gap:12px;align-items:start}
+.gcard{background:var(--paper);border-radius:18px;padding:10px;text-align:center}
+.gcard img,.gcard .ph{width:100%;aspect-ratio:63/88;border-radius:10px;object-fit:cover;display:block}
+.gcard b{display:block;font-size:15px;margin-top:8px;line-height:1.2}.gcard small{display:block;color:var(--soft);font-size:12px}
+.gcard .gp{font-size:24px;font-weight:800;margin-top:6px;min-height:32px}
+.gbtns{grid-column:1/-1;display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.gbtns button{min-height:60px;font-size:18px;border-radius:16px}
+.gres{grid-column:1/-1;text-align:center;font-weight:800;font-size:22px;padding:6px}
+.gres.ok{color:var(--green)}.gres.bad{color:var(--red)}
 .panel{background:var(--paper);border-radius:20px;padding:14px 16px;margin-bottom:12px}
 .panel h2{margin:2px 0 8px;font-size:18px}
 .bigchart{position:relative;height:220px}.bigchart svg{position:absolute;inset:0;width:100%;height:100%}
@@ -213,7 +235,7 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .toast button{margin-left:10px;min-height:34px;padding:0 12px;font-size:14px;background:var(--bg)!important;color:var(--ink)!important;border:0}
 .rtools{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}.rtools select{font:inherit;font-size:15px;min-height:42px;border-radius:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:0 8px;flex:1 1 140px}
 .pct{position:absolute;top:12px;left:12px;font-size:12px;font-weight:800;border-radius:999px;padding:1px 8px;color:#fff}
-.pct.up{background:#1d7a3c}.pct.down{background:#e5383b}
+.pct.up{background:#1d7a3c;color:#fff!important}.pct.down{background:#e5383b;color:#fff!important}
 .confetti{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
 .confetti i{position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;animation:fall 1.6s cubic-bezier(.2,.7,.4,1) forwards}
 @keyframes fall{to{transform:translate(var(--dx),105vh) rotate(var(--r));opacity:.9}}
@@ -290,6 +312,10 @@ input[type=search]{width:100%}
       <div class="chips" role="group" aria-label="Market lists"><button class="chip" data-m="up" aria-pressed="true">▲ Gainers</button><button class="chip" data-m="down" aria-pressed="false">▼ Losers</button><button class="chip" data-m="chase" aria-pressed="false">★ New set chase cards</button></div>
       <div class="hrow" id="mktRow"><p class="empty">Loading market…</p></div>
     </section>
+    <section id="cotdSec" hidden><h2>Card of the day <small id="cotdDate"></small></h2><button class="cotd" id="cotd"></button></section>
+    <button class="gamebanner" id="gameJump"><span class="gb-ic" aria-hidden="true">▲▼</span><span><b>Higher or Lower</b><small id="gameBest">Guess which card is worth more. How long can your streak go?</small></span><span aria-hidden="true">›</span></button>
+    <section id="scanSec" hidden><h2>Recent scans <small><button class="ghost" id="scanClear" style="min-height:34px;font-size:13px">Clear</button></small></h2><div class="hrow" id="scanRow"></div></section>
+    <section id="achSecHome" hidden><h2>Achievements <small id="achCount"></small></h2><div class="achrow" id="achRow"></div></section>
     <section id="moverSec" hidden><h2>Price movers <small>since last update</small></h2><div class="hrow" id="moverRow"></div></section>
     <section id="topSec" hidden><h2>Top cards <small id="topNote"></small></h2><div class="hrow" id="topRow"></div></section>
     <section id="recentSec" hidden><h2>Recently added</h2><div class="hrow" id="recentRow"></div></section>
@@ -323,6 +349,7 @@ input[type=search]{width:100%}
       <div class="bigchart"><svg id="bigChart" role="img" aria-label="Collection value over time"></svg></div>
       <p class="msg" id="chartNote"></p>
     </div>
+    <div class="panel"><h2>Achievements <small id="achNote" style="font-weight:500;color:var(--soft);font-size:14px"></small></h2><div class="achgrid" id="achGrid"></div></div>
     <div class="insgrid">
       <div class="panel"><h2>By set</h2><ul class="bars" id="bySet"></ul></div>
       <div class="panel"><h2>By price</h2><ul class="bars" id="byBand"></ul></div>
@@ -354,6 +381,13 @@ input[type=search]{width:100%}
     <div id="packBody"></div>
     <h2 id="packHistH" hidden>Past openings</h2>
     <ul class="setlist" id="packHist"></ul>
+  </section>
+
+  <section class="view" id="v-game" hidden>
+    <h1 class="vt">Higher or Lower</h1>
+    <p class="vsub">Is the second card worth more or less than the first? Real TCGplayer market prices.</p>
+    <div class="gscore"><div><b id="gStreak">0</b><span>streak</span></div><div><b id="gBest">0</b><span>best</span></div></div>
+    <div class="gboard" id="gBoard"><p class="empty">Loading cards…</p></div>
   </section>
 
   <section class="view" id="v-trade" hidden>
@@ -718,6 +752,7 @@ async function scanOnce(manual){
     if(cards.length>1){chip(`Read ${key} · checking the set…`);cards=await narrowBySetCode(cards,v,r)}
     if(cards.length>1){chip(`Read ${key} · checking the name…`);try{cards=pickByName(cards,await readName(v,r))}catch(e){}}
     $('scanner').classList.add('found');navigator.vibrate?.(60);
+    if(cards.length===1&&typeof logScan==='function')logScan(cards[0]);
     if(rapid&&cards.length===1){rapidAdd(cards[0],key);setTimeout(()=>$('scanner').classList.remove('found'),600);return}
     closeScanner();
     if(cards.length===1)openCard(cards[0]);else showChoices(cards,`Which card is ${key}?`);
@@ -738,6 +773,7 @@ async function scanPhoto(file){
     if(!cards.length){chip('No match for '+number.n+'/'+number.tot+'. Tap Type to search by name.');return}
     if(cards.length>1)cards=await narrowBySetCode(cards,img,rect);
     if(cards.length>1){try{cards=pickByName(cards,await readName(img,rect))}catch(e){}}
+    if(cards.length===1&&typeof logScan==='function')logScan(cards[0]);
     closeScanner();cards.length===1?openCard(cards[0]):showChoices(cards,'Which card is it?');
   }catch(e){chip(e.message||'Couldn’t read that photo.')}
 }
@@ -916,6 +952,7 @@ function renderAll(){
   document.querySelectorAll('[data-cid]').forEach(b=>b.onclick=()=>openItem(b.dataset.cid,col));
   document.querySelectorAll('[data-wid]').forEach(b=>b.onclick=()=>openItem(b.dataset.wid,wish));
   if(view==='sets'&&!$('setDetail').hidden&&curSet)renderSetDetail(curSet);else if(view==='sets')renderSets();
+  if(typeof renderScans==='function'){renderScans();renderCotd();checkAch()}
 }
 function drawSpark(h){
   const pts=Object.keys(h).sort().map(k=>h[k]),sv=$('spark');
@@ -1141,7 +1178,7 @@ function openSettings(){
   <div class="sec"><b>Prices</b><p class="meta">TCGplayer market prices update every night. Last update: ${esc(tcgIdx?.updated||'loading…')}.</p></div>
   <div class="sec"><button class="danger" id="wipe">Delete all my data on this phone</button></div>`);
   bindTypePicker(document.querySelector('.sheet'));
-  $('bkSave').onclick=()=>{const data={app:'HoloValue',v:1,saved:new Date().toISOString(),col,wish,binders,packs,trade,hist:LS.get('hvl-hist',{})};const blob=new Blob([JSON.stringify(data)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`holovalue-backup-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);toast('Backup saved to your downloads.')};
+  $('bkSave').onclick=()=>{const data={app:'HoloValue',v:1,saved:new Date().toISOString(),col,wish,binders,packs,trade,hist:LS.get('hvl-hist',{})};const blob=new Blob([JSON.stringify(data)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`holovalue-backup-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);toast('Backup saved to your downloads.');stats.backup=1;LS.set('hvl-stats',stats);checkAch()};
   $('bkLoad').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{const d=JSON.parse(await f.text());if(d.app!=='HoloValue'||!Array.isArray(d.col))throw 0;if(!confirm(`Replace what’s on this phone with the backup from ${String(d.saved||'').slice(0,10)} (${d.col.length} cards)?`))return;
     col=d.col;wish=Array.isArray(d.wish)?d.wish:[];binders=Array.isArray(d.binders)&&d.binders.length?d.binders:['Main'];packs=Array.isArray(d.packs)?d.packs:[];trade=d.trade&&Array.isArray(d.trade.give)?d.trade:{give:[],get:[]};
     save();saveWish();LS.set('hvl-binders',binders);savePacks();saveTrade();if(d.hist&&typeof d.hist==='object')LS.set('hvl-hist',d.hist);closeSheet();renderAll();toast('Backup restored.')}catch(err){toast('That file isn’t a HoloValue backup.')}};
@@ -1316,16 +1353,105 @@ function applyType(t){
 applyType(LS.get('hvl-type','electric'));
 function typePickerHTML(){const cur=LS.get('hvl-type','electric');return `<div class="typepick">${Object.entries(TYPES).map(([k,T])=>`<button data-type="${k}" aria-pressed="${k===cur}" style="background:${T.sw}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[T.icon]}" ${T.icon==='leaf'||T.icon==='swirl'?'fill="none" stroke="#16141a" stroke-width="2.2" stroke-linecap="round"':'fill="#16141a"'}/></svg>${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>`}
 function bindTypePicker(root){root.querySelectorAll('[data-type]').forEach(b=>b.onclick=()=>{applyType(b.dataset.type);root.querySelectorAll('[data-type]').forEach(x=>x.setAttribute('aria-pressed',x===b));toast(`${b.textContent.trim()} theme on.`)})}
+
+/* ---------- scan history ---------- */
+let scans=LS.get('hvl-scans',[]);
+function logScan(c){
+  const v=bestVariant(c);scans=scans.filter(x=>x.id!==c.id);
+  scans.unshift({id:c.id,name:c.name,set:c.set?.name||'',num:`${c.number}/${c.set?.printedTotal||''}`,img:c.images?.small||'',price:priceFor(c,v),t:Date.now()});
+  scans=scans.slice(0,60);LS.set('hvl-scans',scans);cache.set(c.id,c);bumpStat('scans');renderScans();
+}
+function renderScans(){
+  $('scanSec').hidden=!scans.length;
+  $('scanRow').innerHTML=scans.slice(0,15).map(x=>{const own=col.some(i=>i.id===x.id);return `<button class="tile" data-sid="${esc(x.id)}">${imgTag(x.img)}${own?'<span class="own">✓</span>':''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${esc(x.num)}</span><span class="tp">${money(x.price)}</span></button>`}).join('');
+  $('scanRow').querySelectorAll('[data-sid]').forEach(b=>b.onclick=()=>openItem(b.dataset.sid,scans));
+}
+$('scanClear').onclick=()=>{scans=[];LS.set('hvl-scans',scans);renderScans()};
+
+/* ---------- card of the day ---------- */
+function hashStr(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+let cotdCard=null;
+function renderCotd(){
+  if(!tcgIdx){$('cotdSec').hidden=true;return}
+  const day=new Date().toISOString().slice(0,10);
+  if(!cotdCard||cotdCard._day!==day){
+    const pool=[];for(const [k,rows] of Object.entries(tcgIdx.cards)){const [n,t]=k.split('/');for(const r of rows){const m=rowMarket(r);if(m>=25&&!/code card|jumbo/i.test(r[0]+r[1]))pool.push([r,n,t])}}
+    if(!pool.length)return;pool.sort((a,b)=>+a[0][2]-+b[0][2]);
+    const [r,n,t]=pool[hashStr(day)%pool.length];cotdCard=cardFromRow(r,n,t);cotdCard._day=day;cotdCard._group=r[1];cache.set(cotdCard.id,cotdCard);
+  }
+  const c=cotdCard,date=tcgIdx.sets?.[c._group]?.[1];
+  $('cotdSec').hidden=false;$('cotdDate').textContent=new Date().toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  $('cotd').innerHTML=`${imgTag(c.images?.large||c.images?.small)}<span><b>${esc(c.name)}</b><small>${esc(c.set?.name||'')} · #${esc(c.number)}/${esc(c.set?.printedTotal||'')}${date?` · ${esc(date.slice(0,4))}`:''}</small><span class="p">${money(priceFor(c,bestVariant(c)))}</span><small>Tap to see it up close</small></span>`;
+  $('cotd').onclick=()=>openCard(c);
+}
+
+/* ---------- achievements ---------- */
+let stats=LS.get('hvl-stats',{scans:0,games:0});
+function bumpStat(k,n=1){stats[k]=(stats[k]||0)+n;LS.set('hvl-stats',stats);checkAch()}
+const ACH=[
+  ['first','🃏','First card','Add your first card',()=>col.length>=1],
+  ['ten','📚','Getting started','Own 10 cards',()=>cnt()>=10],
+  ['fifty','🗂️','Binder builder','Own 50 cards',()=>cnt()>=50],
+  ['hundred','🏆','Centurion','Own 100 cards',()=>cnt()>=100],
+  ['v100','💵','Benjamin','Collection worth $100',()=>colTot()>=100],
+  ['v1k','💰','Big money','Collection worth $1,000',()=>colTot()>=1000],
+  ['hit20','✨','Nice pull','Own a card worth $20+',()=>col.some(x=>(x.price||0)>=20)],
+  ['hit100','💎','Chase card','Own a card worth $100+',()=>col.some(x=>(x.price||0)>=100)],
+  ['scan25','📷','Scanner pro','Scan 25 cards',()=>(stats.scans||0)>=25],
+  ['pack1','🎁','First rip','Track a pack opening',()=>packs.some(p=>p.end)],
+  ['pack10','🔥','Rip master','Track 10 pack openings',()=>packs.filter(p=>p.end).length>=10],
+  ['ahead','📈','Worth it','Finish a pack opening ahead',()=>packs.some(p=>p.end&&packVal(p)>p.cost)],
+  ['set10','🧩','Set chaser','Own 10% of any set',()=>bestSetPct()>=10],
+  ['wish','🎯','On target','A wishlist card hits your target',()=>wish.some(w=>num(w.target)&&num(w.price)&&w.price<=w.target)],
+  ['game10','🧠','Price expert','Get a 10 streak in Higher or Lower',()=>(LS.get('hvl-gbest',0))>=10],
+  ['backup','🛟','Safe keeper','Save a backup',()=>!!stats.backup]
+];
+const cnt=()=>col.reduce((a,x)=>a+x.qty,0),colTot=()=>col.reduce((a,x)=>a+itemVal(x),0);
+function bestSetPct(){const all=buildSets?.();if(!all)return 0;let b=0;for(const st of all){const o=ownedInSet(st).length;if(o)b=Math.max(b,o/st.rows.length*100)}return b}
+let achDone=LS.get('hvl-ach',{});let achBoot=true;
+function checkAch(){
+  let fresh=[];for(const [id,ic,name,desc,test] of ACH){let ok=false;try{ok=test()}catch(e){}if(ok&&!achDone[id]){achDone[id]=new Date().toISOString().slice(0,10);fresh.push(name)}}
+  if(fresh.length){LS.set('hvl-ach',achDone);if(!achBoot){confetti();toast(`🏅 Achievement unlocked: ${fresh.join(', ')}`)}}
+  if(tcgIdx)achBoot=false;renderAch();
+}
+function achHTML(full){return ACH.map(([id,ic,name,desc])=>{const on=!!achDone[id];return `<div class="ach ${on?'on':'off'}" title="${esc(desc)}"><i aria-hidden="true">${ic}</i>${esc(name)}${full?`<small>${on?'Unlocked '+esc(achDone[id]):esc(desc)}</small>`:''}</div>`}).join('')}
+function renderAch(){
+  const n=Object.keys(achDone).filter(k=>ACH.some(a=>a[0]===k)).length;
+  $('achSecHome').hidden=!n;$('achCount').textContent=`${n} of ${ACH.length}`;
+  const sorted=[...ACH].sort((a,b)=>!!achDone[b[0]]-!!achDone[a[0]]);
+  $('achRow').innerHTML=sorted.slice(0,8).map(([id,ic,name])=>`<div class="ach ${achDone[id]?'on':'off'}"><i aria-hidden="true">${ic}</i>${esc(name)}</div>`).join('');
+  if($('achGrid')){$('achGrid').innerHTML=achHTML(true);$('achNote').textContent=`${n} of ${ACH.length} unlocked`}
+}
+$('achSecHome').style.cursor='pointer';$('achSecHome').onclick=()=>go('insights');
+
+/* ---------- higher or lower ---------- */
+let gPool=null,gA=null,gB=null,gStreak=0,gLock=false;
+function gPick(){const [r,n,t]=gPool[Math.random()*gPool.length|0];const c=cardFromRow(r,n,t);c._p=rowMarket(r);return c}
+function gNext(keepA){
+  if(!gPool){if(!tcgIdx)return;gPool=[];for(const [k,rows] of Object.entries(tcgIdx.cards)){const [n,t]=k.split('/');for(const r of rows){const m=rowMarket(r);if(m>=1&&m<20000&&!/code card|jumbo/i.test(r[0]+r[1]))gPool.push([r,n,t])}}}
+  gA=keepA?gB:gPick();do{gB=gPick()}while(Math.abs(gB._p-gA._p)<.25||gB.id===gA.id);gLock=false;renderGame();
+}
+function renderGame(res){
+  $('gStreak').textContent=gStreak;$('gBest').textContent=LS.get('hvl-gbest',0);
+  if(!gA){$('gBoard').innerHTML='<p class="empty">Loading cards…</p>';tcgIndex().then(()=>{if(tcgIdx&&!gA)gNext()});return}
+  const card=(c,show)=>`<div class="gcard">${imgTag(c.images?.large||c.images?.small)}<b>${esc(c.name)}</b><small>${esc(c.set?.name||'')}</small><div class="gp">${show?money(c._p):'?'}</div></div>`;
+  $('gBoard').innerHTML=card(gA,true)+card(gB,!!res)+(res?`<div class="gres ${res==='ok'?'ok':'bad'}">${res==='ok'?'Correct! 🎉':`Nope! Streak ended at ${gStreak}`}</div><div class="gbtns"><button id="gGo">${res==='ok'?'Next card':'Play again'}</button><button class="ghost" id="gHome">Done</button></div>`:`<div class="gbtns"><button id="gHi">▲ Higher</button><button id="gLo">▼ Lower</button></div>`);
+  if(res){$('gGo').onclick=()=>{if(res!=='ok')gStreak=0;gNext(res==='ok')};$('gHome').onclick=()=>{if(res!=='ok')gStreak=0;go('home')}}
+  else{const guess=hi=>{if(gLock)return;gLock=true;const ok=hi?gB._p>gA._p:gB._p<gA._p;if(ok){gStreak++;if(gStreak>LS.get('hvl-gbest',0)){LS.set('hvl-gbest',gStreak);if(gStreak>=5&&gStreak%5===0)confetti()}}else{bumpStat('games')}navigator.vibrate?.(ok?30:[60,40,60]);renderGame(ok?'ok':'bad');if(ok)checkAch()};$('gHi').onclick=()=>guess(true);$('gLo').onclick=()=>guess(false)}
+  const best=LS.get('hvl-gbest',0);$('gameBest').textContent=best?`Your best streak: ${best}. Can you beat it?`:'Guess which card is worth more. How long can your streak go?';
+}
+$('gameJump').onclick=()=>go('game');
 /* ---------- navigation ---------- */
 let view='home';
 function route(){
-  const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack','insights'].includes(h)?h:'home';view=v;
+  const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack','insights','game'].includes(h)?h:'home';view=v;
   document.querySelectorAll('.view').forEach(s=>s.hidden=s.id!=='v-'+v);
   document.querySelectorAll('.tabbar a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   if(v==='sets'){if(curSet)renderSetDetail(curSet);else renderSets()}
   if(v==='trade')renderTrade();
   if(v==='pack')renderPack();
   if(v==='insights')renderInsights();
+  if(v==='game')renderGame();
   if(v!=='col'&&typeof setSelecting==='function'&&selecting)setSelecting(false);
   window.scrollTo(0,0);
 }
@@ -1355,6 +1481,7 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('sheetHost').i
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&!$('scanner').hidden)closeScanner()});
 // old collection format → add binder defaults
 col.forEach(x=>{x.qty=x.qty||1});
+{const gb=LS.get('hvl-gbest',0);if(gb)$('gameBest').textContent=`Your best streak: ${gb}. Can you beat it?`}
 $('onbType').innerHTML=typePickerHTML();bindTypePicker($('onbType'));
 route();renderAll();
 tcgIndex().then(()=>{updatePrices();renderAll();loadMovers().then(renderMarket)});
