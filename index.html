@@ -117,6 +117,56 @@ tr.sel td{font-weight:700}
 .cands{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-top:10px}
 .fine{font-size:12px;color:var(--soft);margin-top:24px}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--paper);border-radius:14px;padding:12px 16px;z-index:40;max-width:calc(100vw - 32px);box-shadow:0 10px 30px #0004}
+
+/* ---- app shell v5 ---- */
+body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
+.toast{bottom:calc(96px + env(safe-area-inset-bottom))!important}
+.view h1.vt{font-size:clamp(30px,8vw,40px);line-height:1.05;margin:4px 0 6px;font-weight:800;letter-spacing:-.02em}
+.vsub{color:var(--soft);margin:0 0 14px}
+.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:12;background:#16141a;display:grid;grid-template-columns:repeat(5,1fr);align-items:end;padding:6px 6px calc(8px + env(safe-area-inset-bottom));box-shadow:0 -6px 24px #0004}
+.tabbar a{color:#b9b2a2;text-decoration:none;display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11.5px;font-weight:500;padding:6px 0;border-radius:12px;min-height:50px;justify-content:center}
+.tabbar a svg{width:24px;height:24px}
+.tabbar a[aria-current=page]{color:#ffd23f}
+.tabbar .tscan{align-self:center;justify-self:center;width:62px;height:62px;border-radius:50%;background:#ffd23f;color:#16141a;border:4px solid #16141a;margin-top:-26px;display:grid;place-items:center;box-shadow:0 6px 18px #0006;padding:0;min-height:0}
+.tabbar .tscan svg{width:30px;height:30px}
+.acts2{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.act{grid-template-columns:1fr!important;justify-items:start;row-gap:2px;min-height:78px!important}
+.act svg{grid-row:auto!important}
+.alert{display:flex;gap:10px;align-items:center;background:#1d7a3c;color:#fff;border-radius:16px;padding:12px 14px;margin-top:14px;cursor:pointer;border:0;width:100%;font:inherit;text-align:left;font-weight:500}
+.chips{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 10px;margin:0 -2px 6px}
+.chip{flex:none;min-height:40px;border-radius:999px;padding:0 14px;font-size:14px;background:var(--paper)!important;color:var(--ink)!important;border:2px solid var(--line)}
+.chip[aria-pressed=true]{background:var(--ink)!important;color:var(--bg)!important;border-color:var(--ink)}
+.bar{height:8px;border-radius:5px;background:var(--line);overflow:hidden;margin-top:6px}.bar i{display:block;height:100%;border-radius:5px;background:var(--foil)}
+.setlist{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.setlist button{width:100%;text-align:left;display:block;background:var(--paper)!important;color:var(--ink)!important;border:0;border-radius:16px;padding:12px 14px;min-height:0;font-weight:500;white-space:normal;box-shadow:0 3px 10px #0001}
+.setlist b{display:flex;justify-content:space-between;gap:10px;font-size:16px}.setlist b span{white-space:nowrap;font-weight:700}
+.setlist small{color:var(--soft);font-size:13px}
+.shero{background:var(--paper);border-radius:20px;padding:16px;margin-bottom:12px}
+.shero .big{font-size:30px;font-weight:800;line-height:1.1}
+.kv{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px}.kv b{display:block;font-size:17px;white-space:nowrap}.kv span{font-size:12px;color:var(--soft)}
+.tile.missing img,.tile.missing .ph{opacity:.35;filter:grayscale(.8)}
+.tile .own{position:absolute;top:12px;right:12px;background:#1d7a3c;color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px}
+.tile .hit{position:absolute;top:12px;right:12px;background:#e5383b;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px}
+.tile .mv{display:block;font-size:13px;font-weight:700}
+.up{color:var(--green)}.down{color:var(--red)}
+.trade{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.tside{background:var(--paper);border-radius:20px;padding:14px}
+.tside h2{margin:0 0 8px;font-size:18px}
+.tlist{list-style:none;margin:8px 0 0;padding:0}.tlist li{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid var(--line)}
+.tlist img,.tlist .ph{width:34px;flex:none;aspect-ratio:63/88;border-radius:4px}.tlist .nm{flex:1;min-width:0;font-size:14px;line-height:1.25}.tlist .nm small{display:block;color:var(--soft)}
+.tlist b{white-space:nowrap}.tlist button{min-height:36px;width:36px;padding:0;background:transparent!important;color:var(--soft)!important;border:0;font-size:18px}
+.tres{background:var(--ink);color:var(--bg);border-radius:20px;padding:16px;margin-top:12px;text-align:center}
+.tres .big{font-size:28px;font-weight:800}
+.drop{list-style:none;margin:6px 0 0;padding:0;border-radius:12px;overflow:hidden;border:1px solid var(--line)}
+.drop li button{width:100%;display:flex;gap:10px;align-items:center;justify-content:space-between;background:var(--paper)!important;color:var(--ink)!important;border:0;border-radius:0;min-height:48px;font-weight:500;font-size:14px;text-align:left;white-space:normal;border-bottom:1px solid var(--line)!important}
+.field{display:grid;gap:4px;margin-top:12px;font-size:14px;color:var(--soft)}
+.field input,.field select{font:inherit;font-size:16px;min-height:46px;border-radius:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:0 12px}
+.frow{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.gain{font-weight:700;margin-top:8px}
+.hspark{width:100%;height:60px;display:block;margin-top:10px}
+.sheet .sec{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
+.danger{color:var(--red)!important;border-color:transparent!important;background:transparent!important}
+input[type=search]{width:100%}
 </style>
 </head>
 <body>
@@ -126,58 +176,99 @@ tr.sel td{font-weight:700}
     <div class="brand">HoloValue<small id="upd">Pokémon card scanner</small></div>
   </div>
 
-  <section class="port" aria-label="Collection value">
-    <div class="port-l">Collection value</div>
-    <div class="port-v" id="total">$0.00</div>
-    <div class="port-c" id="count">0 cards</div>
-    <svg class="spark" id="spark" viewBox="0 0 300 64" preserveAspectRatio="none" aria-hidden="true"></svg>
-    <div class="port-s"><div><b id="stUnique">0</b><span>unique</span></div><div><b id="stTop">—</b><span>top card</span></div><div><b id="stAvg">—</b><span>avg card</span></div></div>
-  </section>
-
-  <div class="acts">
-    <button class="scanbtn" id="scanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><rect x="8" y="7" width="8" height="10" rx="1.5"/></svg>Scan a card</button>
-    <div class="acts2">
-      <button class="act" id="rapidHome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Rapid scan<small>Add a stack fast</small></button>
-      <button class="act" id="searchJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Search<small>By name or number</small></button>
+  <section class="view" id="v-home">
+    <section class="port" aria-label="Collection value">
+      <div class="port-l">Collection value</div>
+      <div class="port-v" id="total">$0.00</div>
+      <div class="port-c" id="count">0 cards</div>
+      <div class="port-c" id="gainLine" hidden></div>
+      <svg class="spark" id="spark" viewBox="0 0 300 64" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <div class="port-s"><div><b id="stUnique">0</b><span>unique</span></div><div><b id="stTop">—</b><span>top card</span></div><div><b id="stAvg">—</b><span>avg card</span></div></div>
+    </section>
+    <button class="alert" id="hitAlert" hidden></button>
+    <div class="acts">
+      <button class="scanbtn" id="scanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><rect x="8" y="7" width="8" height="10" rx="1.5"/></svg>Scan a card</button>
+      <div class="acts2">
+        <button class="act" id="rapidHome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Rapid scan<small>Add a stack fast</small></button>
+        <button class="act" id="searchJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Search<small>25,000+ cards</small></button>
+        <button class="act" id="tradeJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg>Trade check<small>Is it fair?</small></button>
+      </div>
     </div>
-  </div>
-
-  <form class="search" id="searchForm">
-    <input type="search" id="q" placeholder="Charizard, Umbreon VMAX, 199/165…" aria-label="Search cards" autocomplete="off">
-    <button type="submit">Search</button>
-  </form>
-  <p class="msg" id="homeMsg" aria-live="polite"></p>
-
-  <section class="onboard" id="onboard">
-    <h2 style="margin-top:6px">How it works</h2>
-    <ol>
-      <li><b>Tap Scan a card</b> and allow the camera.</li>
-      <li><b>Fit the card in the frame</b> with its number (like 199/165) in the yellow box.</li>
-      <li><b>See the TCGplayer price</b> and add it to your collection.</li>
-    </ol>
+    <form class="search" id="searchForm">
+      <input type="search" id="q" placeholder="Charizard, Umbreon VMAX, 199/165…" aria-label="Search cards" autocomplete="off">
+      <button type="submit">Search</button>
+    </form>
+    <p class="msg" id="homeMsg" aria-live="polite"></p>
+    <div id="results"></div>
+    <section class="onboard" id="onboard">
+      <h2 style="margin-top:6px">How it works</h2>
+      <ol>
+        <li><b>Tap the yellow scan button</b> and allow the camera.</li>
+        <li><b>Fit the card in the frame</b> with its number (like 199/165) in the yellow box.</li>
+        <li><b>See the TCGplayer price</b>, add it, and track your collection’s value every day.</li>
+      </ol>
+      <p class="msg">Free, unlimited scans. No account, no ads, no card limit.</p>
+    </section>
+    <section id="moverSec" hidden><h2>Price movers <small>since last update</small></h2><div class="hrow" id="moverRow"></div></section>
+    <section id="topSec" hidden><h2>Top cards <small id="topNote"></small></h2><div class="hrow" id="topRow"></div></section>
+    <section id="recentSec" hidden><h2>Recently added</h2><div class="hrow" id="recentRow"></div></section>
   </section>
 
-  <section id="topSec" hidden><h2>Top cards <small id="topNote"></small></h2><div class="hrow" id="topRow"></div></section>
-  <section id="recentSec" hidden><h2>Recently added</h2><div class="hrow" id="recentRow"></div></section>
+  <section class="view" id="v-col" hidden>
+    <h1 class="vt">Collection</h1>
+    <p class="vsub" id="colSub">Everything you own, priced daily.</p>
+    <div class="chips" id="binders" role="group" aria-label="Binders"></div>
+    <div class="row" id="colTools" style="margin-bottom:12px">
+      <input type="search" id="colQ" placeholder="Find in collection" aria-label="Find in collection" style="flex:1 1 160px">
+      <select id="sortBy" aria-label="Sort collection" style="font:inherit;font-size:16px;min-height:48px;border-radius:14px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:0 10px"><option value="value">Highest value</option><option value="gain">Biggest gain</option><option value="new">Newest</option><option value="name">Name</option><option value="set">Set</option></select>
+    </div>
+    <div class="grid" id="col"></div>
+    <p class="empty" id="colEmpty">Nothing here yet. Tap the yellow scan button to add cards.</p>
+    <div class="row" id="colActs" style="margin-top:16px">
+      <button class="ghost" id="refresh">Refresh prices</button>
+      <button class="ghost" id="exportBtn">Export CSV</button>
+      <button class="ghost" id="copyBtn">Copy list</button>
+    </div>
+  </section>
 
-  <div id="results"></div>
+  <section class="view" id="v-sets" hidden>
+    <div id="setHome">
+      <h1 class="vt">Sets</h1>
+      <p class="vsub">See what you own in every set, what’s missing, and what it costs to finish.</p>
+      <input type="search" id="setQ" placeholder="Find a set: 151, Evolving Skies…" aria-label="Find a set" style="margin-bottom:14px">
+      <div id="setList"><p class="empty">Loading sets…</p></div>
+    </div>
+    <div id="setDetail" hidden></div>
+  </section>
 
-  <h2>My collection <small id="colNote"></small></h2>
-  <div class="row" style="margin-bottom:10px">
-    <button class="ghost" id="refresh">Refresh prices</button>
-    <button class="ghost" id="copyBtn">Copy list</button>
-  </div>
-  <div class="row" id="colTools" style="margin-bottom:12px">
-    <input type="search" id="colQ" placeholder="Find in collection" aria-label="Find in collection" style="flex:1 1 160px">
-    <select id="sortBy" aria-label="Sort collection" style="font:inherit;font-size:16px;min-height:48px;border-radius:14px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:0 10px"><option value="value">Highest value</option><option value="new">Newest</option><option value="name">Name</option><option value="set">Set</option></select>
-  </div>
-  <div class="grid" id="col"></div>
-  <p class="empty" id="colEmpty">Your collection is empty. Scan a card to start it.</p>
+  <section class="view" id="v-wish" hidden>
+    <h1 class="vt">Wishlist</h1>
+    <p class="vsub" id="wishSub">Cards you want. Set a target price and HoloValue flags it when the price drops to it.</p>
+    <div class="grid" id="wishGrid"></div>
+    <p class="empty" id="wishEmpty">Open any card and tap ♡ Want to add it here.</p>
+  </section>
+
+  <section class="view" id="v-trade" hidden>
+    <h1 class="vt">Trade check</h1>
+    <p class="vsub">Add the cards on each side to see if a trade is fair, using today’s market prices.</p>
+    <div class="trade">
+      <div class="tside"><h2>You give</h2><input type="search" id="tqGive" placeholder="Add a card…" aria-label="Add a card you give" autocomplete="off"><ul class="drop" id="tdGive" hidden></ul><ul class="tlist" id="tlGive"></ul><p class="msg" id="ttGive">$0.00</p></div>
+      <div class="tside"><h2>You get</h2><input type="search" id="tqGet" placeholder="Add a card…" aria-label="Add a card you get" autocomplete="off"><ul class="drop" id="tdGet" hidden></ul><ul class="tlist" id="tlGet"></ul><p class="msg" id="ttGet">$0.00</p></div>
+    </div>
+    <div class="tres" id="tres"><div class="big">Add cards to compare</div><div id="tresSub"></div></div>
+    <div class="row" style="margin-top:12px"><button class="ghost" id="tClear">Clear trade</button></div>
+  </section>
 
   <p class="fine">Prices are TCGplayer market prices, refreshed nightly from TCGplayer data (via tcgcsv.com), with pokemontcg.io and TCGdex as backups. Card reading happens on your phone. Not affiliated with Nintendo, The Pokémon Company or TCGplayer.</p>
 </div>
 
-<button class="fab" id="fab" aria-label="Scan a card" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><rect x="8" y="7" width="8" height="10" rx="1.5"/></svg></button>
+<nav class="tabbar" aria-label="Main">
+  <a href="#home" data-v="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
+  <a href="#col" data-v="col"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="7" height="9" rx="1.5"/><rect x="14" y="4" width="7" height="9" rx="1.5"/><rect x="3" y="15" width="7" height="5" rx="1.5"/><rect x="14" y="15" width="7" height="5" rx="1.5"/></svg>Collection</a>
+  <button class="tscan" id="navScan" aria-label="Scan a card"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><rect x="8" y="7" width="8" height="10" rx="1.5"/></svg></button>
+  <a href="#sets" data-v="sets"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h10"/></svg>Sets</a>
+  <a href="#wish" data-v="wish"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.6A4 4 0 0 1 19 10c0 5.6-7 10-7 10z"/></svg>Wishlist</a>
+</nav>
 
 <div class="scanner" id="scanner" hidden>
   <video id="video" playsinline muted autoplay></video>
@@ -526,16 +617,19 @@ async function scanPhoto(file){
   }catch(e){chip(e.message||'Couldn’t read that photo.')}
 }
 
-/* ---------- sheet ---------- */
+/* ---------- shared UI ---------- */
+let wish=LS.get('hvl-wish',[]),binders=LS.get('hvl-binders',['Main']),curBinder='All',trade=LS.get('hvl-trade',{give:[],get:[]});
+const saveWish=()=>LS.set('hvl-wish',wish),saveTrade=()=>LS.set('hvl-trade',trade);
+let toastT;function toast(m){clearTimeout(toastT);$('toastHost').innerHTML='<div class="toast" role="status"></div>';$('toastHost').firstChild.textContent=m;toastT=setTimeout(()=>$('toastHost').innerHTML='',2400)}
 function closeSheet(){$('sheetHost').innerHTML=''}
 function sheet(html){
   $('sheetHost').innerHTML=`<div class="scrim" id="scrim"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div>`;
-  return document.querySelector('.sheet');
-  $('scrim').onclick=closeSheet;
+  $('scrim').onclick=closeSheet;return document.querySelector('.sheet');
 }
+const imgTag=(u,cls='')=>okUrl(u)?`<img src="${esc(u)}" alt="" loading="lazy" onerror="this.outerHTML='<span class=&quot;ph&quot;></span>'"${cls}>`:'<span class="ph"></span>';
 function tile(c,extra=''){
   const v=bestVariant(c),p=priceFor(c,v);
-  return `<button class="tile" data-id="${esc(c.id)}">${okUrl(c.images?.small)?`<img src="${esc(c.images.small)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`:'<span class="ph"></span>'}${extra}<span class="tn">${esc(c.name)}</span><span class="ts">${esc(c.set?.name||'')} · ${esc(c.number)}/${esc(c.set?.printedTotal||'')}</span><span class="tp">${money(p)}</span></button>`;
+  return `<button class="tile" data-id="${esc(c.id)}">${imgTag(c.images?.small)}${extra}<span class="tn">${esc(c.name)}</span><span class="ts">${esc(c.set?.name||'')} · ${esc(c.number)}/${esc(c.set?.printedTotal||'')}</span><span class="tp">${money(p)}</span></button>`;
 }
 let cache=new Map();
 function showChoices(cards,title){
@@ -543,116 +637,193 @@ function showChoices(cards,title){
   sheet(`<h3 style="margin:0">${esc(title)}</h3><p class="meta">Tap the one that matches your card.</p><div class="cands">${cards.slice(0,24).map(c=>tile(c)).join('')}</div>`);
   document.querySelectorAll('.sheet .tile').forEach(b=>b.onclick=()=>openCard(cache.get(b.dataset.id)));
 }
+function bindTiles(root){root.querySelectorAll('.tile[data-id]').forEach(b=>b.onclick=()=>{const c=cache.get(b.dataset.id);if(c)openCard(c)})}
+
+/* ---------- matching items to the TCGplayer file ---------- */
+function rowForItem(x){
+  const [n,t]=(x.num||'').split('/');const rows=tcgRows(n,t);
+  const pid=x.pid||(String(x.id).startsWith('tcg:')?+String(x.id).slice(4):0);
+  return (pid&&rows.find(r=>+r[2]===pid))||tcgBest(rows,x.name);
+}
+function itemFromCard(c,v){
+  v=v||bestVariant(c);
+  const it={id:c.id,name:c.name,set:c.set?.name||'',num:`${c.number}/${c.set?.printedTotal||''}`,img:c.images?.small||'',v,price:priceFor(c,v),t:Date.now()};
+  const row=tcgIdx?rowForItem(it):null;if(row){it.pid=+row[2];it.group=row[1];if(!okUrl(it.img))it.img=`https://tcgplayer-cdn.tcgplayer.com/product/${row[2]}_200w.jpg`}
+  return it;
+}
+async function cardForItem(x){
+  let c=cache.get(x.id);if(c)return c;
+  await tcgIndex();const row=rowForItem(x);const [n,t]=(x.num||'').split('/');
+  if(String(x.id).startsWith('tcg:')&&row)c=cardFromRow(row,n,t);
+  if(!c){try{c=String(x.id).startsWith('tcgdex:')?await tdxById(x.id):(await api(`id:"${qEsc(x.id)}"`,1))[0]}catch(e){}}
+  if(!c&&row)c=cardFromRow(row,n,t);
+  if(c){if(row&&!hasPrice(c))tcgFill(c);cache.set(c.id,c)}
+  return c;
+}
+async function openItem(id,list){const x=(list||col).find(i=>i.id===id)||wish.find(i=>i.id===id);if(!x)return;const c=await cardForItem(x);if(c)openCard(c);else toast('Couldn’t load that card. Check your connection.')}
+
+/* ---------- daily price update + history ---------- */
+function updatePrices(){
+  if(!tcgIdx)return 0;const stamp=tcgIdx.updated;let changed=0;
+  [...col,...wish].forEach(x=>{
+    const row=rowForItem(x);if(!row)return;
+    if(!x.pid){x.pid=+row[2];x.group=row[1]}
+    if(!okUrl(x.img))x.img=`https://tcgplayer-cdn.tcgplayer.com/product/${row[2]}_200w.jpg`;
+    const pr=rowPrices(row),v=x.v&&pr[x.v]?x.v:Object.keys(pr).find(k=>num(pr[k].market))||Object.keys(pr)[0];
+    const p=v?(num(pr[v].market)?pr[v].market:pr[v].low):null;if(!num(p))return;
+    if(p!==x.price){if(num(x.price))x.prev=x.price;x.price=p;x.v=v;changed++}
+    x.hist=x.hist||[];const last=x.hist[x.hist.length-1];
+    if(!last||last[0]!==stamp){x.hist.push([stamp,p]);if(x.hist.length>90)x.hist.shift()}else last[1]=p;
+  });
+  save();saveWish();return changed;
+}
+
+/* ---------- card sheet ---------- */
 function openCard(c,variant){
   cache.set(c.id,c);
   if(!hasPrice(c)&&!c._enriched){enrich(c).then(()=>{if(document.querySelector('.sheet')?.dataset.card===c.id)openCard(c,variant)})}
-  const own=col.find(x=>x.id===c.id);
-  const prices=c.tcgplayer?.prices||{};
-  const keys=Object.keys(prices);
-  const v=variant||own?.v||bestVariant(c);
-  const p=priceFor(c,v);
+  const own=col.find(x=>x.id===c.id),w=wish.find(x=>x.id===c.id);
+  const prices=c.tcgplayer?.prices||{},keys=Object.keys(prices);
+  const v=variant||own?.v||bestVariant(c),p=priceFor(c,v);
   const q=encodeURIComponent(`${c.name} ${c.number}/${c.set?.printedTotal||''} ${c.set?.name||''}`);
-  sheet(`<div class="shead">${okUrl(c.images?.large||c.images?.small)?`<img src="${esc(c.images.large||c.images.small)}" alt="${esc(c.name)} card">`:'<span class="ph"></span>'}
+  const gain=own&&num(own.paid)&&num(p)?(p-own.paid)*own.qty:null;
+  const hist=own?.hist||w?.hist||[];
+  sheet(`<div class="shead">${okUrl(c.images?.large||c.images?.small)?`<img src="${esc(c.images.large||c.images.small)}" alt="${esc(c.name)} card" onerror="this.style.visibility='hidden'">`:'<span class="ph"></span>'}
   <div><h3>${esc(c.name)}</h3><p class="meta">${esc(c.set?.name||'')} · #${esc(c.number)}/${esc(c.set?.printedTotal||'')}${c.rarity?' · '+esc(c.rarity):''}</p>
   <div class="sticker"><small>Market${v?' · '+esc(vName(v)):''}</small><strong>${money(p)}</strong></div>
-  ${c.tcgplayer?.updatedAt?`<p class="meta">Updated ${esc(c.tcgplayer.updatedAt)}</p>`:''}</div></div>
-  ${keys.length?`<table class="pick"><thead><tr><th>Version</th><th>Low</th><th>Market</th></tr></thead><tbody>${keys.map(k=>{const r=prices[k]||{};return `<tr data-v="${esc(k)}" class="${k===v?'sel':''}"><td>${k===v?'● ':''}${esc(vName(k))}</td><td>${money(r.low)}</td><td>${money(r.market)}</td></tr>`}).join('')}</tbody></table><p class="meta">Tap a version to pick yours.</p>`:(c._enriched?'<p class="meta">Neither price database lists this card yet. Check eBay sold listings below.</p>':'<p class="meta">Getting the price…</p>')}
+  ${c.tcgplayer?.updatedAt?`<p class="meta">Updated ${esc(c.tcgplayer.updatedAt)}</p>`:''}
+  ${own&&num(own.prev)&&own.prev!==own.price?`<p class="meta ${own.price>own.prev?'up':'down'}">${own.price>own.prev?'▲':'▼'} ${money(Math.abs(own.price-own.prev))} since last update</p>`:''}</div></div>
+  ${keys.length?`<table class="pick"><thead><tr><th>Version</th><th>Low</th><th>Market</th></tr></thead><tbody>${keys.map(k=>{const r=prices[k]||{};return `<tr data-v="${esc(k)}" class="${k===v?'sel':''}"><td>${k===v?'● ':''}${esc(vName(k))}</td><td>${money(r.low)}</td><td>${money(r.market)}</td></tr>`}).join('')}</tbody></table><p class="meta">Tap a version to pick yours.</p>`:(c._enriched?'<p class="meta">No price database lists this card yet. Check eBay sold listings below.</p>':'<p class="meta">Getting the price…</p>')}
+  ${hist.length>1?`<svg class="hspark" id="hsp" viewBox="0 0 300 60" preserveAspectRatio="none" aria-label="Price history"></svg><p class="meta">Price over the last ${hist.length} updates</p>`:''}
   <div class="row" style="margin-top:14px">
     ${own?`<span class="qty"><button id="dec" aria-label="One fewer">−</button><span>${own.qty} owned</span><button id="inc" aria-label="One more">+</button></span>`:`<button id="add">Add to collection</button>`}
-    <button class="ghost" id="again">Not it? Scan again</button>
+    <button class="ghost" id="wishBtn" aria-pressed="${!!w}">${w?'♥ On wishlist':'♡ Want'}</button>
   </div>
+  ${own?`<div class="sec"><div class="frow">
+    <label class="field">Paid (each)<input type="number" inputmode="decimal" step="0.01" min="0" id="paidIn" value="${num(own.paid)?own.paid:''}" placeholder="$0.00"></label>
+    <label class="field">Binder<select id="binderIn">${binders.map(b=>`<option${(own.binder||'Main')===b?' selected':''}>${esc(b)}</option>`).join('')}<option value="__new">+ New binder…</option></select></label></div>
+    <label class="field">Condition<select id="condIn">${['Near Mint','Lightly Played','Moderately Played','Heavily Played','Damaged','Graded'].map(o=>`<option${(own.cond||'Near Mint')===o?' selected':''}>${o}</option>`).join('')}</select></label>
+    ${gain!==null?`<p class="gain ${gain>=0?'up':'down'}">${gain>=0?'Gain':'Loss'} ${money(Math.abs(gain))} (${own.paid?Math.round((p-own.paid)/own.paid*100):0}%) on ${own.qty} card${own.qty===1?'':'s'}</p>`:''}</div>`:''}
+  ${w?`<div class="sec"><label class="field">Target price (tell me when it drops to this)<input type="number" inputmode="decimal" step="0.01" min="0" id="targetIn" value="${num(w.target)?w.target:''}" placeholder="$0.00"></label>${num(w.target)&&num(p)&&p<=w.target?'<p class="gain up">Target hit! It’s at or below your price.</p>':''}</div>`:''}
   <div class="links">
     ${okUrl(c.tcgplayer?.url)?`<a class="btn ghost" href="${esc(c.tcgplayer.url)}" target="_blank" rel="noopener">TCGplayer</a>`:''}
     <a class="btn ghost" href="https://www.ebay.com/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1" target="_blank" rel="noopener">eBay sold</a>
-  </div>`);
-  {const sh=document.querySelector('.sheet');if(sh)sh.dataset.card=c.id}
-  document.querySelectorAll('.sheet tr[data-v]').forEach(tr=>tr.onclick=()=>{const nv=tr.dataset.v;if(own){own.v=nv;own.price=priceFor(c,nv);save();renderCol()}openCard(c,nv)});
+    <button class="ghost" id="again">Not it? Scan again</button>
+  </div>
+  ${own?`<div class="row" style="margin-top:10px"><button class="danger" id="rmOwn">Remove from collection</button></div>`:''}`);
+  const sh=document.querySelector('.sheet');sh.dataset.card=c.id;
+  if(hist.length>1){const pts=hist.map(h=>h[1]),lo=Math.min(...pts),hi=Math.max(...pts),rg=hi-lo||1,X=i=>i*300/(pts.length-1),Y=v=>5+(1-(v-lo)/rg)*50;const d=pts.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('');const up=pts[pts.length-1]>=pts[0];$('hsp').innerHTML=`<path d="${d}" fill="none" stroke="${up?'#1d7a3c':'#e5383b'}" stroke-width="2.5" vector-effect="non-scaling-stroke"/>`}
+  sh.querySelectorAll('tr[data-v]').forEach(tr=>tr.onclick=()=>{const nv=tr.dataset.v;if(own){own.v=nv;own.price=priceFor(c,nv);save();renderAll()}openCard(c,nv)});
   $('again').onclick=()=>{closeSheet();openScanner()};
+  $('wishBtn').onclick=()=>{if(w){wish=wish.filter(x=>x!==w);toast('Removed from wishlist.')}else{wish.unshift(itemFromCard(c,v));toast(`${c.name} is on your wishlist.`)}saveWish();renderAll();openCard(c,v)};
   if(own){
-    $('inc').onclick=()=>{own.qty++;save();renderCol();openCard(c,v)};
-    $('dec').onclick=()=>{own.qty--;if(own.qty<=0){col=col.filter(x=>x!==own);toast(`Removed ${c.name}.`)}save();renderCol();openCard(c,v)};
+    $('inc').onclick=()=>{own.qty++;save();renderAll();openCard(c,v)};
+    $('dec').onclick=()=>{own.qty--;if(own.qty<=0){col=col.filter(x=>x!==own);toast(`Removed ${c.name}.`)}save();renderAll();openCard(c,v)};
+    $('rmOwn').onclick=()=>{const keep=own;col=col.filter(x=>x!==own);save();renderAll();closeSheet();toast(`Removed ${c.name}.`)};
+    $('paidIn').onchange=e=>{const n=parseFloat(e.target.value);own.paid=isFinite(n)&&n>=0?n:null;save();renderAll();openCard(c,v)};
+    $('condIn').onchange=e=>{own.cond=e.target.value;save()};
+    $('binderIn').onchange=e=>{let b=e.target.value;if(b==='__new'){b=(prompt('Name your new binder (for example: Trade binder)')||'').trim().slice(0,30);if(!b){e.target.value=own.binder||'Main';return}if(!binders.includes(b)){binders.push(b);LS.set('hvl-binders',binders)}}own.binder=b;save();renderAll();openCard(c,v)};
   }else $('add').onclick=()=>{addCard(c,v);toast(`Added ${c.name}.`);openCard(c,v)};
+  if(w)$('targetIn').onchange=e=>{const n=parseFloat(e.target.value);w.target=isFinite(n)&&n>0?n:null;saveWish();renderAll();openCard(c,v)};
 }
 
 /* ---------- collection ---------- */
-const ownedTile=x=>`<button class="tile" data-cid="${esc(x.id)}">${okUrl(x.img)?`<img src="${esc(x.img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`:'<span class="ph"></span>'}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${esc(x.num)}</span><span class="tp">${money(num(x.price)?x.price*x.qty:null)}</span></button>`;
-function renderHome(tot,n){
-  $('onboard').hidden=col.length>0;
-  const top=[...col].filter(x=>num(x.price)).sort((a,b)=>b.price-a.price);
-  $('topSec').hidden=top.length<2;$('topRow').innerHTML=top.slice(0,10).map(ownedTile).join('');
-  $('recentSec').hidden=col.length<2;$('recentRow').innerHTML=[...col].sort((a,b)=>b.t-a.t).slice(0,10).map(ownedTile).join('');
-  $('stUnique').textContent=col.length;$('stTop').textContent=top[0]?money(top[0].price):'—';$('stAvg').textContent=n?money(tot/n):'—';
-  $('topNote').textContent=top[0]?top[0].name:'';
-  // sparkline from daily values
-  const h=LS.get('hvl-hist',{}),pts=Object.keys(h).sort().map(k=>h[k]);
-  const sv=$('spark');
-  if(pts.length<2){sv.innerHTML=col.length?'<line x1="0" y1="40" x2="300" y2="40" stroke="currentColor" stroke-opacity=".35" stroke-width="2" stroke-dasharray="4 6"/><text x="0" y="60" font-size="11" fill="currentColor" fill-opacity=".6">Your value trend starts today</text>':'';return}
-  const lo=Math.min(...pts),hi=Math.max(...pts),rg=hi-lo||1,X=i=>i*300/(pts.length-1),Y=v=>6+(1-(v-lo)/rg)*50;
-  const d=pts.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('');
-  const up=pts[pts.length-1]>=pts[0];
-  sv.innerHTML=`<path d="${d}L300,64L0,64Z" fill="${up?'#6fdc95':'#e5383b'}" fill-opacity=".18"/><path d="${d}" fill="none" stroke="${up?'#6fdc95':'#e5383b'}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
-}
 function addCard(c,v){
-  v=v||bestVariant(c);const p=priceFor(c,v);
+  v=v||bestVariant(c);
   let it=col.find(x=>x.id===c.id);
-  if(it)it.qty++;else{it={id:c.id,name:c.name,set:c.set?.name||'',num:`${c.number}/${c.set?.printedTotal||''}`,img:c.images?.small||'',v,price:p,qty:1,t:Date.now()};col.unshift(it)}
-  save();renderCol();return it;
+  if(it)it.qty++;else{it={...itemFromCard(c,v),qty:1,binder:curBinder!=='All'?curBinder:'Main'};col.unshift(it)}
+  const w=wish.find(x=>x.id===c.id);if(w){wish=wish.filter(x=>x!==w);saveWish()}
+  save();renderAll();return it;
 }
-function renderCol(){
-  const tot=col.reduce((a,x)=>a+(num(x.price)?x.price:0)*x.qty,0),n=col.reduce((a,x)=>a+x.qty,0);
+const itemVal=x=>(num(x.price)?x.price:0)*(x.qty||1);
+const delta=x=>num(x.prev)&&num(x.price)?x.price-x.prev:0;
+function ownedTile(x){
+  const d=delta(x);
+  return `<button class="tile" data-cid="${esc(x.id)}">${imgTag(x.img)}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${esc(x.num)}</span><span class="tp">${money(num(x.price)?itemVal(x):null)}</span>${d?`<span class="mv ${d>0?'up':'down'}">${d>0?'▲':'▼'} ${money(Math.abs(d))}</span>`:''}</button>`;
+}
+function renderCol(){renderAll()}
+function renderAll(){
+  const tot=col.reduce((a,x)=>a+itemVal(x),0),n=col.reduce((a,x)=>a+x.qty,0);
   $('total').textContent=money(tot);
   const hist=LS.get('hvl-hist',{}),today=new Date().toISOString().slice(0,10);
-  if(col.length&&hist[today]!==Math.round(tot*100)/100){hist[today]=Math.round(tot*100)/100;const ks=Object.keys(hist).sort();while(ks.length>120)delete hist[ks.shift()];LS.set('hvl-hist',hist)}
+  if(col.length&&hist[today]!==Math.round(tot*100)/100){hist[today]=Math.round(tot*100)/100;const ks=Object.keys(hist).sort();while(ks.length>180)delete hist[ks.shift()];LS.set('hvl-hist',hist)}
   const prevDay=Object.keys(hist).filter(k=>k<today).sort().pop();
   let ch='';if(prevDay&&col.length){const d=tot-hist[prevDay];if(Math.abs(d)>=.01)ch=` · <span style="color:${d>0?'#6fdc95':'#ff7b7d'}">${d>0?'▲':'▼'} ${money(Math.abs(d))}</span>`}
   $('count').innerHTML=`${n} card${n===1?'':'s'}${ch}`;
+  const paidItems=col.filter(x=>num(x.paid));
+  if(paidItems.length){const cost=paidItems.reduce((a,x)=>a+x.paid*x.qty,0),now=paidItems.reduce((a,x)=>a+itemVal(x),0),g=now-cost;$('gainLine').hidden=false;$('gainLine').innerHTML=`Paid ${money(cost)} · <span style="color:${g>=0?'#6fdc95':'#ff7b7d'}">${g>=0?'+':'−'}${money(Math.abs(g))}</span> on cards with a price paid`}else $('gainLine').hidden=true;
   if(tcgIdx?.updated)$('upd').textContent='Prices updated '+tcgIdx.updated;
-  $('colEmpty').hidden=!!col.length;$('refresh').parentElement.hidden=!col.length;$('colTools').hidden=col.length<4;
-  $('colNote').textContent=col.length?money(tot):'';
-  const so=$('sortBy')?.value||'value',qf=($('colQ')?.value||'').toLowerCase();
-  const rows=col.filter(x=>!qf||(x.name+' '+x.set).toLowerCase().includes(qf)).sort(so==='new'?(a,b)=>b.t-a.t:so==='name'?(a,b)=>a.name.localeCompare(b.name):so==='set'?(a,b)=>a.set.localeCompare(b.set)||parseInt(a.num)-parseInt(b.num):(a,b)=>(b.price||0)*b.qty-(a.price||0)*a.qty);
+  // home rows
+  $('onboard').hidden=col.length>0;
+  const top=col.filter(x=>num(x.price)).sort((a,b)=>b.price-a.price);
+  $('topSec').hidden=top.length<2;$('topRow').innerHTML=top.slice(0,10).map(ownedTile).join('');
+  $('recentSec').hidden=col.length<2;$('recentRow').innerHTML=[...col].sort((a,b)=>b.t-a.t).slice(0,10).map(ownedTile).join('');
+  const mv=col.filter(x=>delta(x)).sort((a,b)=>Math.abs(delta(b)*b.qty)-Math.abs(delta(a)*a.qty));
+  $('moverSec').hidden=!mv.length;$('moverRow').innerHTML=mv.slice(0,10).map(ownedTile).join('');
+  $('stUnique').textContent=col.length;$('stTop').textContent=top[0]?money(top[0].price):'—';$('stAvg').textContent=n?money(tot/n):'—';
+  $('topNote').textContent=top[0]?top[0].name:'';
+  const hits=wish.filter(w=>num(w.target)&&num(w.price)&&w.price<=w.target);
+  $('hitAlert').hidden=!hits.length;$('hitAlert').textContent=hits.length?`🎯 ${hits.length} wishlist card${hits.length===1?' is':'s are'} at or below your target price. Tap to see.`:'';
+  drawSpark(hist);
+  // collection view
+  const bset=['All',...binders];
+  $('binders').innerHTML=bset.map(b=>`<button class="chip" data-b="${esc(b)}" aria-pressed="${b===curBinder}">${esc(b)}${b==='All'?'':' · '+col.filter(x=>(x.binder||'Main')===b).reduce((a,x)=>a+x.qty,0)}</button>`).join('')+`<button class="chip" data-b="__new">+ New binder</button>`;
+  $('binders').querySelectorAll('.chip').forEach(bt=>bt.onclick=()=>{const b=bt.dataset.b;if(b==='__new'){const nb=(prompt('Name your new binder (for example: Trade binder)')||'').trim().slice(0,30);if(nb&&!binders.includes(nb)){binders.push(nb);LS.set('hvl-binders',binders)}if(nb)curBinder=nb}else curBinder=b;renderAll()});
+  const so=$('sortBy').value,qf=$('colQ').value.toLowerCase();
+  const inB=col.filter(x=>curBinder==='All'||(x.binder||'Main')===curBinder);
+  const rows=inB.filter(x=>!qf||(x.name+' '+x.set).toLowerCase().includes(qf)).sort(so==='new'?(a,b)=>b.t-a.t:so==='name'?(a,b)=>a.name.localeCompare(b.name):so==='set'?(a,b)=>a.set.localeCompare(b.set)||parseInt(a.num)-parseInt(b.num):so==='gain'?(a,b)=>((num(b.paid)?itemVal(b)-b.paid*b.qty:delta(b)*b.qty)-(num(a.paid)?itemVal(a)-a.paid*a.qty:delta(a)*a.qty)):(a,b)=>itemVal(b)-itemVal(a));
   $('col').innerHTML=rows.map(ownedTile).join('');
-  renderHome(tot,n);
-  document.querySelectorAll('[data-cid]').forEach(b=>b.onclick=async()=>{
-    const id=b.dataset.cid;let c=cache.get(id);
-    if(!c&&id.startsWith('tcg:')){await tcgIndex();const it=col.find(x=>x.id===id);const [n,t]=(it?.num||'').split('/');const row=tcgRows(n,t).find(r=>'tcg:'+r[2]===id);if(row)c=cardFromRow(row,n,t)}
-    if(!c){try{c=id.startsWith('tcgdex:')?await tdxById(id):(await api(`id:"${qEsc(id)}"`,1))[0]}catch(e){toast(e.message);return}}
-    if(c)openCard(c);
-  });
+  const bt=inB.reduce((a,x)=>a+itemVal(x),0),bn=inB.reduce((a,x)=>a+x.qty,0);
+  $('colSub').textContent=col.length?`${bn} card${bn===1?'':'s'} · ${money(bt)}${curBinder!=='All'?' in '+curBinder:''}`:'Everything you own, priced daily.';
+  $('colEmpty').hidden=!!inB.length;$('colActs').hidden=!col.length;$('colTools').hidden=inB.length<4;
+  // wishlist view
+  const wt=wish.reduce((a,x)=>a+(num(x.price)?x.price:0),0);
+  $('wishSub').textContent=wish.length?`${wish.length} card${wish.length===1?'':'s'} · ${money(wt)} to get them all${hits.length?` · ${hits.length} at target`:''}`:'Cards you want. Set a target price and HoloValue flags it when the price drops to it.';
+  $('wishEmpty').hidden=!!wish.length;
+  $('wishGrid').innerHTML=wish.map(x=>{const hit=num(x.target)&&num(x.price)&&x.price<=x.target;return `<button class="tile" data-wid="${esc(x.id)}">${imgTag(x.img)}${hit?'<span class="hit">TARGET</span>':''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${esc(x.num)}</span><span class="tp">${money(x.price)}</span>${num(x.target)?`<span class="ts">Target ${money(x.target)}</span>`:''}</button>`}).join('');
+  document.querySelectorAll('[data-cid]').forEach(b=>b.onclick=()=>openItem(b.dataset.cid,col));
+  document.querySelectorAll('[data-wid]').forEach(b=>b.onclick=()=>openItem(b.dataset.wid,wish));
+  if(view==='sets'&&!$('setDetail').hidden&&curSet)renderSetDetail(curSet);else if(view==='sets')renderSets();
+}
+function drawSpark(h){
+  const pts=Object.keys(h).sort().map(k=>h[k]),sv=$('spark');
+  if(pts.length<2){sv.innerHTML=col.length?'<line x1="0" y1="40" x2="300" y2="40" stroke="currentColor" stroke-opacity=".35" stroke-width="2" stroke-dasharray="4 6"/><text x="0" y="60" font-size="11" fill="currentColor" fill-opacity=".6">Your value trend starts today</text>':'';return}
+  const lo=Math.min(...pts),hi=Math.max(...pts),rg=hi-lo||1,X=i=>i*300/(pts.length-1),Y=v=>6+(1-(v-lo)/rg)*50;
+  const d=pts.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(''),up=pts[pts.length-1]>=pts[0];
+  sv.innerHTML=`<path d="${d}L300,64L0,64Z" fill="${up?'#6fdc95':'#e5383b'}" fill-opacity=".18"/><path d="${d}" fill="none" stroke="${up?'#6fdc95':'#e5383b'}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
 }
 $('refresh').onclick=async()=>{
   const btn=$('refresh');btn.disabled=true;btn.textContent='Refreshing…';
   try{
-    await fillFromFile(true);
-    for(let i=0;i<col.length;i+=40){
-      const chunk=col.slice(i,i+40),ptc=chunk.filter(x=>!x.id.startsWith('tcgdex:')),tdx=chunk.filter(x=>x.id.startsWith('tcgdex:'));
-      const cards=[...(ptc.length?await api(ptc.map(x=>`id:"${qEsc(x.id)}"`).join(' OR '),40).catch(()=>[]):[]),...(await Promise.all(tdx.map(x=>tdxById(x.id).catch(()=>null)))).filter(Boolean)];
-      for(const c of cards)if(!hasPrice(c))await enrich(c);
-      cards.forEach(c=>{cache.set(c.id,c);const it=col.find(x=>x.id===c.id);if(it){const p=priceFor(c,it.v||bestVariant(c));if(num(p))it.price=p;it.img=c.images?.small||it.img}});
-    }
-    save();renderCol();toast('Prices updated.');
-  }catch(e){toast(e.message)}
+    tcgIdxP=null;await tcgIndex();const ch=updatePrices();
+    const rest=col.filter(x=>!rowForItem(x));
+    for(const x of rest){const c=await cardForItem(x);if(c){if(!hasPrice(c))await enrich(c);const p=priceFor(c,x.v||bestVariant(c));if(num(p)&&p!==x.price){if(num(x.price))x.prev=x.price;x.price=p}}}
+    save();renderAll();toast(ch?`Updated ${ch} price${ch===1?'':'s'}.`:'Prices are up to date.');
+  }catch(e){toast(e.message||'Couldn’t refresh right now.')}
   finally{btn.disabled=false;btn.textContent='Refresh prices'}
 };
-// fill collection prices from the TCGplayer file (also runs once on load)
-async function fillFromFile(force){
-  await tcgIndex();if(!tcgIdx)return 0;let changed=0;
-  col.forEach(x=>{
-    if(!force&&num(x.price))return;
-    const [n,t]=(x.num||'').split('/');let rows=tcgRows(n,t);
-    const row=x.id.startsWith('tcg:')?rows.find(r=>'tcg:'+r[2]===x.id):tcgBest(rows,x.name);
-    if(!row)return;const pr=rowPrices(row);const v=x.v&&pr[x.v]?x.v:Object.keys(pr).find(k=>num(pr[k].market))||Object.keys(pr)[0];
-    const p=v?(num(pr[v].market)?pr[v].market:pr[v].low):null;if(num(p)&&p!==x.price){x.price=p;x.v=v;changed++}
-  });
-  if(changed){save();renderCol()}return changed;
-}
-fillFromFile(false);
+$('exportBtn').onclick=()=>{
+  const cell=v=>{const s=String(v??'');return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
+  const rows=[['Name','Set','Number','Version','Condition','Binder','Quantity','Market each (USD)','Total (USD)','Paid each (USD)','Gain (USD)','TCGplayer'],...col.map(x=>[x.name,x.set,x.num,vName(x.v||'normal'),x.cond||'Near Mint',x.binder||'Main',x.qty,num(x.price)?x.price.toFixed(2):'',num(x.price)?itemVal(x).toFixed(2):'',num(x.paid)?x.paid.toFixed(2):'',num(x.paid)&&num(x.price)?(itemVal(x)-x.paid*x.qty).toFixed(2):'',x.pid?`https://www.tcgplayer.com/product/${x.pid}`:''])];
+  const blob=new Blob([rows.map(r=>r.map(cell).join(',')).join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`holovalue-collection-${new Date().toISOString().slice(0,10)}.csv`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);toast('Collection exported.');
+};
 $('copyBtn').onclick=async()=>{
   const text=col.map(x=>`${x.qty}× ${x.name} (${x.set} ${x.num}) ${money(x.price)}`).join('\n')+`\nTotal: ${$('total').textContent}`;
   try{await navigator.clipboard.writeText(text);toast('List copied.')}catch(e){toast('Couldn’t copy on this browser.')}
 };
 
-/* ---------- search ---------- */
+/* ---------- instant local search across the TCGplayer file ---------- */
+let nameIdx=null;
+function buildNameIdx(){if(nameIdx||!tcgIdx)return;nameIdx=[];for(const [k,rows] of Object.entries(tcgIdx.cards)){const [n,t]=k.split('/');for(const r of rows)nameIdx.push([r[0].toLowerCase(),r,n,t])}}
+const rowMarket=r=>{const v=Object.values(r[3]||{}).map(a=>a[1]).filter(num);return v.length?Math.max(...v):0};
+function localSearch(term,limit=40){
+  buildNameIdx();if(!nameIdx)return[];
+  const words=term.toLowerCase().replace(/[^a-z0-9é'\s-]/g,' ').split(/\s+/).filter(Boolean);if(!words.length)return[];
+  const hits=[];for(const e of nameIdx){if(words.every(w=>e[0].includes(w)||String(e[1][1]).toLowerCase().includes(w)))hits.push(e)}
+  hits.sort((a,b)=>(b[0].startsWith(words[0])-a[0].startsWith(words[0]))||rowMarket(b[1])-rowMarket(a[1]));
+  return hits.slice(0,limit).map(e=>cardFromRow(e[1],e[2],e[3]));
+}
 async function search(term){
   const t=term.trim();if(!t)return;
   $('homeMsg').textContent='Searching…';$('homeMsg').classList.remove('err');
@@ -660,41 +831,127 @@ async function search(term){
     const m=t.match(/^(.*?)\s*(\d{1,3})\s*\/\s*(\d{2,3})\s*$/);
     let cards;
     if(m){cards=pickByName(await lookup(m[2],m[3]),m[1])}
-    else{const words=t.replace(/[^\w\sé'-]/g,' ').split(/\s+/).filter(Boolean);
-      try{cards=await api(words.map(w=>w.replace(/[^A-Za-z0-9é'-]/g,'')).filter(Boolean).map(w=>`name:${w}*`).join(' '),36)}catch(e){cards=null}
-      if(!cards||!cards.length){const brief=(await tget('/cards?name='+encodeURIComponent(t)))||[];cards=(await Promise.all(brief.slice(-18).reverse().map(b=>tdxById(b.id).catch(()=>null)))).filter(Boolean)}}
+    else{
+      await tcgIndex();cards=localSearch(t);
+      if(!cards.length){const words=t.replace(/[^\w\sé'-]/g,' ').split(/\s+/).filter(Boolean);
+        try{cards=await api(words.map(w=>w.replace(/[^A-Za-z0-9é'-]/g,'')).filter(Boolean).map(w=>`name:${w}*`).join(' '),36)}catch(e){cards=null}
+        if(!cards||!cards.length){const brief=(await tget('/cards?name='+encodeURIComponent(t)))||[];cards=(await Promise.all(brief.slice(-18).reverse().map(b=>tdxById(b.id).catch(()=>null)))).filter(Boolean)}}
+    }
     if(!cards.length){$('homeMsg').textContent='No cards found. Check the spelling, or try just the Pokémon’s name.';$('results').innerHTML='';return}
     cards.forEach(c=>cache.set(c.id,c));
-    $('homeMsg').textContent=`${cards.length} result${cards.length===1?'':'s'}`;
+    $('homeMsg').textContent=`${cards.length} result${cards.length===1?'':'s'}, most valuable first`;
     $('results').innerHTML=`<h2>Results <small><button class="ghost" id="clr" style="min-height:36px">Clear</button></small></h2><div class="grid">${cards.map(c=>tile(c)).join('')}</div>`;
     $('clr').onclick=()=>{$('results').innerHTML='';$('homeMsg').textContent=''};
-    document.querySelectorAll('#results .tile').forEach(b=>b.onclick=()=>openCard(cache.get(b.dataset.id)));
+    bindTiles($('results'));
   }catch(e){$('homeMsg').textContent=e.message;$('homeMsg').classList.add('err')}
 }
 
-let toastT;function toast(m){clearTimeout(toastT);$('toastHost').innerHTML='<div class="toast" role="status"></div>';$('toastHost').firstChild.textContent=m;toastT=setTimeout(()=>$('toastHost').innerHTML='',2400)}
+/* ---------- sets ---------- */
+let setsCache=null,curSet=null,setFilter='all';
+function buildSets(){
+  if(setsCache||!tcgIdx)return setsCache;
+  const m=new Map();
+  for(const [k,rows] of Object.entries(tcgIdx.cards)){const [n,t]=k.split('/');for(const r of rows){if(!m.has(r[1]))m.set(r[1],[]);m.get(r[1]).push([r,n,t])}}
+  setsCache=[...m.entries()].filter(([g,a])=>a.length>=15&&!/jumbo|code card|deck|box|tin|collection box|theme/i.test(g)).map(([g,a])=>({name:g,short:String(g).replace(/^[A-Za-z0-9.]+:\s*/,''),date:tcgIdx.sets?.[g]?.[1]||'',rows:a.sort((x,y)=>+x[1]-+y[1]||x[0][0].localeCompare(y[0][0]))}));
+  setsCache.sort((a,b)=>(b.date||'').localeCompare(a.date||'')||a.short.localeCompare(b.short));
+  return setsCache;
+}
+function ownedInSet(s){const pids=new Set(col.filter(x=>x.pid).map(x=>+x.pid));return s.rows.filter(([r])=>pids.has(+r[2]))}
+function renderSets(){
+  const all=buildSets();if(!all){$('setList').innerHTML='<p class="empty">Loading sets…</p>';tcgIndex().then(()=>{if(tcgIdx)renderSets()});return}
+  const q=$('setQ').value.toLowerCase().trim();
+  const withOwn=all.map(s=>({s,o:ownedInSet(s).length}));
+  const mine=withOwn.filter(x=>x.o>0).sort((a,b)=>b.o/b.s.rows.length-a.o/a.s.rows.length);
+  const list=q?withOwn.filter(x=>x.s.name.toLowerCase().includes(q)):withOwn.slice(0,40);
+  const li=x=>{const pc=Math.round(x.o/x.s.rows.length*100);return `<li><button data-set="${esc(x.s.name)}"><b>${esc(x.s.short)}<span>${x.o}/${x.s.rows.length}</span></b><small>${x.s.date?esc(x.s.date.slice(0,4))+' · ':''}${x.o&&pc<1?'under 1':pc}% complete</small><div class="bar"><i style="width:${Math.max(x.o?3:0,pc)}%"></i></div></button></li>`};
+  $('setList').innerHTML=(mine.length&&!q?`<h2 style="margin-top:0">Your sets</h2><ul class="setlist">${mine.map(li).join('')}</ul><h2>All sets <small>newest first</small></h2>`:'')+`<ul class="setlist">${list.map(li).join('')||'<p class="empty">No set matches that name.</p>'}</ul>${!q&&all.length>40?'<p class="msg">Search above to find older sets.</p>':''}`;
+  $('setList').querySelectorAll('[data-set]').forEach(b=>b.onclick=()=>{curSet=b.dataset.set;setFilter='all';renderSetDetail(curSet);window.scrollTo(0,0)});
+}
+function renderSetDetail(name){
+  const s=buildSets()?.find(x=>x.name===name);if(!s)return;
+  $('setHome').hidden=true;$('setDetail').hidden=false;
+  const pids=new Set(col.filter(x=>x.pid).map(x=>+x.pid));
+  const own=s.rows.filter(([r])=>pids.has(+r[2])),miss=s.rows.filter(([r])=>!pids.has(+r[2]));
+  const ownVal=own.reduce((a,[r])=>a+rowMarket(r),0),missVal=miss.reduce((a,[r])=>a+rowMarket(r),0),pc=Math.round(own.length/s.rows.length*100);
+  const shown=setFilter==='own'?own:setFilter==='miss'?miss:s.rows;
+  const cards=shown.map(([r,n,t])=>{const c=cardFromRow(r,n,t);cache.set(c.id,c);return [c,pids.has(+r[2])]});
+  $('setDetail').innerHTML=`<button class="ghost" id="setBack" style="margin-bottom:10px">‹ All sets</button>
+  <div class="shero"><h1 class="vt" style="margin:0">${esc(s.short)}</h1><p class="meta">${s.date?'Released '+esc(s.date)+' · ':''}${s.rows.length} cards</p>
+  <div class="big" style="margin-top:8px">${own.length}/${s.rows.length} <small style="font-size:16px;font-weight:500;color:var(--soft)">${own.length&&pc<1?'under 1':pc}% complete</small></div><div class="bar"><i style="width:${Math.max(own.length?3:0,pc)}%"></i></div>
+  <div class="kv"><div><b>${money(ownVal)}</b><span>you own</span></div><div><b>${money(missVal)}</b><span>to complete</span></div><div><b>${miss.length}</b><span>missing</span></div></div></div>
+  <div class="chips">${[['all','All '+s.rows.length],['miss','Missing '+miss.length],['own','Owned '+own.length]].map(([k,l])=>`<button class="chip" data-f="${k}" aria-pressed="${setFilter===k}">${l}</button>`).join('')}</div>
+  <div class="grid">${cards.map(([c,o])=>tile(c,o?'<span class="own">✓</span>':'').replace('class="tile"',`class="tile${o?'':' missing'}"`)).join('')}</div>`;
+  $('setBack').onclick=()=>{curSet=null;$('setDetail').hidden=true;$('setHome').hidden=false;renderSets()};
+  $('setDetail').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{setFilter=b.dataset.f;renderSetDetail(name)});
+  bindTiles($('setDetail'));
+}
+$('setQ').oninput=renderSets;
 
-$('scanBtn').onclick=openScanner;
-$('fab').onclick=openScanner;
+/* ---------- trade check ---------- */
+function renderTrade(){
+  const sum=a=>a.reduce((s,x)=>s+(num(x.price)?x.price:0),0),g=sum(trade.give),r=sum(trade.get);
+  [['give','Give'],['get','Get']].forEach(([k,K])=>{
+    $('tl'+K).innerHTML=trade[k].map((x,i)=>`<li>${imgTag(x.img)}<div class="nm">${esc(x.name)}<small>${esc(x.set)} · ${esc(x.num)}</small></div><b>${money(x.price)}</b><button data-k="${k}" data-i="${i}" aria-label="Remove ${esc(x.name)}">×</button></li>`).join('');
+    $('tt'+K).textContent=`${trade[k].length} card${trade[k].length===1?'':'s'} · ${money(k==='give'?g:r)}`;
+  });
+  document.querySelectorAll('.tlist button').forEach(b=>b.onclick=()=>{trade[b.dataset.k].splice(+b.dataset.i,1);saveTrade();renderTrade()});
+  const d=r-g,base=Math.max(g,r)||1,pct=Math.abs(d)/base*100;
+  if(!trade.give.length&&!trade.get.length){$('tres').querySelector('.big').textContent='Add cards to compare';$('tresSub').textContent='';return}
+  $('tres').querySelector('.big').textContent=pct<=5?'Fair trade 👍':d>0?`You gain ${money(d)}`:`You lose ${money(-d)}`;
+  $('tresSub').textContent=pct<=5?`Within ${pct.toFixed(1)}% · give ${money(g)}, get ${money(r)}`:`${pct.toFixed(0)}% difference · give ${money(g)}, get ${money(r)}`;
+}
+function tradeInput(k,K){
+  let tm;const inp=$('tq'+K),dd=$('td'+K);
+  inp.oninput=()=>{clearTimeout(tm);tm=setTimeout(async()=>{
+    const t=inp.value.trim();if(t.length<2){dd.hidden=true;return}
+    await tcgIndex();const mine=col.filter(x=>x.name.toLowerCase().includes(t.toLowerCase())).slice(0,4).map(x=>({...x,mine:true}));
+    const res=localSearch(t,8).map(c=>itemFromCard(c));
+    const list=[...mine,...res.filter(r=>!mine.some(m=>m.id===r.id))].slice(0,10);
+    dd.innerHTML=list.map((x,i)=>`<li><button data-i="${i}"><span>${esc(x.name)} <small style="color:var(--soft)">${esc(x.set)} ${esc(x.num)}${x.mine?' · yours':''}</small></span><b>${money(x.price)}</b></button></li>`).join('')||'<li style="padding:10px" class="empty">No matches</li>';
+    dd.hidden=false;
+    dd.querySelectorAll('button').forEach(b=>b.onclick=()=>{const x=list[+b.dataset.i];trade[k].push({id:x.id,name:x.name,set:x.set,num:x.num,img:x.img,price:x.price});saveTrade();inp.value='';dd.hidden=true;renderTrade()});
+  },150)};
+}
+tradeInput('give','Give');tradeInput('get','Get');
+$('tClear').onclick=()=>{trade={give:[],get:[]};saveTrade();renderTrade()};
+
+/* ---------- navigation ---------- */
+let view='home';
+function route(){
+  const h=location.hash.slice(1),v=['home','col','sets','wish','trade'].includes(h)?h:'home';view=v;
+  document.querySelectorAll('.view').forEach(s=>s.hidden=s.id!=='v-'+v);
+  document.querySelectorAll('.tabbar a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
+  if(v==='sets'){if(curSet)renderSetDetail(curSet);else renderSets()}
+  if(v==='trade')renderTrade();
+  window.scrollTo(0,0);
+}
+window.addEventListener('hashchange',route);
+const go=v=>{if(location.hash==='#'+v)route();else location.hash=v};
+
+/* ---------- wiring ---------- */
+$('scanBtn').onclick=openScanner;$('navScan').onclick=openScanner;
 $('rapidHome').onclick=()=>{setRapid(true);openScanner()};
 $('searchJump').onclick=()=>{$('q').focus();$('q').scrollIntoView({block:'center',behavior:'smooth'})};
-if('IntersectionObserver' in window){const io=new IntersectionObserver(es=>{$('fab').hidden=es[0].isIntersecting});io.observe($('scanBtn'))}
-tcgIndex().then(()=>{if(tcgIdx?.updated)$('upd').textContent='Prices updated '+tcgIdx.updated});
-$('colQ').oninput=renderCol;$('sortBy').onchange=renderCol;
+$('tradeJump').onclick=()=>go('trade');
+$('hitAlert').onclick=()=>go('wish');
+$('colQ').oninput=renderAll;$('sortBy').onchange=renderAll;
 $('video').addEventListener('click',e=>{if(!track)return;const r=$('video').getBoundingClientRect();const pt={x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};
   track.applyConstraints({advanced:[{pointsOfInterest:[pt],focusMode:'single-shot'}]}).then(()=>setTimeout(()=>track?.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}),1500)).catch(()=>{});chip('Focusing…')});
 $('closeScan').onclick=closeScanner;
 $('rapidBtn').onclick=()=>{setRapid(!rapid);chip(rapid?'Rapid scan on: each card is added automatically':'Rapid scan off')};
-$('sess').onclick=()=>{closeScanner();document.getElementById('col').scrollIntoView({behavior:'smooth'})};
+$('sess').onclick=()=>{closeScanner();go('col')};
 setRapid(rapid);
 $('shutter').onclick=()=>scanOnce(true);
-$('typeIt').onclick=()=>{closeScanner();$('q').focus()};
+$('typeIt').onclick=()=>{closeScanner();go('home');setTimeout(()=>$('q').focus(),100)};
 $('photo').onchange=e=>{const f=e.target.files?.[0];e.target.value='';if(f)scanPhoto(f)};
 $('torch').onclick=()=>{torchOn=!torchOn;track?.applyConstraints({advanced:[{torch:torchOn}]}).catch(()=>{});$('torch').textContent=torchOn?'Flash on':'Flash'};
 $('searchForm').onsubmit=e=>{e.preventDefault();search($('q').value)};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('sheetHost').innerHTML)closeSheet();else if(!$('scanner').hidden)closeScanner()}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&!$('scanner').hidden)closeScanner()});
-renderCol();
+// old collection format → add binder defaults
+col.forEach(x=>{x.qty=x.qty||1});
+route();renderAll();
+tcgIndex().then(()=>{if(updatePrices()||true)renderAll()});
 if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 </script>

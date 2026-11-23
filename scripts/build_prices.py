@@ -3,6 +3,7 @@
 Output shape (compact):
 {
   "updated": "2026-11-23",
+  "sets": {"ME03: Perfect Order": [24600, "2026-09-26", "ME03"], ...},
   "cards": {
     "96/88": [["Probopass", "ME03: Perfect Order", 123456, {"Holofoil": [low, market, high]}], ...],
     ...
@@ -88,7 +89,8 @@ def main(out_path):
     if total < 1000:
         print(f"only {total} cards found; refusing to overwrite", file=sys.stderr)
         sys.exit(1)
-    out = {"updated": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "cards": cards}
+    sets = {g.get("name", ""): [g.get("groupId"), (g.get("publishedOn") or "")[:10], g.get("abbreviation") or ""] for g in groups}
+    out = {"updated": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "sets": sets, "cards": cards}
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
     print(f"wrote {total} cards across {len(groups)} sets to {out_path}")
