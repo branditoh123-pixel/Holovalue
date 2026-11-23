@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#ffd23f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <title>HoloValue Scanner</title>
@@ -34,7 +37,7 @@ h2 small{font-size:14px;font-weight:500;color:var(--soft)}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
 @media(max-width:420px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .tile{position:relative;background:var(--paper);border-radius:14px;padding:8px;text-align:left;cursor:pointer;border:0;color:var(--ink);font:inherit;display:block;width:100%;box-shadow:0 4px 14px #0001}
-.tile img,.ph{display:block;width:100%;aspect-ratio:63/88;border-radius:8px;object-fit:cover;background:var(--foil)}
+.tile img,.ph{display:block;background:var(--foil);width:100%;aspect-ratio:63/88;border-radius:8px;object-fit:cover;background:var(--foil)}
 .tn{display:block;font-weight:500;font-size:14px;margin-top:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .ts{display:block;font-size:12px;color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .tp{display:block;font-weight:800;margin-top:2px;white-space:nowrap}
@@ -57,6 +60,11 @@ h2 small{font-size:14px;font-weight:500;color:var(--soft)}
 @media(prefers-reduced-motion:reduce){.beam{animation:none;top:50%}}
 .sbar{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:calc(12px + env(safe-area-inset-top)) 16px 12px}
 .sbar button{background:#0008!important;color:#fff!important;border:0;min-width:48px;padding:0 14px}
+.sbar #rapidBtn[aria-pressed=true]{background:#ffd23f!important;color:#16141a!important}
+.found{position:absolute;z-index:3;left:12px;right:12px;top:calc(70px + env(safe-area-inset-top));display:flex;align-items:center;gap:12px;background:#fffdf5;color:#16141a;border-radius:16px;padding:8px 10px;box-shadow:0 10px 30px #0006}
+.found img{width:40px;border-radius:4px}.found div{flex:1;min-width:0;line-height:1.25}.found b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.found span{font-size:13px;color:#5b5547}
+.found button{min-height:40px;padding:0 12px;font-size:14px}
+.sess{position:absolute;z-index:3;left:50%;transform:translateX(-50%);bottom:calc(176px + env(safe-area-inset-bottom));background:#ffd23f!important;color:#16141a!important;border:0;font-size:14px;min-height:40px}
 .schip{position:absolute;z-index:2;left:50%;transform:translateX(-50%);bottom:calc(128px + env(safe-area-inset-bottom));background:#000c;border-radius:999px;padding:8px 16px;font-size:15px;font-weight:500;text-align:center;max-width:calc(100vw - 32px)}
 .sbot{position:absolute;z-index:2;left:0;right:0;bottom:0;display:flex;justify-content:center;align-items:center;gap:22px;padding:16px 16px calc(22px + env(safe-area-inset-bottom))}
 .shutter{width:76px;height:76px;border-radius:50%;background:#fff;border:6px solid #ffffff55;background-clip:padding-box;padding:0;min-height:0}
@@ -114,6 +122,10 @@ tr.sel td{font-weight:700}
     <button class="ghost" id="refresh">Refresh prices</button>
     <button class="ghost" id="copyBtn">Copy list</button>
   </div>
+  <div class="row" id="colTools" style="margin-bottom:12px">
+    <input type="search" id="colQ" placeholder="Find in collection" aria-label="Find in collection" style="flex:1 1 160px">
+    <select id="sortBy" aria-label="Sort collection" style="font:inherit;font-size:16px;min-height:48px;border-radius:14px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:0 10px"><option value="value">Highest value</option><option value="new">Newest</option><option value="name">Name</option><option value="set">Set</option></select>
+  </div>
   <div class="grid" id="col"></div>
   <p class="empty" id="colEmpty">Scan a card and tap Add to start your collection.</p>
 
@@ -122,7 +134,9 @@ tr.sel td{font-weight:700}
 
 <div class="scanner" id="scanner" hidden>
   <video id="video" playsinline muted autoplay></video>
-  <div class="sbar"><button id="closeScan" aria-label="Close scanner">✕</button><button id="torch" hidden>Flash</button></div>
+  <div class="sbar"><button id="closeScan" aria-label="Close scanner">✕</button><div class="row"><button id="rapidBtn" aria-pressed="false">Rapid: Off</button><button id="torch" hidden>Flash</button></div></div>
+  <div class="found" id="found" hidden role="status"></div>
+  <button class="sess" id="sess" hidden></button>
   <div class="guide" id="guide"><span class="lineA">Fit the whole card in the frame</span><div class="beam"></div><div class="nb l"></div><div class="nb r"></div><span class="lineB">Card number goes in the yellow box</span></div>
   <div class="schip" id="schip">Starting camera…</div>
   <div class="sdbg" id="sdbg" aria-hidden="true"></div>
@@ -379,6 +393,7 @@ async function openScanner(){
   }
 }
 function closeScanner(){
+  if(session.length&&rapid)toast(`Added ${session.length} card${session.length===1?'':'s'} to your collection.`);session=[];$('found').hidden=true;
   loopOn=false;stream?.getTracks().forEach(t=>t.stop());stream=null;track=null;torchOn=false;$('torch').hidden=true;
   $('scanner').hidden=true;$('scanner').classList.remove('found');document.body.style.overflow='';
 }
@@ -389,6 +404,23 @@ function guideRect(){
   return{x:(g.left-vr.left-ox)/k,y:(g.top-vr.top-oy)/k,w:g.width/k,h:g.height/k};
 }
 const SIDES=['L','L','R'];let sideI=0,lastRaw='';
+const known=(n,tot)=>!!tcgIdx?.cards?.[(+n)+'/'+(+tot)];
+let rapid=LS.get('hvl-rapid',false),lastAddedKey='',lastAddedAt=0,session=[];
+function rapidAdd(c,key){
+  if(!hasPrice(c))tcgFill(c);
+  const v=bestVariant(c),it=addCard(c,v);lastAddedKey=key;lastAddedAt=Date.now();session.push({id:c.id,price:priceFor(c,v)});
+  const p=priceFor(c,v);
+  $('found').innerHTML=`${okUrl(c.images?.small)?`<img src="${esc(c.images.small)}" alt="">`:''}<div><b></b><span></span></div><button id="undoAdd">Undo</button>`;
+  $('found').querySelector('b').textContent=c.name;$('found').querySelector('span').textContent=`${money(p)} · ${c.set?.name||''} ${key}`;
+  $('found').hidden=false;
+  $('undoAdd').onclick=()=>{it.qty--;if(it.qty<=0)col=col.filter(x=>x!==it);session.pop();save();renderCol();renderSession();$('found').hidden=true};
+  renderSession();chip('Added! Next card…');
+}
+function renderSession(){
+  const t=session.reduce((a,x)=>a+(num(x.price)?x.price:0),0);
+  $('sess').hidden=!rapid||!session.length;$('sess').textContent=`${session.length} scanned · ${money(t)} · Done`;
+}
+function setRapid(on){rapid=on;LS.set('hvl-rapid',on);$('rapidBtn').textContent=on?'Rapid: On':'Rapid: Off';$('rapidBtn').setAttribute('aria-pressed',on);renderSession()}
 async function loop(){
   while(loopOn){
     await new Promise(r=>setTimeout(r,16));
@@ -406,20 +438,25 @@ async function scanOnce(manual){
     else{number=await readNumber(v,r,SIDES[sideI++%SIDES.length])}
     if(!loopOn&&!manual)return;
     if(!number){lastRaw='';if(manual)chip('Couldn’t read the number. Move closer so the small number at the bottom is sharp.');else chip('Looking for the card number…');return}
-    if(number.fuzzy){ // only spend lookups on a blurry read seen twice in a row (or on a manual tap)
-      if(!manual&&number.raw!==lastRaw){lastRaw=number.raw;chip('Almost… hold steady');return}
-      lastRaw='';let hit=null;
-      for(const c of number.fuzzy){const r=await lookup(c.n,c.tot);if(r.length){hit=c;break}}
-      if(!hit){if(manual)chip('Couldn’t read the number clearly. Hold steadier or tap Type.');return}
-      number=hit;
-    }
+    if(number.fuzzy){
+      if(tcgIdx){const hit=number.fuzzy.find(c=>known(c.n,c.tot));if(!hit){if(manual)chip('Couldn’t read the number clearly. Hold steadier or tap Type.');return}number=hit}
+      else{ // no card list yet: only spend lookups on a blurry read seen twice in a row
+        if(!manual&&number.raw!==lastRaw){lastRaw=number.raw;chip('Almost… hold steady');return}
+        lastRaw='';let hit=null;
+        for(const c of number.fuzzy){const r=await lookup(c.n,c.tot);if(r.length){hit=c;break}}
+        if(!hit){if(manual)chip('Couldn’t read the number clearly. Hold steadier or tap Type.');return}
+        number=hit;
+      }
+    }else if(tcgIdx&&!known(number.n,number.tot)){if(manual)chip(`${+number.n}/${+number.tot} isn’t a real card number. Hold steadier and try again.`);return} // misread: keep scanning
     const key=(+number.n)+'/'+(+number.tot);
+    if(!manual&&rapid&&key===lastAddedKey&&Date.now()-lastAddedAt<4000)return; // same card still in view
     chip(`Read ${key} · checking…`);
     let cards=await lookup(number.n,number.tot);
     if(!loopOn&&!manual)return;
     if(!cards.length){chip(manual?`No card found for ${key}. Hold steadier or tap Type.`:'Looking for the card number…');return}
     if(cards.length>1){chip(`Read ${key} · checking the name…`);try{cards=pickByName(cards,await readName(v,r))}catch(e){}}
     $('scanner').classList.add('found');navigator.vibrate?.(60);
+    if(rapid&&cards.length===1){rapidAdd(cards[0],key);setTimeout(()=>$('scanner').classList.remove('found'),600);return}
     closeScanner();
     if(cards.length===1)openCard(cards[0]);else showChoices(cards,`Which card is ${key}?`);
   }catch(e){chip((e.message||'Something went wrong.')+' Retrying in a few seconds…');await new Promise(r=>setTimeout(r,manual?0:5000))}
@@ -451,7 +488,7 @@ function sheet(html){
 }
 function tile(c,extra=''){
   const v=bestVariant(c),p=priceFor(c,v);
-  return `<button class="tile" data-id="${esc(c.id)}">${okUrl(c.images?.small)?`<img src="${esc(c.images.small)}" alt="" loading="lazy">`:'<span class="ph"></span>'}${extra}<span class="tn">${esc(c.name)}</span><span class="ts">${esc(c.set?.name||'')} · ${esc(c.number)}/${esc(c.set?.printedTotal||'')}</span><span class="tp">${money(p)}</span></button>`;
+  return `<button class="tile" data-id="${esc(c.id)}">${okUrl(c.images?.small)?`<img src="${esc(c.images.small)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`:'<span class="ph"></span>'}${extra}<span class="tn">${esc(c.name)}</span><span class="ts">${esc(c.set?.name||'')} · ${esc(c.number)}/${esc(c.set?.printedTotal||'')}</span><span class="tp">${money(p)}</span></button>`;
 }
 let cache=new Map();
 function showChoices(cards,title){
@@ -487,16 +524,29 @@ function openCard(c,variant){
   if(own){
     $('inc').onclick=()=>{own.qty++;save();renderCol();openCard(c,v)};
     $('dec').onclick=()=>{own.qty--;if(own.qty<=0){col=col.filter(x=>x!==own);toast(`Removed ${c.name}.`)}save();renderCol();openCard(c,v)};
-  }else $('add').onclick=()=>{col.unshift({id:c.id,name:c.name,set:c.set?.name||'',num:`${c.number}/${c.set?.printedTotal||''}`,img:c.images?.small||'',v,price:p,qty:1,t:Date.now()});save();renderCol();toast(`Added ${c.name}.`);openCard(c,v)};
+  }else $('add').onclick=()=>{addCard(c,v);toast(`Added ${c.name}.`);openCard(c,v)};
 }
 
 /* ---------- collection ---------- */
+function addCard(c,v){
+  v=v||bestVariant(c);const p=priceFor(c,v);
+  let it=col.find(x=>x.id===c.id);
+  if(it)it.qty++;else{it={id:c.id,name:c.name,set:c.set?.name||'',num:`${c.number}/${c.set?.printedTotal||''}`,img:c.images?.small||'',v,price:p,qty:1,t:Date.now()};col.unshift(it)}
+  save();renderCol();return it;
+}
 function renderCol(){
   const tot=col.reduce((a,x)=>a+(num(x.price)?x.price:0)*x.qty,0),n=col.reduce((a,x)=>a+x.qty,0);
-  $('total').textContent=money(tot);$('count').textContent=`${n} card${n===1?'':'s'}`;
-  $('colEmpty').hidden=!!col.length;$('refresh').parentElement.hidden=!col.length;
+  $('total').textContent=money(tot);
+  const hist=LS.get('hvl-hist',{}),today=new Date().toISOString().slice(0,10);
+  if(col.length&&hist[today]!==Math.round(tot*100)/100){hist[today]=Math.round(tot*100)/100;const ks=Object.keys(hist).sort();while(ks.length>120)delete hist[ks.shift()];LS.set('hvl-hist',hist)}
+  const prevDay=Object.keys(hist).filter(k=>k<today).sort().pop();
+  let ch='';if(prevDay&&col.length){const d=tot-hist[prevDay];if(Math.abs(d)>=.01)ch=` · <span style="color:${d>0?'var(--green)':'var(--red)'}">${d>0?'▲':'▼'} ${money(Math.abs(d))}</span>`}
+  $('count').innerHTML=`${n} card${n===1?'':'s'}${ch}`;
+  $('colEmpty').hidden=!!col.length;$('refresh').parentElement.hidden=!col.length;$('colTools').hidden=col.length<4;
   $('colNote').textContent=col.length?money(tot):'';
-  $('col').innerHTML=[...col].sort((a,b)=>(b.price||0)*b.qty-(a.price||0)*a.qty).map(x=>`<button class="tile" data-cid="${esc(x.id)}">${okUrl(x.img)?`<img src="${esc(x.img)}" alt="" loading="lazy">`:'<span class="ph"></span>'}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${esc(x.num)}</span><span class="tp">${money(num(x.price)?x.price*x.qty:null)}</span></button>`).join('');
+  const so=$('sortBy')?.value||'value',qf=($('colQ')?.value||'').toLowerCase();
+  const rows=col.filter(x=>!qf||(x.name+' '+x.set).toLowerCase().includes(qf)).sort(so==='new'?(a,b)=>b.t-a.t:so==='name'?(a,b)=>a.name.localeCompare(b.name):so==='set'?(a,b)=>a.set.localeCompare(b.set)||parseInt(a.num)-parseInt(b.num):(a,b)=>(b.price||0)*b.qty-(a.price||0)*a.qty);
+  $('col').innerHTML=rows.map(x=>`<button class="tile" data-cid="${esc(x.id)}">${okUrl(x.img)?`<img src="${esc(x.img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`:'<span class="ph"></span>'}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${esc(x.num)}</span><span class="tp">${money(num(x.price)?x.price*x.qty:null)}</span></button>`).join('');
   document.querySelectorAll('#col .tile').forEach(b=>b.onclick=async()=>{
     const id=b.dataset.cid;let c=cache.get(id);
     if(!c&&id.startsWith('tcg:')){await tcgIndex();const it=col.find(x=>x.id===id);const [n,t]=(it?.num||'').split('/');const row=tcgRows(n,t).find(r=>'tcg:'+r[2]===id);if(row)c=cardFromRow(row,n,t)}
@@ -559,9 +609,13 @@ async function search(term){
 let toastT;function toast(m){clearTimeout(toastT);$('toastHost').innerHTML='<div class="toast" role="status"></div>';$('toastHost').firstChild.textContent=m;toastT=setTimeout(()=>$('toastHost').innerHTML='',2400)}
 
 $('scanBtn').onclick=openScanner;
+$('colQ').oninput=renderCol;$('sortBy').onchange=renderCol;
 $('video').addEventListener('click',e=>{if(!track)return;const r=$('video').getBoundingClientRect();const pt={x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};
   track.applyConstraints({advanced:[{pointsOfInterest:[pt],focusMode:'single-shot'}]}).then(()=>setTimeout(()=>track?.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}),1500)).catch(()=>{});chip('Focusing…')});
 $('closeScan').onclick=closeScanner;
+$('rapidBtn').onclick=()=>{setRapid(!rapid);chip(rapid?'Rapid scan on: each card is added automatically':'Rapid scan off')};
+$('sess').onclick=()=>{closeScanner();document.getElementById('col').scrollIntoView({behavior:'smooth'})};
+setRapid(rapid);
 $('shutter').onclick=()=>scanOnce(true);
 $('typeIt').onclick=()=>{closeScanner();$('q').focus()};
 $('photo').onchange=e=>{const f=e.target.files?.[0];e.target.value='';if(f)scanPhoto(f)};
@@ -570,6 +624,7 @@ $('searchForm').onsubmit=e=>{e.preventDefault();search($('q').value)};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('sheetHost').innerHTML)closeSheet();else if(!$('scanner').hidden)closeScanner()}});
 document.addEventListener('visibilitychange',()=>{if(document.hidden&&!$('scanner').hidden)closeScanner()});
 renderCol();
+if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
 }
 </script>
 </body>
