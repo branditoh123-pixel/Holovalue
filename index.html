@@ -46,7 +46,7 @@ h2 small{font-size:14px;font-weight:500;color:var(--soft)}
 /* scanner */
 .scanner{position:fixed;inset:0;z-index:20;background:#000;color:#fff;display:flex;flex-direction:column}
 .scanner video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
-.guide{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:min(72vw,calc(62vh*63/88));aspect-ratio:63/88;border-radius:18px;box-shadow:0 0 0 200vmax #0009;border:3px solid #fff}
+.guide{pointer-events:none;position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:min(72vw,calc(62vh*63/88));aspect-ratio:63/88;border-radius:18px;box-shadow:0 0 0 200vmax #0009;border:3px solid #fff}
 .guide::before,.guide::after{content:"";position:absolute;left:6%;right:6%;height:14%;border:2px dashed #ffd23f;border-radius:8px}
 .guide::before{top:2%}.guide::after{bottom:2%}
 .guide .lineA,.guide .lineB{position:absolute;left:0;right:0;text-align:center;font-size:12px;font-weight:700;color:#ffd23f;text-shadow:0 1px 3px #000}
@@ -97,7 +97,7 @@ tr.sel td{font-weight:700}
 
   <div class="hero">
     <h1>Point. Scan. Know.</h1>
-    <p>Tap Scan, hold a card inside the frame, and it reads the card number and shows today’s TCGplayer market price.</p>
+    <p>Tap Scan, hold a card inside the frame, and it reads the card number and shows today’s TCGplayer market price. Good light and a sharp card number make it fastest.</p>
     <button class="scanbtn" id="scanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><rect x="8" y="7" width="8" height="10" rx="1.5"/></svg>Scan a card</button>
     <form class="search" id="searchForm">
       <input type="search" id="q" placeholder="Or search: Charizard, Umbreon VMAX…" aria-label="Search cards" autocomplete="off">
@@ -195,48 +195,75 @@ let worker=null,workerP=null;
 function getWorker(){
   if(worker)return Promise.resolve(worker);
   if(!window.Tesseract)return Promise.reject(new Error('The card reader didn’t load. Check your internet connection and reload.'));
-  if(!workerP)workerP=Tesseract.createWorker('eng',1,{}).then(w=>{worker=w;return w}).catch(e=>{workerP=null;throw new Error('The card reader didn’t load. Check your connection and reload.')});
+  if(!workerP){
+    const init=async opts=>{const w=await Tesseract.createWorker('eng',1,opts);await w.setParameters({tessedit_pageseg_mode:'6',tessedit_char_whitelist:'0123456789/ '});return w};
+    workerP=init({langPath:'https://tessdata.projectnaptha.com/4.0.0_fast'}).catch(()=>init({}))
+      .then(w=>{worker=w;return w}).catch(e=>{workerP=null;throw new Error('The card reader didn’t load. Check your connection and reload.')});
+  }
   return workerP;
 }
-function stripCanvas(src,sx,sy,sw,sh,scale){
-  const c=document.createElement('canvas');c.width=Math.round(sw*scale);c.height=Math.round(sh*scale);
+// crop, scale to a fixed width, grayscale, Otsu threshold -> crisp black/white text
+function stripCanvas(src,sx,sy,sw,sh,targetW){
+  const k=targetW/sw,c=document.createElement('canvas');c.width=Math.round(sw*k);c.height=Math.max(1,Math.round(sh*k));
   const x=c.getContext('2d',{willReadFrequently:true});x.imageSmoothingQuality='high';x.drawImage(src,sx,sy,sw,sh,0,0,c.width,c.height);
-  const d=x.getImageData(0,0,c.width,c.height),p=d.data;let sum=0;
-  for(let i=0;i<p.length;i+=4){const g=.299*p[i]+.587*p[i+1]+.114*p[i+2];p[i]=p[i+1]=p[i+2]=g;sum+=g}
-  const mean=sum/(p.length/4);
-  for(let i=0;i<p.length;i+=4){const v=(p[i]-mean)*1.8+128;p[i]=p[i+1]=p[i+2]=v<0?0:v>255?255:v}
+  const d=x.getImageData(0,0,c.width,c.height),p=d.data,n=p.length/4,hist=new Array(256).fill(0),g=new Uint8Array(n);
+  for(let i=0,j=0;i<p.length;i+=4,j++){const v=(.299*p[i]+.587*p[i+1]+.114*p[i+2])|0;g[j]=v;hist[v]++}
+  let sum=0;for(let i=0;i<256;i++)sum+=i*hist[i];
+  let sB=0,wB=0,best=0,th=128;for(let t=0;t<256;t++){wB+=hist[t];if(!wB)continue;const wF=n-wB;if(!wF)break;sB+=t*hist[t];const mB=sB/wB,mF=(sum-sB)/wF,v=wB*wF*(mB-mF)**2;if(v>best){best=v;th=t}}
+  let dark=0;for(let j=0;j<n;j++)if(g[j]<th)dark++;
+  const inv=dark>n/2; // light text on dark card -> invert so text is black
+  for(let i=0,j=0;i<p.length;i+=4,j++){const on=(g[j]<th)!==inv;const v=on?0:255;p[i]=p[i+1]=p[i+2]=v}
   x.putImageData(d,0,0);return c;
 }
+const okPair=(n,tot)=>tot>=15&&tot<=400&&n>=1&&n<=tot+150;
 function parseNumber(t){
-  const s=t.replace(/[Oo]/g,'0').replace(/[Il|]/g,'1').replace(/\s*\/\s*/g,'/');
-  const m=s.match(/(\d{1,3})\/(\d{2,3})/);
-  if(!m)return null;
-  const n=m[1],tot=m[2];if(+tot<10||+tot>400)return null;
-  return{n,tot};
+  const s=t.replace(/\s*\/\s*/g,'/');
+  for(const m of s.matchAll(/(\d{1,3})\/(\d{2,3})/g))if(okPair(+m[1],+m[2]))return{n:m[1],tot:m[2],exact:true};
+  // slash misread as 7/1 or dropped: try splits, verified later against the card database
+  const runs=(t.match(/\d{4,7}/g)||[]);const cands=[];
+  for(const r of runs){
+    for(let i=1;i<=3&&i<r.length;i++){
+      if('71'.includes(r[i])){const n=r.slice(0,i),tot=r.slice(i+1);if(tot.length>=2&&tot.length<=3&&okPair(+n,+tot))cands.push({n,tot})}
+      const n=r.slice(0,i),tot=r.slice(i);if(tot.length>=2&&tot.length<=3&&okPair(+n,+tot))cands.push({n,tot});
+    }
+  }
+  return cands.length?{fuzzy:cands.slice(0,3),raw:runs.join(',')}:null;
 }
 function parseName(t){
   const w=t.replace(/[^A-Za-zéÉ'\- ]/g,' ').split(/\s+/).filter(x=>x.length>=3&&!/^(basic|stage|hp|evolves|from|trainer|item|supporter|energy)$/i.test(x));
   return w.slice(0,3).join(' ');
 }
-async function readFrame(src,rect){
-  const w=await getWorker();
-  const {x,y,w:W,h:H}=rect;
-  const scale=Math.max(1,900/W);
-  const bottom=stripCanvas(src,x,y+H*.86,W,H*.14,scale);
-  await w.setParameters({tessedit_pageseg_mode:'11',tessedit_char_whitelist:'0123456789/OoIl| '});
-  const rb=await w.recognize(bottom);
-  const number=parseNumber(rb.data.text||'');
-  let name='';
-  if(number){
-    const top=stripCanvas(src,x+W*.04,y+H*.02,W*.7,H*.11,scale);
-    await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:''});
-    const rt=await w.recognize(top);name=parseName(rt.data.text||'');
-  }
-  return{number,name};
+// side: 'L' bottom-left (modern cards), 'R' bottom-right (older cards), 'F' full bottom strip
+async function readNumber(src,rect,side){
+  const w=await getWorker();const {x,y,w:W,h:H}=rect;
+  const x0=side==='R'?.45:0,x1=side==='L'?.55:1;
+  const c=stripCanvas(src,x+W*x0,y+H*.84,W*(x1-x0),H*.16,side==='F'?1100:900);
+  const r=await w.recognize(c);return parseNumber(r.data.text||'');
 }
+async function readName(src,rect){
+  const w=await getWorker();const {x,y,w:W,h:H}=rect;
+  const c=stripCanvas(src,x+W*.04,y+H*.02,W*.7,H*.11,700);
+  await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:''});
+  try{const r=await w.recognize(c);return parseName(r.data.text||'')}
+  finally{await w.setParameters({tessedit_pageseg_mode:'6',tessedit_char_whitelist:'0123456789/ '})}
+}
+const lookCache=new Map();
+async function lookup(n,tot){
+  const k=(+n)+'/'+(+tot);if(lookCache.has(k))return lookCache.get(k);
+  const nums=[...new Set([n,String(+n),String(+n).padStart(3,'0')])];
+  const cards=await api(`(${nums.map(x=>`number:"${x}"`).join(' OR ')}) set.printedTotal:${+tot}`);
+  lookCache.set(k,cards);return cards;
+}
+function pickByName(cards,name){
+  if(!name||cards.length<2)return cards;
+  const g=name.toLowerCase(),sc=cards.map(c=>[c,sim(c.name.toLowerCase(),g)]).sort((a,b)=>b[1]-a[1]);
+  if(sc[0][1]>.45&&(sc.length<2||sc[0][1]-sc[1][1]>.12))return[sc[0][0]];
+  return sc.map(z=>z[0]);
+}
+setTimeout(()=>getWorker().catch(()=>{}),600); // warm up the reader while you browse
 
 /* ---------- scanner ---------- */
-let stream=null,track=null,loopOn=false,reading=false,lastKey='',hits=0,torchOn=false;
+let stream=null,track=null,loopOn=false,reading=false,torchOn=false;
 const chip=t=>{$('schip').textContent=t};
 async function openScanner(){
   $('scanner').hidden=false;document.body.style.overflow='hidden';chip('Starting camera…');
@@ -247,8 +274,8 @@ async function openScanner(){
     const v=$('video');v.srcObject=stream;await v.play().catch(()=>{});
     track=stream.getVideoTracks()[0];
     try{const caps=track.getCapabilities?.();if(caps?.torch)$('torch').hidden=false;if(caps?.focusMode?.includes('continuous'))track.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{})}catch(e){}
-    chip('Hold the card inside the frame');
-    loopOn=true;lastKey='';hits=0;loop();
+    chip('Hold the card inside the frame · tap to focus');
+    loopOn=true;loop();
   }catch(e){
     chip(e?.name==='NotAllowedError'?'Camera permission was blocked. Allow camera for this site in Chrome settings, or tap Photo.':'Couldn’t open the camera. Tap Photo to take a picture instead.');
   }
@@ -263,9 +290,10 @@ function guideRect(){
   const k=Math.max(vr.width/vw,vr.height/vh),ox=(vr.width-vw*k)/2,oy=(vr.height-vh*k)/2;
   return{x:(g.left-vr.left-ox)/k,y:(g.top-vr.top-oy)/k,w:g.width/k,h:g.height/k};
 }
+const SIDES=['L','L','R'];let sideI=0,lastRaw='';
 async function loop(){
   while(loopOn){
-    await new Promise(r=>setTimeout(r,450));
+    await new Promise(r=>setTimeout(r,60));
     if(!loopOn||reading)continue;
     await scanOnce(false);
   }
@@ -275,34 +303,43 @@ async function scanOnce(manual){
   reading=true;
   try{
     if(manual)chip('Reading…');
-    const {number,name}=await readFrame(v,r);
+    let number=null;
+    if(manual){for(const sd of ['L','R','F']){number=await readNumber(v,r,sd);if(number)break}}
+    else{number=await readNumber(v,r,SIDES[sideI++%SIDES.length])}
     if(!loopOn&&!manual)return;
-    if(!number){hits=0;lastKey='';if(manual)chip('Couldn’t read the number. Move closer so the bottom of the card is sharp.');else chip('Looking for the card number…');return}
-    const key=number.n+'/'+number.tot;
-    hits=key===lastKey?hits+1:1;lastKey=key;
-    if(hits<2&&!manual){chip(`Reading ${key}… hold steady`);return}
-    chip(`Found ${key}${name?' · '+name:''}. Looking up price…`);
-    $('scanner').classList.add('found');
-    const cards=await findByNumber(number.n,number.tot,name);
-    if(!cards.length){$('scanner').classList.remove('found');hits=0;chip(`No card found for ${key}. Try again or tap Type.`);return}
-    navigator.vibrate?.(60);
+    if(!number){lastRaw='';if(manual)chip('Couldn’t read the number. Move closer so the small number at the bottom is sharp.');else chip('Looking for the card number…');return}
+    if(number.fuzzy){ // only spend lookups on a blurry read seen twice in a row (or on a manual tap)
+      if(!manual&&number.raw!==lastRaw){lastRaw=number.raw;chip('Almost… hold steady');return}
+      lastRaw='';let hit=null;
+      for(const c of number.fuzzy){const r=await lookup(c.n,c.tot);if(r.length){hit=c;break}}
+      if(!hit){if(manual)chip('Couldn’t read the number clearly. Hold steadier or tap Type.');return}
+      number=hit;
+    }
+    const key=(+number.n)+'/'+(+number.tot);
+    chip(`Read ${key} · checking…`);
+    let cards=await lookup(number.n,number.tot);
+    if(!loopOn&&!manual)return;
+    if(!cards.length){chip(manual?`No card found for ${key}. Hold steadier or tap Type.`:'Looking for the card number…');return}
+    if(cards.length>1){chip(`Read ${key} · checking the name…`);try{cards=pickByName(cards,await readName(v,r))}catch(e){}}
+    $('scanner').classList.add('found');navigator.vibrate?.(60);
     closeScanner();
     if(cards.length===1)openCard(cards[0]);else showChoices(cards,`Which card is ${key}?`);
-  }catch(e){chip(e.message||'Something went wrong. Try again.');$('scanner').classList.remove('found')}
+  }catch(e){chip(e.message||'Something went wrong. Try again.')}
   finally{reading=false}
 }
 async function scanPhoto(file){
   chip('Reading your photo…');
   try{
     const img=await new Promise((res,rej)=>{const i=new Image();const u=URL.createObjectURL(file);i.onload=()=>{URL.revokeObjectURL(u);res(i)};i.onerror=rej;i.src=u});
-    // assume the card fills most of the photo: use the central card-shaped area
     const W=img.width,H=img.height;let cw=W*.9,ch=cw*88/63;if(ch>H*.95){ch=H*.95;cw=ch*63/88}
-    const rect={x:(W-cw)/2,y:(H-ch)/2,w:cw,h:ch};
-    let res=await readFrame(img,rect);
-    if(!res.number)res=await readFrame(img,{x:0,y:0,w:W,h:H});
-    if(!res.number){chip('Couldn’t read the card number in that photo. Fill the frame with the card and try again, or tap Type.');return}
-    const cards=await findByNumber(res.number.n,res.number.tot,res.name);
-    if(!cards.length){chip('No match for '+res.number.n+'/'+res.number.tot+'. Tap Type to search by name.');return}
+    const rects=[{x:(W-cw)/2,y:(H-ch)/2,w:cw,h:ch},{x:0,y:0,w:W,h:H}];
+    let number=null,rect=null;
+    outer:for(const rc of rects)for(const sd of ['L','R','F']){number=await readNumber(img,rc,sd);if(number){rect=rc;break outer}}
+    if(number?.fuzzy){let hit=null;for(const c of number.fuzzy){if((await lookup(c.n,c.tot)).length){hit=c;break}}number=hit}
+    if(!number){chip('Couldn’t read the card number in that photo. Fill the frame with the card and try again, or tap Type.');return}
+    let cards=await lookup(number.n,number.tot);
+    if(!cards.length){chip('No match for '+number.n+'/'+number.tot+'. Tap Type to search by name.');return}
+    if(cards.length>1){try{cards=pickByName(cards,await readName(img,rect))}catch(e){}}
     closeScanner();cards.length===1?openCard(cards[0]):showChoices(cards,'Which card is it?');
   }catch(e){chip(e.message||'Couldn’t read that photo.')}
 }
@@ -389,7 +426,7 @@ async function search(term){
   try{
     const m=t.match(/^(.*?)\s*(\d{1,3})\s*\/\s*(\d{2,3})\s*$/);
     let cards;
-    if(m){cards=await findByNumber(m[2],m[3],m[1])}
+    if(m){cards=pickByName(await lookup(m[2],m[3]),m[1])}
     else{const words=t.replace(/[^\w\sé'-]/g,' ').split(/\s+/).filter(Boolean);cards=await api(words.map(w=>w.replace(/[^A-Za-z0-9é'-]/g,'')).filter(Boolean).map(w=>`name:${w}*`).join(' '),36)}
     if(!cards.length){$('homeMsg').textContent='No cards found. Check the spelling, or try just the Pokémon’s name.';$('results').innerHTML='';return}
     cards.forEach(c=>cache.set(c.id,c));
@@ -403,6 +440,8 @@ async function search(term){
 let toastT;function toast(m){clearTimeout(toastT);$('toastHost').innerHTML='<div class="toast" role="status"></div>';$('toastHost').firstChild.textContent=m;toastT=setTimeout(()=>$('toastHost').innerHTML='',2400)}
 
 $('scanBtn').onclick=openScanner;
+$('video').addEventListener('click',e=>{if(!track)return;const r=$('video').getBoundingClientRect();const pt={x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};
+  track.applyConstraints({advanced:[{pointsOfInterest:[pt],focusMode:'single-shot'}]}).then(()=>setTimeout(()=>track?.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}),1500)).catch(()=>{});chip('Focusing…')});
 $('closeScan').onclick=closeScanner;
 $('shutter').onclick=()=>scanOnce(true);
 $('typeIt').onclick=()=>{closeScanner();$('q').focus()};
