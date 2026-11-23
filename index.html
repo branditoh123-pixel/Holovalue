@@ -183,6 +183,13 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .tile .own{position:absolute;top:12px;right:12px;background:#1d7a3c;color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .hit{position:absolute;top:12px;right:12px;background:#e5383b;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .mv{display:block;font-size:13px;font-weight:700}
+.pct{position:absolute;top:12px;left:12px;font-size:12px;font-weight:800;border-radius:999px;padding:1px 8px;color:#fff}
+.pct.up{background:#1d7a3c}.pct.down{background:#e5383b}
+.confetti{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
+.confetti i{position:absolute;top:-12px;width:9px;height:14px;border-radius:2px;animation:fall 1.6s cubic-bezier(.2,.7,.4,1) forwards}
+@keyframes fall{to{transform:translate(var(--dx),105vh) rotate(var(--r));opacity:.9}}
+@media(prefers-reduced-motion:reduce){.confetti{display:none}}
+.drop small{color:var(--soft)}
 .up{color:var(--green)}.down{color:var(--red)}
 .trade{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
 .tside{background:var(--paper);border-radius:20px;padding:14px}
@@ -247,6 +254,11 @@ input[type=search]{width:100%}
         <li><b>See the TCGplayer price</b>, add it, and track your collection’s value every day.</li>
       </ol>
       <p class="msg">Free, unlimited scans. No account, no ads, no card limit. Tap any card to see it up close.</p>
+    </section>
+    <section id="mktSec">
+      <h2>Market today <small id="mktNote"></small></h2>
+      <div class="chips" role="group" aria-label="Market lists"><button class="chip" data-m="up" aria-pressed="true">▲ Gainers</button><button class="chip" data-m="down" aria-pressed="false">▼ Losers</button><button class="chip" data-m="chase" aria-pressed="false">★ New set chase cards</button></div>
+      <div class="hrow" id="mktRow"><p class="empty">Loading market…</p></div>
     </section>
     <section id="moverSec" hidden><h2>Price movers <small>since last update</small></h2><div class="hrow" id="moverRow"></div></section>
     <section id="topSec" hidden><h2>Top cards <small id="topNote"></small></h2><div class="hrow" id="topRow"></div></section>
@@ -761,7 +773,7 @@ function openCard(c,variant){
     <button class="ghost" id="again">Not it? Scan again</button>
   </div>
   ${own?`<div class="row" style="margin-top:10px"><button class="danger" id="rmOwn">Remove from collection</button></div>`:''}`);
-  const sh=document.querySelector('.sheet');sh.dataset.card=c.id;holoTilt($('holo'));
+  const sh=document.querySelector('.sheet');sh.dataset.card=c.id;holoTilt($('holo'));setTimeout(()=>{if(document.querySelector('.sheet')?.dataset.card===c.id)sheetExtras(c)},0);
   if(hist.length>1){const pts=hist.map(h=>h[1]),lo=Math.min(...pts),hi=Math.max(...pts),rg=hi-lo||1,X=i=>i*300/(pts.length-1),Y=v=>5+(1-(v-lo)/rg)*50;const d=pts.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('');const up=pts[pts.length-1]>=pts[0];$('hsp').innerHTML=`<path d="${d}" fill="none" stroke="${up?'#1d7a3c':'#e5383b'}" stroke-width="2.5" vector-effect="non-scaling-stroke"/>`}
   sh.querySelectorAll('tr[data-v]').forEach(tr=>tr.onclick=()=>{const nv=tr.dataset.v;if(own){own.v=nv;own.price=priceFor(c,nv);save();renderAll()}openCard(c,nv)});
   $('again').onclick=()=>{closeSheet();openScanner()};
@@ -784,6 +796,7 @@ function addCard(c,v){
   if(it)it.qty++;else{it={...itemFromCard(c,v),qty:1,binder:curBinder!=='All'?curBinder:'Main'};col.unshift(it)}
   const w=wish.find(x=>x.id===c.id);if(w){wish=wish.filter(x=>x!==w);saveWish()}
   const pk=typeof activePack==='function'&&activePack();if(pk){pk.cards.push({id:c.id,name:c.name,img:it.img,price:priceFor(c,v)});savePacks();if(view==='pack')renderPack()}
+  if((priceFor(c,v)||0)>=20)confetti();
   save();renderAll();return it;
 }
 const itemVal=x=>(num(x.price)?x.price:0)*(x.qty||1);
@@ -795,7 +808,7 @@ function ownedTile(x){
 function renderCol(){renderAll()}
 function renderAll(){
   const tot=col.reduce((a,x)=>a+itemVal(x),0),n=col.reduce((a,x)=>a+x.qty,0);
-  $('total').textContent=money(tot);
+  countUp(tot);
   const hist=LS.get('hvl-hist',{}),today=new Date().toISOString().slice(0,10);
   if(col.length&&hist[today]!==Math.round(tot*100)/100){hist[today]=Math.round(tot*100)/100;const ks=Object.keys(hist).sort();while(ks.length>180)delete hist[ks.shift()];LS.set('hvl-hist',hist)}
   const prevDay=Object.keys(hist).filter(k=>k<today).sort().pop();
@@ -1005,11 +1018,15 @@ const PRESETS=[['Booster pack',4.99],['Sleeved booster',5.49],['3-pack blister',
 function renderPack(){
   const a=activePack();
   if(!a){
-    $('packBody').innerHTML=`<form class="form" id="packForm"><label class="field">What are you opening?<input id="pkName" required maxlength="40" placeholder="e.g. Perfect Order booster"></label>
+    $('packBody').innerHTML=`<form class="form" id="packForm"><label class="field">Find the product (fills in today’s TCGplayer price)<input type="search" id="pkFind" placeholder="Perfect Order Elite Trainer Box…" autocomplete="off"></label><ul class="drop" id="pkDrop" hidden></ul>
+    <label class="field">What are you opening?<input id="pkName" required maxlength="60" placeholder="e.g. Perfect Order booster"></label>
     <label class="field">What did it cost? (USD)<input id="pkCost" type="number" inputmode="decimal" step="0.01" min="0" required placeholder="4.99"></label>
     <div class="presets">${PRESETS.map(([n,c])=>`<button type="button" class="chip" data-n="${esc(n)}" data-c="${c}">${esc(n)} · $${c}</button>`).join('')}</div>
     <button class="scanbtn" style="margin-top:16px;min-height:60px;font-size:19px" type="submit">Start opening</button></form>`;
     $('packBody').querySelectorAll('.presets .chip').forEach(b=>b.onclick=()=>{if(!$('pkName').value)$('pkName').value=b.dataset.n;$('pkCost').value=b.dataset.c});
+    {let tm;$('pkFind').oninput=()=>{clearTimeout(tm);tm=setTimeout(async()=>{const t=$('pkFind').value.toLowerCase().trim();if(t.length<3){$('pkDrop').hidden=true;return}await tcgIndex();const words=t.split(/\s+/);const hits=(tcgIdx?.sealed||[]).filter(r=>words.every(w=>(r[0]+' '+r[1]).toLowerCase().includes(w))).slice(0,8);
+      $('pkDrop').innerHTML=hits.map((r,i)=>`<li><button type="button" data-i="${i}"><span>${esc(r[0])}</span><b>${money(r[3])}</b></button></li>`).join('')||'<li style="padding:10px" class="empty">No sealed product matches. Type the cost below.</li>';$('pkDrop').hidden=false;
+      $('pkDrop').querySelectorAll('button').forEach(b=>b.onclick=()=>{const r=hits[+b.dataset.i];$('pkName').value=r[0].slice(0,60);$('pkCost').value=r[3].toFixed(2);$('pkDrop').hidden=true;$('pkFind').value=''})},150)}}
     $('packForm').onsubmit=e=>{e.preventDefault();const cost=parseFloat($('pkCost').value);packs.push({id:Date.now(),name:$('pkName').value.trim()||'Pack',cost:isFinite(cost)?cost:0,start:Date.now(),cards:[]});savePacks();renderPack()};
   }else{
     const v=packVal(a),d=v-a.cost,best=[...a.cards].sort((x,y)=>(y.price||0)-(x.price||0))[0];
@@ -1067,6 +1084,70 @@ function openSettings(){
 $('setBtn').onclick=openSettings;
 $('shareBtn').onclick=()=>{if(!col.length){toast('Add some cards first, then share your collection.');return}shareCollection()};
 $('packJump').onclick=()=>go('pack');
+
+/* ---------- market today ---------- */
+let movers=null,mktTab='up';
+function loadMovers(){return fetch('movers.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null).then(j=>{movers=j;return j})}
+function rowByPid(key,pid){return (tcgIdx?.cards?.[key]||[]).find(r=>+r[2]===+pid)}
+function chaseCards(){
+  if(!tcgIdx?.sets)return[];const today=new Date().toISOString().slice(0,10);
+  const newest=Object.entries(tcgIdx.sets).filter(([g,m])=>m[1]&&m[1]<=today&&/^(ME|SV)/.test(g)).sort((a,b)=>b[1][1].localeCompare(a[1][1])).slice(0,3).map(x=>x[0]);
+  const out=[];for(const [k,rows] of Object.entries(tcgIdx.cards)){const [n,t]=k.split('/');for(const r of rows)if(newest.includes(r[1]))out.push([r,n,t])}
+  return out.sort((a,b)=>rowMarket(b[0])-rowMarket(a[0])).slice(0,15);
+}
+function renderMarket(){
+  document.querySelectorAll('#mktSec [data-m]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===mktTab));
+  if(!tcgIdx){$('mktRow').innerHTML='<p class="empty">Loading market…</p>';return}
+  let html='';
+  if(mktTab==='chase'){
+    const cs=chaseCards();$('mktNote').textContent='most valuable cards from the 3 newest sets';
+    html=cs.map(([r,n,t])=>{const c=cardFromRow(r,n,t);cache.set(c.id,c);return tile(c)}).join('');
+  }else{
+    const list=movers?.[mktTab]||[];
+    $('mktNote').textContent=movers?`since ${movers.from}`:'';
+    html=list.slice(0,20).map(m=>{const [n,t]=m[3].split('/');const r=rowByPid(m[3],m[2]);if(!r)return'';const c=cardFromRow(r,n,t);cache.set(c.id,c);const pc=Math.round((m[5]-m[4])/m[4]*100);return tile(c,`<span class="pct ${pc>=0?'up':'down'}">${pc>=0?'+':''}${pc}%</span>`)}).join('');
+    if(!html)html=`<p class="empty">Daily gainers and losers show up after the next nightly price update. Try ★ New set chase cards for now.</p>`;
+  }
+  $('mktRow').innerHTML=html;bindTiles($('mktRow'));
+}
+document.querySelectorAll('#mktSec [data-m]').forEach(b=>b.onclick=()=>{mktTab=b.dataset.m;renderMarket()});
+
+/* ---------- other versions + set link for the card sheet ---------- */
+function groupForCard(c){const rows=tcgRows(c.number,c.set?.printedTotal);const pid=String(c.id).startsWith('tcg:')?+String(c.id).slice(4):0;const r=(pid&&rows.find(x=>+x[2]===pid))||tcgBest(rows,c.name);return r?r[1]:null}
+function otherVersions(c){
+  buildNameIdx();if(!nameIdx)return[];
+  const base=c.name.toLowerCase().replace(/\s*\(.*$/,'').trim();if(base.length<3)return[];
+  const myPid=String(c.id).startsWith('tcg:')?+String(c.id).slice(4):0;
+  const seen=new Set();const out=[];
+  for(const e of nameIdx){if(e[0].replace(/\s*\(.*$/,'').trim()!==base)continue;if(+e[1][2]===myPid||seen.has(e[1][2]))continue;seen.add(e[1][2]);out.push(e)}
+  return out.sort((a,b)=>rowMarket(b[1])-rowMarket(a[1])).slice(0,12).map(e=>cardFromRow(e[1],e[2],e[3]));
+}
+function sheetExtras(c){
+  const sh=document.querySelector('.sheet');if(!sh||!tcgIdx)return;
+  const g=groupForCard(c),others=otherVersions(c);
+  let html='';
+  if(g)html+=`<div class="row" style="margin-top:10px"><button class="ghost" id="viewSet">See the ${esc(String(g).replace(/^[A-Za-z0-9.]+:\s*/,''))} set</button></div>`;
+  if(others.length){others.forEach(o=>cache.set(o.id,o));html+=`<div class="sec"><b>Other versions of ${esc(c.name.replace(/\s*\(.*$/,''))}</b><div class="hrow" style="margin-top:10px">${others.map(o=>tile(o)).join('')}</div></div>`}
+  if(!html)return;
+  sh.insertAdjacentHTML('beforeend',html);
+  if(g)$('viewSet').onclick=()=>{closeSheet();curSet=g;setFilter='all';go('sets');setTimeout(()=>renderSetDetail(g),0)};
+  sh.querySelectorAll('.hrow .tile[data-id]').forEach(b=>b.onclick=()=>{const x=cache.get(b.dataset.id);if(x){openCard(x);document.querySelector('.sheet')?.scrollTo(0,0)}});
+}
+
+/* ---------- celebrations ---------- */
+function confetti(){
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches)return;
+  const box=document.createElement('div');box.className='confetti';
+  const cols=['#ffd23f','#ff6b9d','#7bf1a8','#5ec8ff','#b38cff','#e5383b'];
+  box.innerHTML=Array.from({length:70},()=>`<i style="left:${Math.random()*100}%;background:${cols[Math.random()*cols.length|0]};--dx:${(Math.random()-.5)*160}px;--r:${Math.random()*720-360}deg;animation-delay:${Math.random()*.3}s"></i>`).join('');
+  document.body.appendChild(box);navigator.vibrate?.([40,60,40]);setTimeout(()=>box.remove(),2200);
+}
+let shownTotal=0;
+function countUp(to){
+  const el=$('total'),from=shownTotal;shownTotal=to;
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches||Math.abs(to-from)<.01){el.textContent=money(to);return}
+  const t0=performance.now(),dur=700;const step=t=>{const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3);el.textContent=money(from+(to-from)*e);if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step);
+}
 /* ---------- navigation ---------- */
 let view='home';
 function route(){
@@ -1104,7 +1185,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&!$('scanne
 // old collection format → add binder defaults
 col.forEach(x=>{x.qty=x.qty||1});
 route();renderAll();
-tcgIndex().then(()=>{if(updatePrices()||true)renderAll()});
+tcgIndex().then(()=>{updatePrices();renderAll();loadMovers().then(renderMarket)});
 if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});let reloaded=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloaded)return;reloaded=true;if(!$('scanner').hidden||$('sheetHost').innerHTML)return;location.reload()})}
 }
 </script>

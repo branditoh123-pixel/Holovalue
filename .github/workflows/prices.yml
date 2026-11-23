@@ -32,7 +32,7 @@ jobs:
         run: |
           git config user.name "holovalue-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add prices.json
+          git add prices.json movers.json 2>/dev/null || git add prices.json
           if git diff --cached --quiet; then echo "No price changes"; exit 0; fi
           git commit -m "Update card prices $(date -u +%F)"
           git pull --rebase origin main
