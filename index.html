@@ -183,6 +183,21 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .tile .own{position:absolute;top:12px;right:12px;background:#1d7a3c;color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .hit{position:absolute;top:12px;right:12px;background:#e5383b;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .mv{display:block;font-size:13px;font-weight:700}
+.panel{background:var(--paper);border-radius:20px;padding:14px 16px;margin-bottom:12px}
+.panel h2{margin:2px 0 8px;font-size:18px}
+.bigchart{position:relative;height:220px}.bigchart svg{position:absolute;inset:0;width:100%;height:100%}
+.insgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:12px}
+.bars{list-style:none;margin:0;padding:0}.bars li{margin:10px 0}
+.bars .lab{display:flex;justify-content:space-between;gap:8px;font-size:14px}.bars .lab span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.bars .lab span:last-child{white-space:nowrap;font-weight:700}
+.tile.sel{outline:4px solid var(--ink);outline-offset:-2px;transform:scale(.97)}
+.tile.sel::after{content:"✓";position:absolute;top:10px;right:10px;width:26px;height:26px;border-radius:50%;background:#ffd23f;color:#16141a;font-weight:800;display:grid;place-items:center;z-index:2}
+.selbar{position:fixed;left:8px;right:8px;bottom:calc(84px + env(safe-area-inset-bottom));z-index:13;background:#16141a;color:#fff;border-radius:18px;padding:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;box-shadow:0 10px 30px #0006}
+.selbar span{font-weight:700;padding:0 6px;flex:1 1 auto}
+.selbar select{font:inherit;font-size:15px;min-height:42px;border-radius:12px;border:0;padding:0 8px;background:#2a2633;color:#fff}
+.selbar button{min-height:42px;font-size:14px;padding:0 12px;background:#ffd23f!important;color:#16141a!important;border:0}
+.selbar .danger{background:#e5383b!important;color:#fff!important}.selbar .ghost{background:transparent!important;color:#fff!important}
+.toast button{margin-left:10px;min-height:34px;padding:0 12px;font-size:14px;background:var(--bg)!important;color:var(--ink)!important;border:0}
+.rtools{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 10px}.rtools select{font:inherit;font-size:15px;min-height:42px;border-radius:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:0 8px;flex:1 1 140px}
 .pct{position:absolute;top:12px;left:12px;font-size:12px;font-weight:800;border-radius:999px;padding:1px 8px;color:#fff}
 .pct.up{background:#1d7a3c}.pct.down{background:#e5383b}
 .confetti{position:fixed;inset:0;pointer-events:none;z-index:60;overflow:hidden}
@@ -274,6 +289,7 @@ input[type=search]{width:100%}
       <input type="search" id="colQ" placeholder="Find in collection" aria-label="Find in collection" style="flex:1 1 160px">
       <select id="sortBy" aria-label="Sort collection" style="font:inherit;font-size:16px;min-height:48px;border-radius:14px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:0 10px"><option value="value">Highest value</option><option value="gain">Biggest gain</option><option value="new">Newest</option><option value="name">Name</option><option value="set">Set</option></select>
     </div>
+    <div class="row" style="margin-bottom:10px"><button class="ghost" id="selBtn">Select</button><a class="btn ghost" href="#insights">📊 Insights</a></div>
     <div class="grid" id="col"></div>
     <div class="binderv" id="binderView" hidden></div>
     <p class="empty" id="colEmpty">Nothing here yet. Tap the yellow scan button to add cards.</p>
@@ -281,6 +297,22 @@ input[type=search]{width:100%}
       <button class="ghost" id="refresh">Refresh prices</button>
       <button class="ghost" id="exportBtn">Export CSV</button>
       <button class="ghost" id="copyBtn">Copy list</button>
+    </div>
+  </section>
+
+  <section class="view" id="v-insights" hidden>
+    <h1 class="vt">Insights</h1>
+    <p class="vsub" id="insSub"></p>
+    <div class="panel">
+      <div class="chips" role="group" aria-label="Range"><button class="chip" data-r="7" aria-pressed="false">7 days</button><button class="chip" data-r="30" aria-pressed="true">30 days</button><button class="chip" data-r="0" aria-pressed="false">All time</button></div>
+      <div class="bigchart"><svg id="bigChart" role="img" aria-label="Collection value over time"></svg></div>
+      <p class="msg" id="chartNote"></p>
+    </div>
+    <div class="insgrid">
+      <div class="panel"><h2>By set</h2><ul class="bars" id="bySet"></ul></div>
+      <div class="panel"><h2>By price</h2><ul class="bars" id="byBand"></ul></div>
+      <div class="panel"><h2>By binder</h2><ul class="bars" id="byBinder"></ul></div>
+      <div class="panel"><h2>Profit</h2><div id="profitBox"></div></div>
     </div>
   </section>
 
@@ -323,6 +355,7 @@ input[type=search]{width:100%}
   <p class="fine">Prices are TCGplayer market prices, refreshed nightly from TCGplayer data (via tcgcsv.com), with pokemontcg.io and TCGdex as backups. Card reading happens on your phone. Not affiliated with Nintendo, The Pokémon Company or TCGplayer.</p>
 </div>
 
+<div class="selbar" id="selbar" hidden><span id="selCount">0 selected</span><select id="selMove" aria-label="Move selected to binder"><option value="">Move to…</option></select><button id="selTrade">Trade</button><button class="danger" id="selDel">Delete</button><button class="ghost" id="selDone">Done</button></div>
 <nav class="tabbar" aria-label="Main">
   <a href="#home" data-v="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
   <a href="#col" data-v="col"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="7" height="9" rx="1.5"/><rect x="14" y="4" width="7" height="9" rx="1.5"/><rect x="3" y="15" width="7" height="5" rx="1.5"/><rect x="14" y="15" width="7" height="5" rx="1.5"/></svg>Collection</a>
@@ -467,6 +500,19 @@ async function readName(src,rect){
   await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:''});
   try{const r=await w.recognize(c);return parseName(r.data.text||'')}
   finally{await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789/ '})}
+}
+// the small set code printed next to the number (e.g. "PFO EN 096/088") tells same-numbered cards apart
+async function readSetCode(src,rect){
+  const w=await getWorker();const {x,y,w:W,h:H}=rect;const [a,b,c2,d]=BOX.L;
+  const sw=W*(c2-a),sh=H*(d-b),cv=stripCanvas(src,x+W*a,y+H*b,sw,sh,Math.min(1400,sw*150/sh));
+  await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/ '});
+  try{const r=await w.recognize(cv);return((r.data.text||'').match(/\b[A-Z]{2,4}\b/g)||[]).filter(t=>t!=='EN')}
+  finally{await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789/ '})}
+}
+const abbrFor=c=>{const g=typeof groupForCard==='function'?groupForCard(c):null;return g?(tcgIdx?.sets?.[g]?.[2]||''):''};
+async function narrowBySetCode(cards,src,rect){
+  if(cards.length<2||!tcgIdx?.sets)return cards;
+  try{const codes=await readSetCode(src,rect);if(!codes.length)return cards;const f=cards.filter(c=>codes.includes(abbrFor(c)));return f.length?f:cards}catch(e){return cards}
 }
 /* ---------- backup database: TCGdex (free, no key, TCGplayer prices hourly) ---------- */
 const TDX='https://api.tcgdex.net/v2/en';
@@ -654,6 +700,7 @@ async function scanOnce(manual){
     let cards=await lookup(number.n,number.tot);
     if(!loopOn&&!manual)return;
     if(!cards.length){chip(manual?`No card found for ${key}. Hold steadier or tap Type.`:'Looking for the card number…');return}
+    if(cards.length>1){chip(`Read ${key} · checking the set…`);cards=await narrowBySetCode(cards,v,r)}
     if(cards.length>1){chip(`Read ${key} · checking the name…`);try{cards=pickByName(cards,await readName(v,r))}catch(e){}}
     $('scanner').classList.add('found');navigator.vibrate?.(60);
     if(rapid&&cards.length===1){rapidAdd(cards[0],key);setTimeout(()=>$('scanner').classList.remove('found'),600);return}
@@ -674,6 +721,7 @@ async function scanPhoto(file){
     if(!number){chip('Couldn’t read the card number in that photo. Fill the frame with the card and try again, or tap Type.');return}
     let cards=await lookup(number.n,number.tot);
     if(!cards.length){chip('No match for '+number.n+'/'+number.tot+'. Tap Type to search by name.');return}
+    if(cards.length>1)cards=await narrowBySetCode(cards,img,rect);
     if(cards.length>1){try{cards=pickByName(cards,await readName(img,rect))}catch(e){}}
     closeScanner();cards.length===1?openCard(cards[0]):showChoices(cards,'Which card is it?');
   }catch(e){chip(e.message||'Couldn’t read that photo.')}
@@ -682,7 +730,7 @@ async function scanPhoto(file){
 /* ---------- shared UI ---------- */
 let wish=LS.get('hvl-wish',[]),binders=LS.get('hvl-binders',['Main']),curBinder='All',trade=LS.get('hvl-trade',{give:[],get:[]});
 const saveWish=()=>LS.set('hvl-wish',wish),saveTrade=()=>LS.set('hvl-trade',trade);
-let toastT;function toast(m){clearTimeout(toastT);$('toastHost').innerHTML='<div class="toast" role="status"></div>';$('toastHost').firstChild.textContent=m;toastT=setTimeout(()=>$('toastHost').innerHTML='',2400)}
+let toastT;function toast(m,undo){clearTimeout(toastT);$('toastHost').innerHTML='<div class="toast" role="status"><span></span></div>';$('toastHost').querySelector('span').textContent=m;if(undo){const b=document.createElement('button');b.textContent='Undo';b.onclick=()=>{undo();$('toastHost').innerHTML=''};$('toastHost').firstChild.appendChild(b)}toastT=setTimeout(()=>$('toastHost').innerHTML='',undo?6000:2400)}
 function closeSheet(){$('sheetHost').innerHTML=''}
 function sheet(html){
   $('sheetHost').innerHTML=`<div class="scrim" id="scrim"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div>`;
@@ -748,7 +796,7 @@ function openCard(c,variant){
   const prices=c.tcgplayer?.prices||{},keys=Object.keys(prices);
   const v=variant||own?.v||bestVariant(c),p=priceFor(c,v);
   const q=encodeURIComponent(`${c.name} ${c.number}/${c.set?.printedTotal||''} ${c.set?.name||''}`);
-  const gain=own&&num(own.paid)&&num(p)?(p-own.paid)*own.qty:null;
+  const gain=own&&num(own.paid)&&num(p)?Math.abs((p*condMult(own)-own.paid)*own.qty):null;
   const hist=own?.hist||w?.hist||[];
   sheet(`<div class="holo" id="holo"><div class="holo-card">${okUrl(c.images?.large||c.images?.small)?`<img src="${esc(c.images.large||c.images.small)}" alt="${esc(c.name)} card" onerror="this.outerHTML='<span class=&quot;ph&quot;></span>'">`:'<span class="ph"></span>'}<i class="glare"></i></div></div>
   <div class="sinfo"><div><h3>${esc(c.name)}</h3><p class="meta">${esc(c.set?.name||'')} · #${esc(c.number)}/${esc(c.set?.printedTotal||'')}${c.rarity?' · '+esc(c.rarity):''}</p>
@@ -764,8 +812,9 @@ function openCard(c,variant){
   ${own?`<div class="sec"><div class="frow">
     <label class="field">Paid (each)<input type="number" inputmode="decimal" step="0.01" min="0" id="paidIn" value="${num(own.paid)?own.paid:''}" placeholder="$0.00"></label>
     <label class="field">Binder<select id="binderIn">${binders.map(b=>`<option${(own.binder||'Main')===b?' selected':''}>${esc(b)}</option>`).join('')}<option value="__new">+ New binder…</option></select></label></div>
+    ${(own.cond&&own.cond!=='Near Mint'&&own.cond!=='Graded'&&num(p))?`<p class="gain">Your ${esc(own.cond.toLowerCase())} copy: about ${money(p*condMult(own))} each (estimated ${Math.round(condMult(own)*100)}% of Near Mint)</p>`:''}
     <label class="field">Condition<select id="condIn">${['Near Mint','Lightly Played','Moderately Played','Heavily Played','Damaged','Graded'].map(o=>`<option${(own.cond||'Near Mint')===o?' selected':''}>${o}</option>`).join('')}</select></label>
-    ${gain!==null?`<p class="gain ${gain>=0?'up':'down'}">${gain>=0?'Gain':'Loss'} ${money(Math.abs(gain))} (${own.paid?Math.round((p-own.paid)/own.paid*100):0}%) on ${own.qty} card${own.qty===1?'':'s'}</p>`:''}</div>`:''}
+    ${gain!==null?`<p class="gain ${(p*condMult(own)-own.paid)>=0?'up':'down'}">${(p*condMult(own)-own.paid)>=0?'Gain':'Loss'} ${money(gain)} (${own.paid?Math.round((p*condMult(own)-own.paid)/own.paid*100):0}%) on ${own.qty} card${own.qty===1?'':'s'}</p>`:''}</div>`:''}
   ${w?`<div class="sec"><label class="field">Target price (tell me when it drops to this)<input type="number" inputmode="decimal" step="0.01" min="0" id="targetIn" value="${num(w.target)?w.target:''}" placeholder="$0.00"></label>${num(w.target)&&num(p)&&p<=w.target?'<p class="gain up">Target hit! It’s at or below your price.</p>':''}</div>`:''}
   <div class="links">
     ${okUrl(c.tcgplayer?.url)?`<a class="btn ghost" href="${esc(c.tcgplayer.url)}" target="_blank" rel="noopener">TCGplayer</a>`:''}
@@ -781,9 +830,9 @@ function openCard(c,variant){
   if(own){
     $('inc').onclick=()=>{own.qty++;save();renderAll();openCard(c,v)};
     $('dec').onclick=()=>{own.qty--;if(own.qty<=0){col=col.filter(x=>x!==own);toast(`Removed ${c.name}.`)}save();renderAll();openCard(c,v)};
-    $('rmOwn').onclick=()=>{const keep=own;col=col.filter(x=>x!==own);save();renderAll();closeSheet();toast(`Removed ${c.name}.`)};
+    $('rmOwn').onclick=()=>{const keep=own;col=col.filter(x=>x!==own);save();renderAll();closeSheet();toast(`Removed ${c.name}.`,()=>{col.unshift(keep);save();renderAll()})};
     $('paidIn').onchange=e=>{const n=parseFloat(e.target.value);own.paid=isFinite(n)&&n>=0?n:null;save();renderAll();openCard(c,v)};
-    $('condIn').onchange=e=>{own.cond=e.target.value;save()};
+    $('condIn').onchange=e=>{own.cond=e.target.value;save();renderAll();openCard(c,v)};
     $('binderIn').onchange=e=>{let b=e.target.value;if(b==='__new'){b=(prompt('Name your new binder (for example: Trade binder)')||'').trim().slice(0,30);if(!b){e.target.value=own.binder||'Main';return}if(!binders.includes(b)){binders.push(b);LS.set('hvl-binders',binders)}}own.binder=b;save();renderAll();openCard(c,v)};
   }else $('add').onclick=()=>{addCard(c,v);toast(`Added ${c.name}.`);openCard(c,v)};
   if(w)$('targetIn').onchange=e=>{const n=parseFloat(e.target.value);w.target=isFinite(n)&&n>0?n:null;saveWish();renderAll();openCard(c,v)};
@@ -799,7 +848,9 @@ function addCard(c,v){
   if((priceFor(c,v)||0)>=20)confetti();
   save();renderAll();return it;
 }
-const itemVal=x=>(num(x.price)?x.price:0)*(x.qty||1);
+const COND={'Near Mint':1,'Lightly Played':.85,'Moderately Played':.7,'Heavily Played':.5,'Damaged':.35,'Graded':1};
+const condMult=x=>COND[x.cond||'Near Mint']??1;
+const itemVal=x=>(num(x.price)?x.price*condMult(x):0)*(x.qty||1);
 const delta=x=>num(x.prev)&&num(x.price)?x.price-x.prev:0;
 function ownedTile(x){
   const d=delta(x);
@@ -838,7 +889,7 @@ function renderAll(){
   const inB=col.filter(x=>curBinder==='All'||(x.binder||'Main')===curBinder);
   const rows=inB.filter(x=>!qf||(x.name+' '+x.set).toLowerCase().includes(qf)).sort(so==='new'?(a,b)=>b.t-a.t:so==='name'?(a,b)=>a.name.localeCompare(b.name):so==='set'?(a,b)=>a.set.localeCompare(b.set)||parseInt(a.num)-parseInt(b.num):so==='gain'?(a,b)=>((num(b.paid)?itemVal(b)-b.paid*b.qty:delta(b)*b.qty)-(num(a.paid)?itemVal(a)-a.paid*a.qty:delta(a)*a.qty)):(a,b)=>itemVal(b)-itemVal(a));
   $('col').innerHTML=rows.map(ownedTile).join('');
-  renderBinderPages(rows);applyColMode();
+  renderBinderPages(rows);applyColMode();if(typeof updateSelbar==='function'&&selecting)updateSelbar();if(view==='insights'&&typeof renderInsights==='function')renderInsights();
   const bt=inB.reduce((a,x)=>a+itemVal(x),0),bn=inB.reduce((a,x)=>a+x.qty,0);
   $('colSub').textContent=col.length?`${bn} card${bn===1?'':'s'} · ${money(bt)}${curBinder!=='All'?' in '+curBinder:''}`:'Everything you own, priced daily.';
   $('colEmpty').hidden=!!inB.length;$('colActs').hidden=!col.length;$('colTools').hidden=inB.length<4;
@@ -906,9 +957,7 @@ async function search(term){
     if(!cards.length){$('homeMsg').textContent='No cards found. Check the spelling, or try just the Pokémon’s name.';$('results').innerHTML='';return}
     cards.forEach(c=>cache.set(c.id,c));
     $('homeMsg').textContent=`${cards.length} result${cards.length===1?'':'s'}, most valuable first`;
-    $('results').innerHTML=`<h2>Results <small><button class="ghost" id="clr" style="min-height:36px">Clear</button></small></h2><div class="grid">${cards.map(c=>tile(c)).join('')}</div>`;
-    $('clr').onclick=()=>{$('results').innerHTML='';$('homeMsg').textContent=''};
-    bindTiles($('results'));
+    lastResults=cards;renderResults();
   }catch(e){$('homeMsg').textContent=e.message;$('homeMsg').classList.add('err')}
 }
 
@@ -1148,15 +1197,93 @@ function countUp(to){
   if(matchMedia('(prefers-reduced-motion: reduce)').matches||Math.abs(to-from)<.01){el.textContent=money(to);return}
   const t0=performance.now(),dur=700;const step=t=>{const k=Math.min(1,(t-t0)/dur),e=1-Math.pow(1-k,3);el.textContent=money(from+(to-from)*e);if(k<1)requestAnimationFrame(step)};requestAnimationFrame(step);
 }
+
+/* ---------- search results: sort + set filter ---------- */
+let lastResults=[];
+function renderResults(){
+  const sets=[...new Set(lastResults.map(c=>c.set?.name||''))].filter(Boolean).sort();
+  const so=$('rSort')?.value||'value',sf=$('rSet')?.value||'';
+  const pv=c=>priceFor(c,bestVariant(c))||0;
+  let list=lastResults.filter(c=>!sf||c.set?.name===sf);
+  list=[...list].sort(so==='low'?(a,b)=>pv(a)-pv(b):so==='name'?(a,b)=>a.name.localeCompare(b.name):(a,b)=>pv(b)-pv(a));
+  $('results').innerHTML=`<h2>Results <small><button class="ghost" id="clr" style="min-height:36px">Clear</button></small></h2>
+  <div class="rtools"><select id="rSort" aria-label="Sort results"><option value="value"${so==='value'?' selected':''}>Price: high to low</option><option value="low"${so==='low'?' selected':''}>Price: low to high</option><option value="name"${so==='name'?' selected':''}>Name</option></select>
+  <select id="rSet" aria-label="Filter by set"><option value="">All sets (${sets.length})</option>${sets.map(x=>`<option${x===sf?' selected':''}>${esc(x)}</option>`).join('')}</select></div>
+  <div class="grid">${list.map(c=>tile(c)).join('')}</div>`;
+  $('clr').onclick=()=>{$('results').innerHTML='';$('homeMsg').textContent='';lastResults=[]};
+  $('rSort').onchange=renderResults;$('rSet').onchange=renderResults;
+  bindTiles($('results'));
+}
+
+/* ---------- insights ---------- */
+let insRange=30;
+function bandOf(p){return p<1?'Under $1':p<10?'$1 – $10':p<50?'$10 – $50':p<200?'$50 – $200':'$200+'}
+function barsHTML(entries,total){const mx=Math.max(...entries.map(e=>e[1]),1);return entries.map(([k,v,extra])=>`<li><div class="lab"><span>${esc(k)}</span><span>${money(v)}${extra?` <small style="color:var(--soft);font-weight:500">${esc(extra)}</small>`:''}</span></div><div class="bar"><i style="width:${Math.max(2,v/mx*100).toFixed(1)}%"></i></div></li>`).join('')||'<li class="empty">Add cards to see this.</li>'}
+function renderInsights(){
+  document.querySelectorAll('#v-insights [data-r]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.r===insRange));
+  const tot=col.reduce((a,x)=>a+itemVal(x),0),n=col.reduce((a,x)=>a+x.qty,0);
+  $('insSub').textContent=`${n} cards · ${money(tot)} · condition-adjusted`;
+  // chart
+  const h=LS.get('hvl-hist',{});let keys=Object.keys(h).sort();
+  if(insRange){const cut=new Date(Date.now()-insRange*864e5).toISOString().slice(0,10);keys=keys.filter(k=>k>=cut)}
+  const sv=$('bigChart'),W=sv.clientWidth||340,H=sv.clientHeight||220;
+  if(keys.length<2){sv.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="14" fill="currentColor" fill-opacity=".6">Your chart fills in as you use HoloValue each day</text>`;$('chartNote').textContent=keys.length?`Tracking since ${keys[0]}.`:'';}
+  else{
+    const pts=keys.map(k=>h[k]),lo=Math.min(...pts),hi=Math.max(...pts),pad=(hi-lo)*.12||Math.max(1,hi*.05),y0=lo-pad,y1=hi+pad,L=W<420?6:54,Rr=10,T=10,B=24;
+    const X=i=>L+i*(W-L-Rr)/(pts.length-1),Y=v=>T+(1-(v-y0)/(y1-y0))*(H-T-B);
+    const d=pts.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(''),up=pts[pts.length-1]>=pts[0],col2=up?'#1d7a3c':'#e5383b';
+    const ticks=W<420?[]:[hi,(hi+lo)/2,lo];
+    sv.innerHTML=`${ticks.map(t=>`<line x1="${L}" x2="${W-Rr}" y1="${Y(t)}" y2="${Y(t)}" stroke="currentColor" stroke-opacity=".1"/><text x="${L-6}" y="${Y(t)+4}" text-anchor="end" font-size="11" fill="currentColor" fill-opacity=".6">${esc(money(t).replace(/\.\d\d$/,''))}</text>`).join('')}
+    <path d="${d}L${X(pts.length-1)},${H-B}L${X(0)},${H-B}Z" fill="${col2}" fill-opacity=".14"/><path d="${d}" fill="none" stroke="${col2}" stroke-width="3" stroke-linejoin="round"/>
+    <circle cx="${X(pts.length-1)}" cy="${Y(pts[pts.length-1])}" r="5" fill="${col2}"/>
+    <text x="${L}" y="${H-6}" font-size="11" fill="currentColor" fill-opacity=".6">${esc(keys[0].slice(5))}</text><text x="${W-Rr}" y="${H-6}" font-size="11" text-anchor="end" fill="currentColor" fill-opacity=".6">${esc(keys[keys.length-1].slice(5))}</text>`;
+    const ch=pts[pts.length-1]-pts[0];$('chartNote').innerHTML=`<span class="${ch>=0?'up':'down'}" style="font-weight:700">${ch>=0?'▲':'▼'} ${money(Math.abs(ch))} (${pts[0]?Math.round(ch/pts[0]*100):0}%)</span> over this period`;
+  }
+  // breakdowns
+  const agg=f=>{const m={};col.forEach(x=>{const k=f(x);m[k]=(m[k]||[0,0]);m[k][0]+=itemVal(x);m[k][1]+=x.qty});return Object.entries(m).sort((a,b)=>b[1][0]-a[1][0])};
+  $('bySet').innerHTML=barsHTML(agg(x=>x.set||'Unknown set').slice(0,8).map(([k,v])=>[k,v[0],`${v[1]} card${v[1]===1?'':'s'}`]));
+  const order=['$200+','$50 – $200','$10 – $50','$1 – $10','Under $1'];
+  $('byBand').innerHTML=barsHTML(agg(x=>bandOf(num(x.price)?x.price*condMult(x):0)).sort((a,b)=>order.indexOf(a[0])-order.indexOf(b[0])).map(([k,v])=>[k,v[0],`${v[1]} card${v[1]===1?'':'s'}`]));
+  $('byBinder').innerHTML=barsHTML(agg(x=>x.binder||'Main').map(([k,v])=>[k,v[0],`${v[1]} card${v[1]===1?'':'s'}`]));
+  const paid=col.filter(x=>num(x.paid));
+  if(!paid.length)$('profitBox').innerHTML='<p class="empty">Open a card and enter what you paid to track profit.</p>';
+  else{const cost=paid.reduce((a,x)=>a+x.paid*x.qty,0),now=paid.reduce((a,x)=>a+itemVal(x),0),g=now-cost;
+    const best=[...paid].sort((a,b)=>(itemVal(b)-b.paid*b.qty)-(itemVal(a)-a.paid*a.qty));
+    $('profitBox').innerHTML=`<div class="kv"><div><b>${money(cost)}</b><span>paid</span></div><div><b>${money(now)}</b><span>worth now</span></div><div><b class="${g>=0?'up':'down'}">${g>=0?'+':'−'}${money(Math.abs(g))}</b><span>${cost?Math.round(g/cost*100):0}% return</span></div></div>
+    <ul class="bars" style="margin-top:10px">${best.slice(0,3).map(x=>{const gg=itemVal(x)-x.paid*x.qty;return `<li><div class="lab"><span>${esc(x.name)}</span><span class="${gg>=0?'up':'down'}">${gg>=0?'+':'−'}${money(Math.abs(gg))}</span></div></li>`}).join('')}</ul>`}
+}
+document.querySelectorAll('#v-insights [data-r]').forEach(b=>b.onclick=()=>{insRange=+b.dataset.r;renderInsights()});
+{const ro=new ResizeObserver(()=>{if(view==='insights')renderInsights()});ro.observe($('bigChart'))}
+
+/* ---------- select mode ---------- */
+let selecting=false;const selected=new Set();
+function updateSelbar(){
+  $('selbar').hidden=!selecting;$('selCount').textContent=`${selected.size} selected`;
+  $('selMove').innerHTML='<option value="">Move to…</option>'+binders.map(b=>`<option>${esc(b)}</option>`).join('')+'<option value="__new">+ New binder…</option>';
+  document.querySelectorAll('#col .tile[data-cid],#binderView .pocket[data-cid]').forEach(t=>t.classList.toggle('sel',selected.has(t.dataset.cid)));
+}
+function setSelecting(on){selecting=on;selected.clear();$('selBtn').textContent=on?'Cancel':'Select';updateSelbar()}
+$('selBtn').onclick=()=>setSelecting(!selecting);
+$('selDone').onclick=()=>setSelecting(false);
+document.addEventListener('click',e=>{
+  if(!selecting)return;const t=e.target.closest('#col [data-cid],#binderView [data-cid]');if(!t)return;
+  e.stopImmediatePropagation();e.preventDefault();const id=t.dataset.cid;selected.has(id)?selected.delete(id):selected.add(id);updateSelbar();
+},true);
+$('selMove').onchange=e=>{let b=e.target.value;if(!b||!selected.size)return;if(b==='__new'){b=(prompt('Name your new binder')||'').trim().slice(0,30);if(!b){e.target.value='';return}if(!binders.includes(b)){binders.push(b);LS.set('hvl-binders',binders)}}
+  col.forEach(x=>{if(selected.has(x.id))x.binder=b});save();toast(`Moved ${selected.size} card${selected.size===1?'':'s'} to ${b}.`);setSelecting(false);renderAll()};
+$('selTrade').onclick=()=>{if(!selected.size)return;col.filter(x=>selected.has(x.id)).forEach(x=>trade.give.push({id:x.id,name:x.name,set:x.set,num:x.num,img:x.img,price:num(x.price)?x.price*condMult(x):x.price}));saveTrade();setSelecting(false);go('trade')};
+$('selDel').onclick=()=>{if(!selected.size)return;const gone=col.filter(x=>selected.has(x.id)),n=gone.length;col=col.filter(x=>!selected.has(x.id));save();setSelecting(false);renderAll();toast(`Deleted ${n} card${n===1?'':'s'}.`,()=>{col=[...gone,...col];save();renderAll()})};
 /* ---------- navigation ---------- */
 let view='home';
 function route(){
-  const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack'].includes(h)?h:'home';view=v;
+  const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack','insights'].includes(h)?h:'home';view=v;
   document.querySelectorAll('.view').forEach(s=>s.hidden=s.id!=='v-'+v);
   document.querySelectorAll('.tabbar a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   if(v==='sets'){if(curSet)renderSetDetail(curSet);else renderSets()}
   if(v==='trade')renderTrade();
   if(v==='pack')renderPack();
+  if(v==='insights')renderInsights();
+  if(v!=='col'&&typeof setSelecting==='function'&&selecting)setSelecting(false);
   window.scrollTo(0,0);
 }
 window.addEventListener('hashchange',route);
@@ -1168,6 +1295,7 @@ $('rapidHome').onclick=()=>{setRapid(true);openScanner()};
 $('searchJump').onclick=()=>{$('q').focus();$('q').scrollIntoView({block:'center',behavior:'smooth'})};
 $('tradeJump').onclick=()=>go('trade');
 $('hitAlert').onclick=()=>go('wish');
+document.querySelector('.port').style.cursor='pointer';document.querySelector('.port').onclick=()=>go('insights');
 $('colQ').oninput=renderAll;$('sortBy').onchange=renderAll;
 $('video').addEventListener('click',e=>{if(!track)return;const r=$('video').getBoundingClientRect();const pt={x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};
   track.applyConstraints({advanced:[{pointsOfInterest:[pt],focusMode:'single-shot'}]}).then(()=>setTimeout(()=>track?.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}),1500)).catch(()=>{});chip('Focusing…')});
