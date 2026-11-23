@@ -1,0 +1,418 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#ffd23f">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>HoloValue Scanner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#ffd23f,#141218);--paper:light-dark(#fffdf5,#201d26);--ink:light-dark(#16141a,#f6f2e6);--soft:light-dark(#5b5547,#b3ac9c);--line:light-dark(#16141a22,#ffffff1c);--tint:light-dark(#16141a0b,#ffffff0d);--red:#e5383b;--green:light-dark(#1d7a3c,#6fdc95);--foil:conic-gradient(from 210deg,#ff6b9d,#ffd166,#7bf1a8,#5ec8ff,#b38cff,#ff6b9d)}
+*{box-sizing:border-box;min-width:0}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Rubik,system-ui,sans-serif;overflow-x:clip;padding:env(safe-area-inset-top) 0 calc(24px + env(safe-area-inset-bottom))}
+.wrap{max-width:900px;margin:0 auto;padding:16px max(4vw,16px)}
+.top{display:flex;align-items:center;gap:12px;padding:6px 0 14px}
+.logo{width:26px;height:36px;border-radius:5px;background:var(--foil);box-shadow:inset 0 0 0 3px var(--paper);flex:none}
+.brand{font-weight:800;font-size:20px}
+.brand small{display:block;font-size:12px;font-weight:500;color:var(--soft)}
+.hv{margin-left:auto;text-align:right;line-height:1.1}.hv b{font-size:22px;font-weight:800;white-space:nowrap}.hv small{display:block;font-size:12px;color:var(--soft)}
+.hero{background:var(--paper);border-radius:24px;padding:22px;text-align:center;box-shadow:0 10px 30px #0002}
+.hero h1{font-size:clamp(28px,7vw,40px);line-height:1.05;margin:0 0 6px;font-weight:800;letter-spacing:-.02em}
+.hero p{margin:0 auto 18px;color:var(--soft);max-width:44ch}
+.scanbtn{width:100%;max-width:360px;min-height:72px;font-size:22px;border-radius:20px;background:var(--ink);color:var(--bg);border:0;font-weight:800;display:inline-flex;align-items:center;justify-content:center;gap:12px;cursor:pointer;font-family:inherit;box-shadow:0 6px 0 #0004}
+.scanbtn svg{width:30px;height:30px}
+button,.btn{font:inherit;font-weight:700;min-height:46px;padding:0 18px;border-radius:999px;border:2px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;font-size:15px;white-space:nowrap}
+.ghost{background:transparent!important;color:var(--ink)!important}
+:focus-visible{outline:3px solid var(--red);outline-offset:2px}
+.search{display:flex;gap:8px;margin-top:16px}
+input[type=search]{flex:1;font:inherit;font-size:16px;min-height:48px;border-radius:14px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:0 14px}
+h2{font-size:22px;margin:26px 0 10px;display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+h2 small{font-size:14px;font-weight:500;color:var(--soft)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px}
+@media(max-width:420px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.tile{position:relative;background:var(--paper);border-radius:14px;padding:8px;text-align:left;cursor:pointer;border:0;color:var(--ink);font:inherit;display:block;width:100%;box-shadow:0 4px 14px #0001}
+.tile img,.ph{display:block;width:100%;aspect-ratio:63/88;border-radius:8px;object-fit:cover;background:var(--foil)}
+.tn{display:block;font-weight:500;font-size:14px;margin-top:8px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ts{display:block;font-size:12px;color:var(--soft);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tp{display:block;font-weight:800;margin-top:2px;white-space:nowrap}
+.badge{position:absolute;top:12px;left:12px;background:var(--ink);color:var(--paper);font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px}
+.empty{color:var(--soft)}
+.msg{font-size:14px;color:var(--soft);margin:10px 0 0}
+.err{color:var(--red);font-weight:500}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+/* scanner */
+.scanner{position:fixed;inset:0;z-index:20;background:#000;color:#fff;display:flex;flex-direction:column}
+.scanner video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.guide{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:min(72vw,calc(62vh*63/88));aspect-ratio:63/88;border-radius:18px;box-shadow:0 0 0 200vmax #0009;border:3px solid #fff}
+.guide::before,.guide::after{content:"";position:absolute;left:6%;right:6%;height:14%;border:2px dashed #ffd23f;border-radius:8px}
+.guide::before{top:2%}.guide::after{bottom:2%}
+.guide .lineA,.guide .lineB{position:absolute;left:0;right:0;text-align:center;font-size:12px;font-weight:700;color:#ffd23f;text-shadow:0 1px 3px #000}
+.guide .lineA{top:-24px}.guide .lineB{bottom:-24px}
+.beam{position:absolute;left:4%;right:4%;height:3px;background:#ffd23f;box-shadow:0 0 16px 4px #ffd23faa;top:0;animation:sweep 1.6s ease-in-out infinite alternate}
+@keyframes sweep{to{top:calc(100% - 3px)}}
+@media(prefers-reduced-motion:reduce){.beam{animation:none;top:50%}}
+.sbar{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:calc(12px + env(safe-area-inset-top)) 16px 12px}
+.sbar button{background:#0008!important;color:#fff!important;border:0;min-width:48px;padding:0 14px}
+.schip{position:absolute;z-index:2;left:50%;transform:translateX(-50%);bottom:calc(120px + env(safe-area-inset-bottom));background:#000c;border-radius:999px;padding:8px 16px;font-size:15px;font-weight:500;text-align:center;max-width:calc(100vw - 32px)}
+.sbot{position:absolute;z-index:2;left:0;right:0;bottom:0;display:flex;justify-content:center;align-items:center;gap:22px;padding:16px 16px calc(22px + env(safe-area-inset-bottom))}
+.shutter{width:76px;height:76px;border-radius:50%;background:#fff;border:6px solid #ffffff55;background-clip:padding-box;padding:0;min-height:0}
+.sbot .side{background:#0008!important;color:#fff!important;border:0;min-width:64px}
+.found .guide{border-color:#6fdc95}
+/* sheet */
+.scrim{position:fixed;inset:0;background:#0009;z-index:30}
+.sheet{position:fixed;left:0;right:0;bottom:0;z-index:31;max-height:92vh;overflow:auto;background:var(--paper);border-radius:22px 22px 0 0;padding:10px 18px calc(24px + env(safe-area-inset-bottom));max-width:640px;margin:0 auto;box-shadow:0 -10px 40px #0005}
+.grab{width:44px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+.shead{display:grid;grid-template-columns:130px minmax(0,1fr);gap:16px;align-items:start}
+.shead img{width:100%;border-radius:8px;box-shadow:0 8px 20px #0003}
+.shead h3{margin:0;font-size:22px;line-height:1.15}
+.meta{color:var(--soft);margin:4px 0 0;font-size:14px}
+.sticker{display:inline-block;margin:12px 0 0;background:var(--red);color:#fff;border-radius:12px;padding:8px 14px;transform:rotate(-2deg);box-shadow:0 5px 0 #0003}
+.sticker small{display:block;font-size:12px;font-weight:500}
+.sticker strong{font-size:32px;line-height:1;font-weight:800;white-space:nowrap}
+table{width:100%;border-collapse:collapse;margin-top:16px;font-size:14px}
+th,td{padding:8px 6px;border-bottom:1px solid var(--line);text-align:right;white-space:nowrap}
+th:first-child,td:first-child{text-align:left;white-space:normal}
+th{font-weight:500;color:var(--soft);font-size:13px}
+tr.sel td{font-weight:700}
+.pick td:first-child{cursor:pointer}
+.links{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.qty{display:inline-flex;align-items:center;border:2px solid var(--ink);border-radius:999px;height:46px}
+.qty button{min-height:42px;width:44px;padding:0;border:0;background:transparent;color:var(--ink);font-size:22px}
+.qty span{min-width:70px;text-align:center;font-weight:700;font-size:14px}
+.cands{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:10px;margin-top:10px}
+.fine{font-size:12px;color:var(--soft);margin-top:24px}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--paper);border-radius:14px;padding:12px 16px;z-index:40;max-width:calc(100vw - 32px);box-shadow:0 10px 30px #0004}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="logo" aria-hidden="true"></div>
+    <div class="brand">HoloValue<small>Live Pokémon card scanner</small></div>
+    <div class="hv"><b id="total">$0.00</b><small id="count">0 cards</small></div>
+  </div>
+
+  <div class="hero">
+    <h1>Point. Scan. Know.</h1>
+    <p>Tap Scan, hold a card inside the frame, and it reads the card number and shows today’s TCGplayer market price.</p>
+    <button class="scanbtn" id="scanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><rect x="8" y="7" width="8" height="10" rx="1.5"/></svg>Scan a card</button>
+    <form class="search" id="searchForm">
+      <input type="search" id="q" placeholder="Or search: Charizard, Umbreon VMAX…" aria-label="Search cards" autocomplete="off">
+      <button type="submit">Search</button>
+    </form>
+    <p class="msg" id="homeMsg" aria-live="polite"></p>
+  </div>
+
+  <div id="results"></div>
+
+  <h2>My collection <small id="colNote"></small></h2>
+  <div class="row" style="margin-bottom:10px">
+    <button class="ghost" id="refresh">Refresh prices</button>
+    <button class="ghost" id="copyBtn">Copy list</button>
+  </div>
+  <div class="grid" id="col"></div>
+  <p class="empty" id="colEmpty">Scan a card and tap Add to start your collection.</p>
+
+  <p class="fine">Prices are TCGplayer market prices from the free Pokémon TCG API (pokemontcg.io), usually updated daily. Card reading happens on your phone. Not affiliated with Nintendo, The Pokémon Company or TCGplayer.</p>
+</div>
+
+<div class="scanner" id="scanner" hidden>
+  <video id="video" playsinline muted autoplay></video>
+  <div class="sbar"><button id="closeScan" aria-label="Close scanner">✕</button><button id="torch" hidden>Flash</button></div>
+  <div class="guide" id="guide"><span class="lineA">Card name here</span><div class="beam"></div><span class="lineB">Card number here</span></div>
+  <div class="schip" id="schip">Starting camera…</div>
+  <div class="sbot">
+    <label class="btn side" style="position:relative;overflow:hidden">Photo<input type="file" id="photo" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0"></label>
+    <button class="shutter" id="shutter" aria-label="Scan now"></button>
+    <button class="side" id="typeIt">Type</button>
+  </div>
+</div>
+
+<div id="sheetHost"></div>
+<div id="toastHost"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script>
+{
+const API='https://api.pokemontcg.io/v2/cards';
+const SELECT='id,name,number,rarity,set,images,tcgplayer';
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const num=n=>typeof n==='number'&&isFinite(n);
+const money=n=>num(n)?'$'+n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2}):'—';
+const okUrl=u=>typeof u==='string'&&/^https:\/\//.test(u);
+const VARIANTS=[['holofoil','Holo'],['normal','Normal'],['reverseHolofoil','Reverse Holo'],['1stEditionHolofoil','1st Ed. Holo'],['1stEditionNormal','1st Ed.'],['unlimitedHolofoil','Unlimited Holo'],['unlimitedNormal','Unlimited']];
+const vName=k=>(VARIANTS.find(v=>v[0]===k)||[k,k.replace(/([A-Z])/g,' $1')])[1];
+const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
+let col=LS.get('hvl-col',[]);
+const save=()=>LS.set('hvl-col',col);
+
+function bestVariant(card){
+  const p=card?.tcgplayer?.prices||{};
+  for(const [k] of VARIANTS)if(num(p[k]?.market))return k;
+  const any=Object.keys(p).find(k=>num(p[k]?.market)||num(p[k]?.mid));
+  return any||null;
+}
+function priceFor(card,v){const p=card?.tcgplayer?.prices?.[v];return p?(num(p.market)?p.market:num(p.mid)?p.mid:null):null}
+
+/* ---------- API ---------- */
+async function api(q,size=24){
+  const url=`${API}?q=${encodeURIComponent(q)}&pageSize=${size}&select=${SELECT}&orderBy=-set.releaseDate`;
+  const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),20000);
+  try{
+    const r=await fetch(url,{signal:ctl.signal});
+    if(r.status===429)throw new Error('The card database is busy. Wait a minute and try again.');
+    if(!r.ok)throw new Error('Card database error ('+r.status+'). Try again.');
+    const j=await r.json();return j.data||[];
+  }catch(e){if(e.name==='AbortError')throw new Error('The card database is taking too long. Check your connection and try again.');if(e instanceof TypeError)throw new Error('Couldn’t reach the card database. Check your internet connection.');throw e}
+  finally{clearTimeout(t)}
+}
+const qEsc=s=>String(s).replace(/["\\]/g,'');
+async function findByNumber(n,total,nameGuess){
+  const nums=[...new Set([n,String(parseInt(n,10)),n.padStart(3,'0')])].filter(x=>x&&x!=='NaN');
+  let q=`(${nums.map(x=>`number:"${x}"`).join(' OR ')}) set.printedTotal:${parseInt(total,10)}`;
+  let cards=await api(q);
+  if(nameGuess&&cards.length>1){
+    const g=nameGuess.toLowerCase();
+    const scored=cards.map(c=>[c,sim(c.name.toLowerCase(),g)]).sort((a,b)=>b[1]-a[1]);
+    if(scored[0][1]>.5&&(scored.length<2||scored[0][1]-scored[1][1]>.15))return[scored[0][0]];
+    cards=scored.map(x=>x[0]);
+  }
+  return cards;
+}
+function sim(a,b){ // bigram similarity
+  const bg=s=>{const o=[];for(let i=0;i<s.length-1;i++)o.push(s.slice(i,i+2));return o};
+  const A=bg(a.replace(/\s+/g,'')),B=bg(b.replace(/\s+/g,''));if(!A.length||!B.length)return 0;
+  let hit=0;const pool=[...B];A.forEach(x=>{const i=pool.indexOf(x);if(i>=0){hit++;pool.splice(i,1)}});
+  return 2*hit/(A.length+B.length);
+}
+
+/* ---------- OCR ---------- */
+let worker=null,workerP=null;
+function getWorker(){
+  if(worker)return Promise.resolve(worker);
+  if(!window.Tesseract)return Promise.reject(new Error('The card reader didn’t load. Check your internet connection and reload.'));
+  if(!workerP)workerP=Tesseract.createWorker('eng',1,{}).then(w=>{worker=w;return w}).catch(e=>{workerP=null;throw new Error('The card reader didn’t load. Check your connection and reload.')});
+  return workerP;
+}
+function stripCanvas(src,sx,sy,sw,sh,scale){
+  const c=document.createElement('canvas');c.width=Math.round(sw*scale);c.height=Math.round(sh*scale);
+  const x=c.getContext('2d',{willReadFrequently:true});x.imageSmoothingQuality='high';x.drawImage(src,sx,sy,sw,sh,0,0,c.width,c.height);
+  const d=x.getImageData(0,0,c.width,c.height),p=d.data;let sum=0;
+  for(let i=0;i<p.length;i+=4){const g=.299*p[i]+.587*p[i+1]+.114*p[i+2];p[i]=p[i+1]=p[i+2]=g;sum+=g}
+  const mean=sum/(p.length/4);
+  for(let i=0;i<p.length;i+=4){const v=(p[i]-mean)*1.8+128;p[i]=p[i+1]=p[i+2]=v<0?0:v>255?255:v}
+  x.putImageData(d,0,0);return c;
+}
+function parseNumber(t){
+  const s=t.replace(/[Oo]/g,'0').replace(/[Il|]/g,'1').replace(/\s*\/\s*/g,'/');
+  const m=s.match(/(\d{1,3})\/(\d{2,3})/);
+  if(!m)return null;
+  const n=m[1],tot=m[2];if(+tot<10||+tot>400)return null;
+  return{n,tot};
+}
+function parseName(t){
+  const w=t.replace(/[^A-Za-zéÉ'\- ]/g,' ').split(/\s+/).filter(x=>x.length>=3&&!/^(basic|stage|hp|evolves|from|trainer|item|supporter|energy)$/i.test(x));
+  return w.slice(0,3).join(' ');
+}
+async function readFrame(src,rect){
+  const w=await getWorker();
+  const {x,y,w:W,h:H}=rect;
+  const scale=Math.max(1,900/W);
+  const bottom=stripCanvas(src,x,y+H*.86,W,H*.14,scale);
+  await w.setParameters({tessedit_pageseg_mode:'11',tessedit_char_whitelist:'0123456789/OoIl| '});
+  const rb=await w.recognize(bottom);
+  const number=parseNumber(rb.data.text||'');
+  let name='';
+  if(number){
+    const top=stripCanvas(src,x+W*.04,y+H*.02,W*.7,H*.11,scale);
+    await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:''});
+    const rt=await w.recognize(top);name=parseName(rt.data.text||'');
+  }
+  return{number,name};
+}
+
+/* ---------- scanner ---------- */
+let stream=null,track=null,loopOn=false,reading=false,lastKey='',hits=0,torchOn=false;
+const chip=t=>{$('schip').textContent=t};
+async function openScanner(){
+  $('scanner').hidden=false;document.body.style.overflow='hidden';chip('Starting camera…');
+  getWorker().catch(e=>chip(e.message));
+  if(!navigator.mediaDevices?.getUserMedia){chip('This browser can’t open the live camera. Tap Photo to take a picture instead.');return}
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
+    const v=$('video');v.srcObject=stream;await v.play().catch(()=>{});
+    track=stream.getVideoTracks()[0];
+    try{const caps=track.getCapabilities?.();if(caps?.torch)$('torch').hidden=false;if(caps?.focusMode?.includes('continuous'))track.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{})}catch(e){}
+    chip('Hold the card inside the frame');
+    loopOn=true;lastKey='';hits=0;loop();
+  }catch(e){
+    chip(e?.name==='NotAllowedError'?'Camera permission was blocked. Allow camera for this site in Chrome settings, or tap Photo.':'Couldn’t open the camera. Tap Photo to take a picture instead.');
+  }
+}
+function closeScanner(){
+  loopOn=false;stream?.getTracks().forEach(t=>t.stop());stream=null;track=null;torchOn=false;$('torch').hidden=true;
+  $('scanner').hidden=true;$('scanner').classList.remove('found');document.body.style.overflow='';
+}
+function guideRect(){
+  const v=$('video'),g=$('guide').getBoundingClientRect(),vr=v.getBoundingClientRect();
+  const vw=v.videoWidth,vh=v.videoHeight;if(!vw)return null;
+  const k=Math.max(vr.width/vw,vr.height/vh),ox=(vr.width-vw*k)/2,oy=(vr.height-vh*k)/2;
+  return{x:(g.left-vr.left-ox)/k,y:(g.top-vr.top-oy)/k,w:g.width/k,h:g.height/k};
+}
+async function loop(){
+  while(loopOn){
+    await new Promise(r=>setTimeout(r,450));
+    if(!loopOn||reading)continue;
+    await scanOnce(false);
+  }
+}
+async function scanOnce(manual){
+  const v=$('video');const r=guideRect();if(!r||reading)return;
+  reading=true;
+  try{
+    if(manual)chip('Reading…');
+    const {number,name}=await readFrame(v,r);
+    if(!loopOn&&!manual)return;
+    if(!number){hits=0;lastKey='';if(manual)chip('Couldn’t read the number. Move closer so the bottom of the card is sharp.');else chip('Looking for the card number…');return}
+    const key=number.n+'/'+number.tot;
+    hits=key===lastKey?hits+1:1;lastKey=key;
+    if(hits<2&&!manual){chip(`Reading ${key}… hold steady`);return}
+    chip(`Found ${key}${name?' · '+name:''}. Looking up price…`);
+    $('scanner').classList.add('found');
+    const cards=await findByNumber(number.n,number.tot,name);
+    if(!cards.length){$('scanner').classList.remove('found');hits=0;chip(`No card found for ${key}. Try again or tap Type.`);return}
+    navigator.vibrate?.(60);
+    closeScanner();
+    if(cards.length===1)openCard(cards[0]);else showChoices(cards,`Which card is ${key}?`);
+  }catch(e){chip(e.message||'Something went wrong. Try again.');$('scanner').classList.remove('found')}
+  finally{reading=false}
+}
+async function scanPhoto(file){
+  chip('Reading your photo…');
+  try{
+    const img=await new Promise((res,rej)=>{const i=new Image();const u=URL.createObjectURL(file);i.onload=()=>{URL.revokeObjectURL(u);res(i)};i.onerror=rej;i.src=u});
+    // assume the card fills most of the photo: use the central card-shaped area
+    const W=img.width,H=img.height;let cw=W*.9,ch=cw*88/63;if(ch>H*.95){ch=H*.95;cw=ch*63/88}
+    const rect={x:(W-cw)/2,y:(H-ch)/2,w:cw,h:ch};
+    let res=await readFrame(img,rect);
+    if(!res.number)res=await readFrame(img,{x:0,y:0,w:W,h:H});
+    if(!res.number){chip('Couldn’t read the card number in that photo. Fill the frame with the card and try again, or tap Type.');return}
+    const cards=await findByNumber(res.number.n,res.number.tot,res.name);
+    if(!cards.length){chip('No match for '+res.number.n+'/'+res.number.tot+'. Tap Type to search by name.');return}
+    closeScanner();cards.length===1?openCard(cards[0]):showChoices(cards,'Which card is it?');
+  }catch(e){chip(e.message||'Couldn’t read that photo.')}
+}
+
+/* ---------- sheet ---------- */
+function closeSheet(){$('sheetHost').innerHTML=''}
+function sheet(html){
+  $('sheetHost').innerHTML=`<div class="scrim" id="scrim"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div>`;
+  $('scrim').onclick=closeSheet;
+}
+function tile(c,extra=''){
+  const v=bestVariant(c),p=priceFor(c,v);
+  return `<button class="tile" data-id="${esc(c.id)}">${okUrl(c.images?.small)?`<img src="${esc(c.images.small)}" alt="" loading="lazy">`:'<span class="ph"></span>'}${extra}<span class="tn">${esc(c.name)}</span><span class="ts">${esc(c.set?.name||'')} · ${esc(c.number)}/${esc(c.set?.printedTotal||'')}</span><span class="tp">${money(p)}</span></button>`;
+}
+let cache=new Map();
+function showChoices(cards,title){
+  cards.forEach(c=>cache.set(c.id,c));
+  sheet(`<h3 style="margin:0">${esc(title)}</h3><p class="meta">Tap the one that matches your card.</p><div class="cands">${cards.slice(0,24).map(c=>tile(c)).join('')}</div>`);
+  document.querySelectorAll('.sheet .tile').forEach(b=>b.onclick=()=>openCard(cache.get(b.dataset.id)));
+}
+function openCard(c,variant){
+  cache.set(c.id,c);
+  const own=col.find(x=>x.id===c.id);
+  const prices=c.tcgplayer?.prices||{};
+  const keys=Object.keys(prices);
+  const v=variant||own?.v||bestVariant(c);
+  const p=priceFor(c,v);
+  const q=encodeURIComponent(`${c.name} ${c.number}/${c.set?.printedTotal||''} ${c.set?.name||''}`);
+  sheet(`<div class="shead">${okUrl(c.images?.large||c.images?.small)?`<img src="${esc(c.images.large||c.images.small)}" alt="${esc(c.name)} card">`:'<span class="ph"></span>'}
+  <div><h3>${esc(c.name)}</h3><p class="meta">${esc(c.set?.name||'')} · #${esc(c.number)}/${esc(c.set?.printedTotal||'')}${c.rarity?' · '+esc(c.rarity):''}</p>
+  <div class="sticker"><small>Market${v?' · '+esc(vName(v)):''}</small><strong>${money(p)}</strong></div>
+  ${c.tcgplayer?.updatedAt?`<p class="meta">Updated ${esc(c.tcgplayer.updatedAt)}</p>`:''}</div></div>
+  ${keys.length?`<table class="pick"><thead><tr><th>Version</th><th>Low</th><th>Market</th><th>High</th></tr></thead><tbody>${keys.map(k=>{const r=prices[k]||{};return `<tr data-v="${esc(k)}" class="${k===v?'sel':''}"><td>${k===v?'● ':''}${esc(vName(k))}</td><td>${money(r.low)}</td><td>${money(r.market)}</td><td>${money(r.high)}</td></tr>`}).join('')}</tbody></table><p class="meta">Tap a version to pick yours.</p>`:'<p class="meta">No TCGplayer price listed for this card yet. Check eBay sold listings below.</p>'}
+  <div class="row" style="margin-top:14px">
+    ${own?`<span class="qty"><button id="dec" aria-label="One fewer">−</button><span>${own.qty} owned</span><button id="inc" aria-label="One more">+</button></span>`:`<button id="add">Add to collection</button>`}
+    <button class="ghost" id="again">Scan another</button>
+  </div>
+  <div class="links">
+    ${okUrl(c.tcgplayer?.url)?`<a class="btn ghost" href="${esc(c.tcgplayer.url)}" target="_blank" rel="noopener">TCGplayer</a>`:''}
+    <a class="btn ghost" href="https://www.ebay.com/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1" target="_blank" rel="noopener">eBay sold</a>
+  </div>`);
+  document.querySelectorAll('.sheet tr[data-v]').forEach(tr=>tr.onclick=()=>{const nv=tr.dataset.v;if(own){own.v=nv;own.price=priceFor(c,nv);save();renderCol()}openCard(c,nv)});
+  $('again').onclick=()=>{closeSheet();openScanner()};
+  if(own){
+    $('inc').onclick=()=>{own.qty++;save();renderCol();openCard(c,v)};
+    $('dec').onclick=()=>{own.qty--;if(own.qty<=0){col=col.filter(x=>x!==own);toast(`Removed ${c.name}.`)}save();renderCol();openCard(c,v)};
+  }else $('add').onclick=()=>{col.unshift({id:c.id,name:c.name,set:c.set?.name||'',num:`${c.number}/${c.set?.printedTotal||''}`,img:c.images?.small||'',v,price:p,qty:1,t:Date.now()});save();renderCol();toast(`Added ${c.name}.`);openCard(c,v)};
+}
+
+/* ---------- collection ---------- */
+function renderCol(){
+  const tot=col.reduce((a,x)=>a+(num(x.price)?x.price:0)*x.qty,0),n=col.reduce((a,x)=>a+x.qty,0);
+  $('total').textContent=money(tot);$('count').textContent=`${n} card${n===1?'':'s'}`;
+  $('colEmpty').hidden=!!col.length;$('refresh').parentElement.hidden=!col.length;
+  $('colNote').textContent=col.length?money(tot):'';
+  $('col').innerHTML=[...col].sort((a,b)=>(b.price||0)*b.qty-(a.price||0)*a.qty).map(x=>`<button class="tile" data-cid="${esc(x.id)}">${okUrl(x.img)?`<img src="${esc(x.img)}" alt="" loading="lazy">`:'<span class="ph"></span>'}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${esc(x.num)}</span><span class="tp">${money(num(x.price)?x.price*x.qty:null)}</span></button>`).join('');
+  document.querySelectorAll('#col .tile').forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.cid;let c=cache.get(id);
+    if(!c){try{c=(await api(`id:"${qEsc(id)}"`,1))[0]}catch(e){toast(e.message);return}}
+    if(c)openCard(c);
+  });
+}
+$('refresh').onclick=async()=>{
+  const btn=$('refresh');btn.disabled=true;btn.textContent='Refreshing…';
+  try{
+    for(let i=0;i<col.length;i+=40){
+      const chunk=col.slice(i,i+40);
+      const cards=await api(chunk.map(x=>`id:"${qEsc(x.id)}"`).join(' OR '),40);
+      cards.forEach(c=>{cache.set(c.id,c);const it=col.find(x=>x.id===c.id);if(it){const p=priceFor(c,it.v||bestVariant(c));if(num(p))it.price=p;it.img=c.images?.small||it.img}});
+    }
+    save();renderCol();toast('Prices updated.');
+  }catch(e){toast(e.message)}
+  finally{btn.disabled=false;btn.textContent='Refresh prices'}
+};
+$('copyBtn').onclick=async()=>{
+  const text=col.map(x=>`${x.qty}× ${x.name} (${x.set} ${x.num}) ${money(x.price)}`).join('\n')+`\nTotal: ${$('total').textContent}`;
+  try{await navigator.clipboard.writeText(text);toast('List copied.')}catch(e){toast('Couldn’t copy on this browser.')}
+};
+
+/* ---------- search ---------- */
+async function search(term){
+  const t=term.trim();if(!t)return;
+  $('homeMsg').textContent='Searching…';$('homeMsg').classList.remove('err');
+  try{
+    const m=t.match(/^(.*?)\s*(\d{1,3})\s*\/\s*(\d{2,3})\s*$/);
+    let cards;
+    if(m){cards=await findByNumber(m[2],m[3],m[1])}
+    else{const words=t.replace(/[^\w\sé'-]/g,' ').split(/\s+/).filter(Boolean);cards=await api(words.map(w=>w.replace(/[^A-Za-z0-9é'-]/g,'')).filter(Boolean).map(w=>`name:${w}*`).join(' '),36)}
+    if(!cards.length){$('homeMsg').textContent='No cards found. Check the spelling, or try just the Pokémon’s name.';$('results').innerHTML='';return}
+    cards.forEach(c=>cache.set(c.id,c));
+    $('homeMsg').textContent=`${cards.length} result${cards.length===1?'':'s'}`;
+    $('results').innerHTML=`<h2>Results <small><button class="ghost" id="clr" style="min-height:36px">Clear</button></small></h2><div class="grid">${cards.map(c=>tile(c)).join('')}</div>`;
+    $('clr').onclick=()=>{$('results').innerHTML='';$('homeMsg').textContent=''};
+    document.querySelectorAll('#results .tile').forEach(b=>b.onclick=()=>openCard(cache.get(b.dataset.id)));
+  }catch(e){$('homeMsg').textContent=e.message;$('homeMsg').classList.add('err')}
+}
+
+let toastT;function toast(m){clearTimeout(toastT);$('toastHost').innerHTML='<div class="toast" role="status"></div>';$('toastHost').firstChild.textContent=m;toastT=setTimeout(()=>$('toastHost').innerHTML='',2400)}
+
+$('scanBtn').onclick=openScanner;
+$('closeScan').onclick=closeScanner;
+$('shutter').onclick=()=>scanOnce(true);
+$('typeIt').onclick=()=>{closeScanner();$('q').focus()};
+$('photo').onchange=e=>{const f=e.target.files?.[0];e.target.value='';if(f)scanPhoto(f)};
+$('torch').onclick=()=>{torchOn=!torchOn;track?.applyConstraints({advanced:[{torch:torchOn}]}).catch(()=>{});$('torch').textContent=torchOn?'Flash on':'Flash'};
+$('searchForm').onsubmit=e=>{e.preventDefault();search($('q').value)};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){if($('sheetHost').innerHTML)closeSheet();else if(!$('scanner').hidden)closeScanner()}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&!$('scanner').hidden)closeScanner()});
+renderCol();
+}
+</script>
+</body>
+</html>
