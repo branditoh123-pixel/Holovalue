@@ -1,5 +1,5 @@
 // HoloValue offline cache: app page and prices update from the network first; libraries and images are cached.
-const CACHE = 'holovalue-v1';
+const CACHE = 'holovalue-v2';
 const SHELL = ['./', 'index.html', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', e => {
@@ -11,7 +11,7 @@ self.addEventListener('activate', e => {
 
 const networkFirst = async req => {
   const c = await caches.open(CACHE);
-  try { const r = await fetch(req); if (r.ok) c.put(req, r.clone()); return r; }
+  try { const r = await fetch(req, { cache: 'no-cache' }); if (r.ok) c.put(req, r.clone()); return r; }
   catch (e) { const hit = await c.match(req, { ignoreSearch: true }); if (hit) return hit; throw e; }
 };
 const cacheFirst = async req => {

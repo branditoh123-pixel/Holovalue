@@ -246,7 +246,7 @@ input[type=search]{width:100%}
         <li><b>Fit the card in the frame</b> with its number (like 199/165) in the yellow box.</li>
         <li><b>See the TCGplayer price</b>, add it, and track your collection’s value every day.</li>
       </ol>
-      <p class="msg">Free, unlimited scans. No account, no ads, no card limit.</p>
+      <p class="msg">Free, unlimited scans. No account, no ads, no card limit. Tap any card to see it up close.</p>
     </section>
     <section id="moverSec" hidden><h2>Price movers <small>since last update</small></h2><div class="hrow" id="moverRow"></div></section>
     <section id="topSec" hidden><h2>Top cards <small id="topNote"></small></h2><div class="hrow" id="topRow"></div></section>
@@ -1105,7 +1105,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden&&!$('scanne
 col.forEach(x=>{x.qty=x.qty||1});
 route();renderAll();
 tcgIndex().then(()=>{if(updatePrices()||true)renderAll()});
-if('serviceWorker' in navigator&&location.protocol==='https:')navigator.serviceWorker.register('sw.js').catch(()=>{});
+if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});let reloaded=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloaded)return;reloaded=true;if(!$('scanner').hidden||$('sheetHost').innerHTML)return;location.reload()})}
 }
 </script>
 </body>
