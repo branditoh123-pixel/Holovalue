@@ -47,8 +47,9 @@ h2 small{font-size:14px;font-weight:500;color:var(--soft)}
 .scanner{position:fixed;inset:0;z-index:20;background:#000;color:#fff;display:flex;flex-direction:column}
 .scanner video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .guide{pointer-events:none;position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:min(72vw,calc(62vh*63/88));aspect-ratio:63/88;border-radius:18px;box-shadow:0 0 0 200vmax #0009;border:3px solid #fff}
-.guide::before,.guide::after{content:"";position:absolute;left:6%;right:6%;height:14%;border:2px dashed #ffd23f;border-radius:8px}
-.guide::before{top:2%}.guide::after{bottom:2%}
+.nb{position:absolute;top:87.5%;height:11.5%;border:2px solid #ffd23f;border-radius:6px;background:#ffd23f1a}
+.nb.l{left:2%;width:48%}.nb.r{left:50%;width:48%;border-style:dashed;opacity:.6}
+.sdbg{position:absolute;z-index:2;left:50%;transform:translateX(-50%);bottom:calc(98px + env(safe-area-inset-bottom));font:12px ui-monospace,monospace;color:#ffffffb0;white-space:nowrap;max-width:calc(100vw - 24px);overflow:hidden;text-overflow:ellipsis}
 .guide .lineA,.guide .lineB{position:absolute;left:0;right:0;text-align:center;font-size:12px;font-weight:700;color:#ffd23f;text-shadow:0 1px 3px #000}
 .guide .lineA{top:-24px}.guide .lineB{bottom:-24px}
 .beam{position:absolute;left:4%;right:4%;height:3px;background:#ffd23f;box-shadow:0 0 16px 4px #ffd23faa;top:0;animation:sweep 1.6s ease-in-out infinite alternate}
@@ -56,7 +57,7 @@ h2 small{font-size:14px;font-weight:500;color:var(--soft)}
 @media(prefers-reduced-motion:reduce){.beam{animation:none;top:50%}}
 .sbar{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:calc(12px + env(safe-area-inset-top)) 16px 12px}
 .sbar button{background:#0008!important;color:#fff!important;border:0;min-width:48px;padding:0 14px}
-.schip{position:absolute;z-index:2;left:50%;transform:translateX(-50%);bottom:calc(120px + env(safe-area-inset-bottom));background:#000c;border-radius:999px;padding:8px 16px;font-size:15px;font-weight:500;text-align:center;max-width:calc(100vw - 32px)}
+.schip{position:absolute;z-index:2;left:50%;transform:translateX(-50%);bottom:calc(128px + env(safe-area-inset-bottom));background:#000c;border-radius:999px;padding:8px 16px;font-size:15px;font-weight:500;text-align:center;max-width:calc(100vw - 32px)}
 .sbot{position:absolute;z-index:2;left:0;right:0;bottom:0;display:flex;justify-content:center;align-items:center;gap:22px;padding:16px 16px calc(22px + env(safe-area-inset-bottom))}
 .shutter{width:76px;height:76px;border-radius:50%;background:#fff;border:6px solid #ffffff55;background-clip:padding-box;padding:0;min-height:0}
 .sbot .side{background:#0008!important;color:#fff!important;border:0;min-width:64px}
@@ -122,8 +123,9 @@ tr.sel td{font-weight:700}
 <div class="scanner" id="scanner" hidden>
   <video id="video" playsinline muted autoplay></video>
   <div class="sbar"><button id="closeScan" aria-label="Close scanner">✕</button><button id="torch" hidden>Flash</button></div>
-  <div class="guide" id="guide"><span class="lineA">Card name here</span><div class="beam"></div><span class="lineB">Card number here</span></div>
+  <div class="guide" id="guide"><span class="lineA">Fit the whole card in the frame</span><div class="beam"></div><div class="nb l"></div><div class="nb r"></div><span class="lineB">Card number goes in the yellow box</span></div>
   <div class="schip" id="schip">Starting camera…</div>
+  <div class="sdbg" id="sdbg" aria-hidden="true"></div>
   <div class="sbot">
     <label class="btn side" style="position:relative;overflow:hidden">Photo<input type="file" id="photo" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0"></label>
     <button class="shutter" id="shutter" aria-label="Scan now"></button>
@@ -191,13 +193,14 @@ function sim(a,b){ // bigram similarity
 }
 
 /* ---------- OCR ---------- */
-let worker=null,workerP=null;
+let worker=null,workerP=null,readerStatus='';
+const dbg=t=>{const e=$('sdbg');if(e)e.textContent=t};
 function getWorker(){
   if(worker)return Promise.resolve(worker);
   if(!window.Tesseract)return Promise.reject(new Error('The card reader didn’t load. Check your internet connection and reload.'));
   if(!workerP){
-    const init=async opts=>{const w=await Tesseract.createWorker('eng',1,opts);await w.setParameters({tessedit_pageseg_mode:'6',tessedit_char_whitelist:'0123456789/ '});return w};
-    workerP=init({langPath:'https://tessdata.projectnaptha.com/4.0.0_fast'}).catch(()=>init({}))
+    const logger=m=>{if(!m||worker)return;const pct=num(m.progress)?Math.round(m.progress*100):null;readerStatus=(/language/i.test(m.status)?'Downloading card reader':/core|wasm/i.test(m.status)?'Loading card reader':'Starting card reader')+(pct!==null?` ${pct}%`:'')+'…';if(!$('scanner').hidden&&!loopOn)chip(readerStatus);dbg(readerStatus)};
+    workerP=Tesseract.createWorker('eng',1,{logger}).then(async w=>{await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789/ '});readerStatus='ready';return w})
       .then(w=>{worker=w;return w}).catch(e=>{workerP=null;throw new Error('The card reader didn’t load. Check your connection and reload.')});
   }
   return workerP;
@@ -234,18 +237,23 @@ function parseName(t){
   return w.slice(0,3).join(' ');
 }
 // side: 'L' bottom-left (modern cards), 'R' bottom-right (older cards), 'F' full bottom strip
+// number boxes (fractions of the card): modern cards print it bottom-left, older ones bottom-right
+const BOX={L:[.02,.875,.50,.99],R:[.50,.875,.98,.99],F:[0,.84,1,1]};
 async function readNumber(src,rect,side){
-  const w=await getWorker();const {x,y,w:W,h:H}=rect;
-  const x0=side==='R'?.45:0,x1=side==='L'?.55:1;
-  const c=stripCanvas(src,x+W*x0,y+H*.84,W*(x1-x0),H*.16,side==='F'?1100:900);
-  const r=await w.recognize(c);return parseNumber(r.data.text||'');
+  const w=await getWorker();const {x,y,w:W,h:H}=rect;const [a,b,c2,d]=BOX[side];
+  const sw=W*(c2-a),sh=H*(d-b),targetH=side==='F'?220:150; // ~25-30px tall digits for the reader
+  const cv=stripCanvas(src,x+W*a,y+H*b,sw,sh,Math.min(1400,sw*targetH/sh));
+  await w.setParameters({tessedit_pageseg_mode:side==='F'?'6':'7'});
+  const t0=performance.now();const r=await w.recognize(cv);const ms=Math.round(performance.now()-t0);
+  const txt=(r.data.text||'').replace(/\s+/g,' ').trim();dbg(`${side} saw “${txt||'nothing'}” · ${ms}ms`);
+  return parseNumber(txt);
 }
 async function readName(src,rect){
   const w=await getWorker();const {x,y,w:W,h:H}=rect;
   const c=stripCanvas(src,x+W*.04,y+H*.02,W*.7,H*.11,700);
   await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:''});
   try{const r=await w.recognize(c);return parseName(r.data.text||'')}
-  finally{await w.setParameters({tessedit_pageseg_mode:'6',tessedit_char_whitelist:'0123456789/ '})}
+  finally{await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789/ '})}
 }
 const lookCache=new Map();
 async function lookup(n,tot){
@@ -273,8 +281,11 @@ async function openScanner(){
     stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}},audio:false});
     const v=$('video');v.srcObject=stream;await v.play().catch(()=>{});
     track=stream.getVideoTracks()[0];
-    try{const caps=track.getCapabilities?.();if(caps?.torch)$('torch').hidden=false;if(caps?.focusMode?.includes('continuous'))track.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{})}catch(e){}
-    chip('Hold the card inside the frame · tap to focus');
+    try{const caps=track.getCapabilities?.()||{};if(caps.torch)$('torch').hidden=false;const adv={};if(caps.focusMode?.includes('continuous'))adv.focusMode='continuous';if(caps.zoom&&caps.zoom.max>=1.5)adv.zoom=Math.min(1.6,caps.zoom.max);if(Object.keys(adv).length)track.applyConstraints({advanced:[adv]}).catch(()=>{})}catch(e){}
+    await new Promise(r=>{if(v.videoWidth)r();else{v.onloadedmetadata=()=>r();setTimeout(r,3000)}});
+    if(!worker){chip(readerStatus||'Loading card reader…');try{await getWorker()}catch(e){chip(e.message);return}}
+    if($('scanner').hidden)return;
+    chip('Fit the card in the frame · number in the small box');
     loopOn=true;loop();
   }catch(e){
     chip(e?.name==='NotAllowedError'?'Camera permission was blocked. Allow camera for this site in Chrome settings, or tap Photo.':'Couldn’t open the camera. Tap Photo to take a picture instead.');
@@ -293,7 +304,7 @@ function guideRect(){
 const SIDES=['L','L','R'];let sideI=0,lastRaw='';
 async function loop(){
   while(loopOn){
-    await new Promise(r=>setTimeout(r,60));
+    await new Promise(r=>setTimeout(r,16));
     if(!loopOn||reading)continue;
     await scanOnce(false);
   }
@@ -375,7 +386,7 @@ function openCard(c,variant){
   ${keys.length?`<table class="pick"><thead><tr><th>Version</th><th>Low</th><th>Market</th><th>High</th></tr></thead><tbody>${keys.map(k=>{const r=prices[k]||{};return `<tr data-v="${esc(k)}" class="${k===v?'sel':''}"><td>${k===v?'● ':''}${esc(vName(k))}</td><td>${money(r.low)}</td><td>${money(r.market)}</td><td>${money(r.high)}</td></tr>`}).join('')}</tbody></table><p class="meta">Tap a version to pick yours.</p>`:'<p class="meta">No TCGplayer price listed for this card yet. Check eBay sold listings below.</p>'}
   <div class="row" style="margin-top:14px">
     ${own?`<span class="qty"><button id="dec" aria-label="One fewer">−</button><span>${own.qty} owned</span><button id="inc" aria-label="One more">+</button></span>`:`<button id="add">Add to collection</button>`}
-    <button class="ghost" id="again">Scan another</button>
+    <button class="ghost" id="again">Not it? Scan again</button>
   </div>
   <div class="links">
     ${okUrl(c.tcgplayer?.url)?`<a class="btn ghost" href="${esc(c.tcgplayer.url)}" target="_blank" rel="noopener">TCGplayer</a>`:''}
