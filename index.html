@@ -118,6 +118,41 @@ tr.sel td{font-weight:700}
 .fine{font-size:12px;color:var(--soft);margin-top:24px}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:var(--paper);border-radius:14px;padding:12px 16px;z-index:40;max-width:calc(100vw - 32px);box-shadow:0 10px 30px #0004}
 
+/* ---- v6 ---- */
+.top{align-items:center}
+.iconbtn{min-height:44px;width:44px;padding:0;border-radius:50%;background:var(--paper)!important;color:var(--ink)!important;border:0;box-shadow:0 3px 10px #0001}
+.iconbtn:first-of-type{margin-left:auto}
+.iconbtn svg{width:22px;height:22px}
+.hello{margin:0 0 10px;font-size:15px;color:var(--soft);font-weight:500}
+.holo{perspective:900px;display:flex;justify-content:center;padding:6px 0 16px;touch-action:none}
+.holo-card{position:relative;width:min(64vw,260px);aspect-ratio:63/88;border-radius:14px;transform-style:preserve-3d;transform:rotateX(var(--rx,0deg)) rotateY(var(--ry,0deg));transition:transform .15s ease-out;box-shadow:0 18px 40px #0005}
+.holo-card img,.holo-card .ph{width:100%;height:100%;object-fit:cover;border-radius:14px;display:block}
+.glare{position:absolute;inset:0;border-radius:14px;pointer-events:none;background:radial-gradient(circle at var(--gx,50%) var(--gy,30%),#ffffffaa 0%,#ffffff22 25%,transparent 55%),linear-gradient(115deg,transparent 30%,#ff6b9d33 42%,#ffd16633 48%,#7bf1a833 54%,#5ec8ff33 60%,transparent 72%);background-size:100% 100%,250% 250%;background-position:0 0,var(--sx,50%) 50%;mix-blend-mode:overlay;opacity:var(--go,.55)}
+@media(prefers-reduced-motion:reduce){.holo-card{transition:none}}
+.sinfo{text-align:center}.sinfo .meta{text-align:center}
+.sheet h3{font-size:24px}
+.seg{display:inline-flex;background:var(--paper);border-radius:999px;padding:4px;gap:4px;margin-bottom:12px}
+.seg button{min-height:38px;font-size:14px;background:transparent!important;color:var(--ink)!important;border:0}
+.seg button[aria-pressed=true]{background:var(--ink)!important;color:var(--bg)!important}
+.binderv{display:flex;gap:14px;overflow-x:auto;scroll-snap-type:x mandatory;padding:4px 2px 14px}
+.bpage{flex:0 0 min(92vw,520px);scroll-snap-align:center;background:linear-gradient(160deg,#2a2633,#16141a);border-radius:20px;padding:12px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;box-shadow:inset 0 0 0 2px #ffffff14,0 10px 24px #0004}
+.pocket{position:relative;aspect-ratio:63/88;border-radius:8px;background:#ffffff0d;box-shadow:inset 0 0 0 1px #ffffff22;overflow:hidden;border:0;padding:0;min-height:0;cursor:pointer}
+.pocket img,.pocket .ph{width:100%;height:100%;object-fit:cover;display:block}
+.pocket::after{content:"";position:absolute;inset:0;background:linear-gradient(135deg,#ffffff30,transparent 40%);pointer-events:none}
+.pocket .pp{position:absolute;left:4px;bottom:4px;background:#000b;color:#fff;font-size:11px;font-weight:700;border-radius:6px;padding:1px 5px}
+.pgno{color:var(--soft);font-size:13px;text-align:center;margin:-6px 0 8px}
+.packcard{background:var(--ink);color:var(--bg);border-radius:22px;padding:18px}
+.packcard .big{font-size:40px;font-weight:800;line-height:1.05}
+.packcard .kv span{color:inherit;opacity:.7}
+.ok{color:#6fdc95}.bad{color:#ff7b7d}
+.form{background:var(--paper);border-radius:20px;padding:4px 16px 16px}
+.presets{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.pulls{list-style:none;padding:0;margin:12px 0 0}.pulls li{display:flex;gap:10px;align-items:center;padding:8px 0;border-bottom:1px solid #ffffff22}
+.pulls img,.pulls .ph{width:34px;aspect-ratio:63/88;border-radius:4px;flex:none}.pulls span{flex:1;min-width:0}.pulls b{white-space:nowrap}
+.tile.top3::before{content:"";position:absolute;inset:0;border-radius:14px;background:linear-gradient(115deg,transparent 35%,#ffffff55 50%,transparent 65%);background-size:250% 100%;animation:sheen 3.5s ease-in-out infinite;pointer-events:none;z-index:1}
+@keyframes sheen{0%{background-position:150% 0}60%,100%{background-position:-50% 0}}
+@media(prefers-reduced-motion:reduce){.tile.top3::before{animation:none;display:none}}
+
 /* ---- app shell v5 ---- */
 body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .toast{bottom:calc(96px + env(safe-area-inset-bottom))!important}
@@ -129,7 +164,7 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .tabbar a[aria-current=page]{color:#ffd23f}
 .tabbar .tscan{align-self:center;justify-self:center;width:62px;height:62px;border-radius:50%;background:#ffd23f;color:#16141a;border:4px solid #16141a;margin-top:-26px;display:grid;place-items:center;box-shadow:0 6px 18px #0006;padding:0;min-height:0}
 .tabbar .tscan svg{width:30px;height:30px}
-.acts2{grid-template-columns:repeat(3,minmax(0,1fr))!important}
+.acts2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
 .act{grid-template-columns:1fr!important;justify-items:start;row-gap:2px;min-height:78px!important}
 .act svg{grid-row:auto!important}
 .alert{display:flex;gap:10px;align-items:center;background:#1d7a3c;color:#fff;border-radius:16px;padding:12px 14px;margin-top:14px;cursor:pointer;border:0;width:100%;font:inherit;text-align:left;font-weight:500}
@@ -174,9 +209,12 @@ input[type=search]{width:100%}
   <div class="top">
     <div class="logo" aria-hidden="true"></div>
     <div class="brand">HoloValue<small id="upd">Pokémon card scanner</small></div>
+    <button class="iconbtn" id="shareBtn" aria-label="Share my collection"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 3v13M7 8l5-5 5 5"/></svg></button>
+    <button class="iconbtn" id="setBtn" aria-label="Settings and backup"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
   </div>
 
   <section class="view" id="v-home">
+    <p class="hello" id="hello"></p>
     <section class="port" aria-label="Collection value">
       <div class="port-l">Collection value</div>
       <div class="port-v" id="total">$0.00</div>
@@ -191,6 +229,7 @@ input[type=search]{width:100%}
       <div class="acts2">
         <button class="act" id="rapidHome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Rapid scan<small>Add a stack fast</small></button>
         <button class="act" id="searchJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Search<small>25,000+ cards</small></button>
+        <button class="act" id="packJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 3h12l-1 4H7zM7 7h10v14H7z"/><path d="M10 12h4"/></svg>Rip a pack<small>Was it worth it?</small></button>
         <button class="act" id="tradeJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg>Trade check<small>Is it fair?</small></button>
       </div>
     </div>
@@ -218,11 +257,13 @@ input[type=search]{width:100%}
     <h1 class="vt">Collection</h1>
     <p class="vsub" id="colSub">Everything you own, priced daily.</p>
     <div class="chips" id="binders" role="group" aria-label="Binders"></div>
+    <div class="seg" role="group" aria-label="View"><button id="vGrid" aria-pressed="true">Grid</button><button id="vBinder" aria-pressed="false">Binder pages</button></div>
     <div class="row" id="colTools" style="margin-bottom:12px">
       <input type="search" id="colQ" placeholder="Find in collection" aria-label="Find in collection" style="flex:1 1 160px">
       <select id="sortBy" aria-label="Sort collection" style="font:inherit;font-size:16px;min-height:48px;border-radius:14px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:0 10px"><option value="value">Highest value</option><option value="gain">Biggest gain</option><option value="new">Newest</option><option value="name">Name</option><option value="set">Set</option></select>
     </div>
     <div class="grid" id="col"></div>
+    <div class="binderv" id="binderView" hidden></div>
     <p class="empty" id="colEmpty">Nothing here yet. Tap the yellow scan button to add cards.</p>
     <div class="row" id="colActs" style="margin-top:16px">
       <button class="ghost" id="refresh">Refresh prices</button>
@@ -246,6 +287,14 @@ input[type=search]{width:100%}
     <p class="vsub" id="wishSub">Cards you want. Set a target price and HoloValue flags it when the price drops to it.</p>
     <div class="grid" id="wishGrid"></div>
     <p class="empty" id="wishEmpty">Open any card and tap ♡ Want to add it here.</p>
+  </section>
+
+  <section class="view" id="v-pack" hidden>
+    <h1 class="vt">Rip a pack</h1>
+    <p class="vsub">Track what you pull and find out if the pack, box or bundle was worth the money.</p>
+    <div id="packBody"></div>
+    <h2 id="packHistH" hidden>Past openings</h2>
+    <ul class="setlist" id="packHist"></ul>
   </section>
 
   <section class="view" id="v-trade" hidden>
@@ -543,7 +592,7 @@ function guideRect(){
 }
 const SIDES=['L','L','R'];let sideI=0,lastRaw='';
 const known=(n,tot)=>!!tcgIdx?.cards?.[(+n)+'/'+(+tot)];
-let rapid=LS.get('hvl-rapid',false),lastAddedKey='',lastAddedAt=0,session=[];
+let rapid=LS.get('hvl-rapid',false),lastAddedKey='',lastAddedAt=0,session=[],emptyFrames=0;
 function rapidAdd(c,key){
   if(!hasPrice(c))tcgFill(c);
   const v=bestVariant(c),it=addCard(c,v);lastAddedKey=key;lastAddedAt=Date.now();session.push({id:c.id,price:priceFor(c,v)});
@@ -575,7 +624,7 @@ async function scanOnce(manual){
     if(manual){for(const sd of ['L','R','F']){number=await readNumber(v,r,sd);if(number)break}}
     else{number=await readNumber(v,r,SIDES[sideI++%SIDES.length])}
     if(!loopOn&&!manual)return;
-    if(!number){lastRaw='';if(manual)chip('Couldn’t read the number. Move closer so the small number at the bottom is sharp.');else chip('Looking for the card number…');return}
+    if(!number){lastRaw='';if(++emptyFrames>=3)lastAddedKey='';if(manual)chip('Couldn’t read the number. Move closer so the small number at the bottom is sharp.');else chip('Looking for the card number…');return}
     if(number.fuzzy){
       if(tcgIdx){const hit=number.fuzzy.find(c=>known(c.n,c.tot));if(!hit){if(manual)chip('Couldn’t read the number clearly. Hold steadier or tap Type.');return}number=hit}
       else{ // no card list yet: only spend lookups on a blurry read seen twice in a row
@@ -586,8 +635,9 @@ async function scanOnce(manual){
         number=hit;
       }
     }else if(tcgIdx&&!known(number.n,number.tot)){if(manual)chip(`${+number.n}/${+number.tot} isn’t a real card number. Hold steadier and try again.`);return} // misread: keep scanning
-    const key=(+number.n)+'/'+(+number.tot);
-    if(!manual&&rapid&&key===lastAddedKey&&Date.now()-lastAddedAt<4000)return; // same card still in view
+    emptyFrames=0;const key=(+number.n)+'/'+(+number.tot);
+    if(key!==lastAddedKey&&lastAddedKey&&!manual)lastAddedKey='';
+    if(!manual&&rapid&&key===lastAddedKey){chip('Got it! Swap in the next card…');return} // same card still in view
     chip(`Read ${key} · checking…`);
     let cards=await lookup(number.n,number.tot);
     if(!loopOn&&!manual)return;
@@ -688,8 +738,8 @@ function openCard(c,variant){
   const q=encodeURIComponent(`${c.name} ${c.number}/${c.set?.printedTotal||''} ${c.set?.name||''}`);
   const gain=own&&num(own.paid)&&num(p)?(p-own.paid)*own.qty:null;
   const hist=own?.hist||w?.hist||[];
-  sheet(`<div class="shead">${okUrl(c.images?.large||c.images?.small)?`<img src="${esc(c.images.large||c.images.small)}" alt="${esc(c.name)} card" onerror="this.style.visibility='hidden'">`:'<span class="ph"></span>'}
-  <div><h3>${esc(c.name)}</h3><p class="meta">${esc(c.set?.name||'')} · #${esc(c.number)}/${esc(c.set?.printedTotal||'')}${c.rarity?' · '+esc(c.rarity):''}</p>
+  sheet(`<div class="holo" id="holo"><div class="holo-card">${okUrl(c.images?.large||c.images?.small)?`<img src="${esc(c.images.large||c.images.small)}" alt="${esc(c.name)} card" onerror="this.outerHTML='<span class=&quot;ph&quot;></span>'">`:'<span class="ph"></span>'}<i class="glare"></i></div></div>
+  <div class="sinfo"><div><h3>${esc(c.name)}</h3><p class="meta">${esc(c.set?.name||'')} · #${esc(c.number)}/${esc(c.set?.printedTotal||'')}${c.rarity?' · '+esc(c.rarity):''}</p>
   <div class="sticker"><small>Market${v?' · '+esc(vName(v)):''}</small><strong>${money(p)}</strong></div>
   ${c.tcgplayer?.updatedAt?`<p class="meta">Updated ${esc(c.tcgplayer.updatedAt)}</p>`:''}
   ${own&&num(own.prev)&&own.prev!==own.price?`<p class="meta ${own.price>own.prev?'up':'down'}">${own.price>own.prev?'▲':'▼'} ${money(Math.abs(own.price-own.prev))} since last update</p>`:''}</div></div>
@@ -711,7 +761,7 @@ function openCard(c,variant){
     <button class="ghost" id="again">Not it? Scan again</button>
   </div>
   ${own?`<div class="row" style="margin-top:10px"><button class="danger" id="rmOwn">Remove from collection</button></div>`:''}`);
-  const sh=document.querySelector('.sheet');sh.dataset.card=c.id;
+  const sh=document.querySelector('.sheet');sh.dataset.card=c.id;holoTilt($('holo'));
   if(hist.length>1){const pts=hist.map(h=>h[1]),lo=Math.min(...pts),hi=Math.max(...pts),rg=hi-lo||1,X=i=>i*300/(pts.length-1),Y=v=>5+(1-(v-lo)/rg)*50;const d=pts.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('');const up=pts[pts.length-1]>=pts[0];$('hsp').innerHTML=`<path d="${d}" fill="none" stroke="${up?'#1d7a3c':'#e5383b'}" stroke-width="2.5" vector-effect="non-scaling-stroke"/>`}
   sh.querySelectorAll('tr[data-v]').forEach(tr=>tr.onclick=()=>{const nv=tr.dataset.v;if(own){own.v=nv;own.price=priceFor(c,nv);save();renderAll()}openCard(c,nv)});
   $('again').onclick=()=>{closeSheet();openScanner()};
@@ -733,6 +783,7 @@ function addCard(c,v){
   let it=col.find(x=>x.id===c.id);
   if(it)it.qty++;else{it={...itemFromCard(c,v),qty:1,binder:curBinder!=='All'?curBinder:'Main'};col.unshift(it)}
   const w=wish.find(x=>x.id===c.id);if(w){wish=wish.filter(x=>x!==w);saveWish()}
+  const pk=typeof activePack==='function'&&activePack();if(pk){pk.cards.push({id:c.id,name:c.name,img:it.img,price:priceFor(c,v)});savePacks();if(view==='pack')renderPack()}
   save();renderAll();return it;
 }
 const itemVal=x=>(num(x.price)?x.price:0)*(x.qty||1);
@@ -756,7 +807,8 @@ function renderAll(){
   // home rows
   $('onboard').hidden=col.length>0;
   const top=col.filter(x=>num(x.price)).sort((a,b)=>b.price-a.price);
-  $('topSec').hidden=top.length<2;$('topRow').innerHTML=top.slice(0,10).map(ownedTile).join('');
+  $('topSec').hidden=top.length<2;$('topRow').innerHTML=top.slice(0,10).map((x,i)=>i<3?ownedTile(x).replace('class="tile"','class="tile top3"'):ownedTile(x)).join('');
+  {const hr=new Date().getHours();$('hello').textContent=(hr<12?'Good morning':hr<18?'Good afternoon':'Good evening')+(col.length?` · ${col.reduce((a,x)=>a+x.qty,0)} cards tracked`:'')}
   $('recentSec').hidden=col.length<2;$('recentRow').innerHTML=[...col].sort((a,b)=>b.t-a.t).slice(0,10).map(ownedTile).join('');
   const mv=col.filter(x=>delta(x)).sort((a,b)=>Math.abs(delta(b)*b.qty)-Math.abs(delta(a)*a.qty));
   $('moverSec').hidden=!mv.length;$('moverRow').innerHTML=mv.slice(0,10).map(ownedTile).join('');
@@ -773,6 +825,7 @@ function renderAll(){
   const inB=col.filter(x=>curBinder==='All'||(x.binder||'Main')===curBinder);
   const rows=inB.filter(x=>!qf||(x.name+' '+x.set).toLowerCase().includes(qf)).sort(so==='new'?(a,b)=>b.t-a.t:so==='name'?(a,b)=>a.name.localeCompare(b.name):so==='set'?(a,b)=>a.set.localeCompare(b.set)||parseInt(a.num)-parseInt(b.num):so==='gain'?(a,b)=>((num(b.paid)?itemVal(b)-b.paid*b.qty:delta(b)*b.qty)-(num(a.paid)?itemVal(a)-a.paid*a.qty:delta(a)*a.qty)):(a,b)=>itemVal(b)-itemVal(a));
   $('col').innerHTML=rows.map(ownedTile).join('');
+  renderBinderPages(rows);applyColMode();
   const bt=inB.reduce((a,x)=>a+itemVal(x),0),bn=inB.reduce((a,x)=>a+x.qty,0);
   $('colSub').textContent=col.length?`${bn} card${bn===1?'':'s'} · ${money(bt)}${curBinder!=='All'?' in '+curBinder:''}`:'Everything you own, priced daily.';
   $('colEmpty').hidden=!!inB.length;$('colActs').hidden=!col.length;$('colTools').hidden=inB.length<4;
@@ -915,14 +968,114 @@ function tradeInput(k,K){
 tradeInput('give','Give');tradeInput('get','Get');
 $('tClear').onclick=()=>{trade={give:[],get:[]};saveTrade();renderTrade()};
 
+
+/* ---------- holographic tilt ---------- */
+function holoTilt(el){
+  if(!el)return;const card=el.querySelector('.holo-card');let raf=0;
+  const set=(x,y)=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>{card.style.setProperty('--ry',((x-.5)*26).toFixed(1)+'deg');card.style.setProperty('--rx',((.5-y)*26).toFixed(1)+'deg');card.style.setProperty('--gx',(x*100).toFixed(0)+'%');card.style.setProperty('--gy',(y*100).toFixed(0)+'%');card.style.setProperty('--sx',(x*100).toFixed(0)+'%');card.style.setProperty('--go','.85')})};
+  const pt=e=>{const r=card.getBoundingClientRect();const t=e.touches?e.touches[0]:e;set(Math.min(1,Math.max(0,(t.clientX-r.left)/r.width)),Math.min(1,Math.max(0,(t.clientY-r.top)/r.height)))};
+  const reset=()=>{card.style.setProperty('--rx','0deg');card.style.setProperty('--ry','0deg');card.style.setProperty('--go','.55')};
+  el.addEventListener('pointermove',pt);el.addEventListener('touchmove',pt,{passive:true});el.addEventListener('pointerleave',reset);el.addEventListener('touchend',reset);
+  if(window.DeviceOrientationEvent&&!matchMedia('(prefers-reduced-motion: reduce)').matches){
+    const onOri=e=>{if(!document.body.contains(card)){removeEventListener('deviceorientation',onOri);return}if(e.gamma==null)return;set(Math.min(1,Math.max(0,.5+e.gamma/50)),Math.min(1,Math.max(0,.5+(e.beta-45)/50)))};
+    addEventListener('deviceorientation',onOri);
+  }
+}
+
+/* ---------- binder pages ---------- */
+let colMode=LS.get('hvl-colmode','grid');
+function renderBinderPages(rows){
+  const pages=[];for(let i=0;i<rows.length;i+=9)pages.push(rows.slice(i,i+9));
+  $('binderView').innerHTML=pages.map((pg,pi)=>`<div class="bpage" aria-label="Page ${pi+1}">${Array.from({length:9},(_,k)=>{const x=pg[k];return x?`<button class="pocket" data-cid="${esc(x.id)}" aria-label="${esc(x.name)}">${imgTag(x.img)}<span class="pp">${money(num(x.price)?x.price:null)}</span></button>`:'<div class="pocket" aria-hidden="true"></div>'}).join('')}</div>`).join('')||'';
+  $('binderView').insertAdjacentHTML('afterend','');
+}
+function applyColMode(){
+  $('vGrid').setAttribute('aria-pressed',colMode==='grid');$('vBinder').setAttribute('aria-pressed',colMode==='binder');
+  $('col').hidden=colMode!=='grid';$('binderView').hidden=colMode!=='binder';
+}
+$('vGrid').onclick=()=>{colMode='grid';LS.set('hvl-colmode',colMode);renderAll()};
+$('vBinder').onclick=()=>{colMode='binder';LS.set('hvl-colmode',colMode);renderAll()};
+
+/* ---------- pack tracker ---------- */
+let packs=LS.get('hvl-packs',[]);
+const savePacks=()=>LS.set('hvl-packs',packs);
+const activePack=()=>packs.find(p=>!p.end);
+const packVal=p=>p.cards.reduce((a,x)=>a+(num(x.price)?x.price:0),0);
+const PRESETS=[['Booster pack',4.99],['Sleeved booster',5.49],['3-pack blister',14.99],['Booster bundle (6)',29.99],['Elite Trainer Box',59.99],['Booster box (36)',161.64]];
+function renderPack(){
+  const a=activePack();
+  if(!a){
+    $('packBody').innerHTML=`<form class="form" id="packForm"><label class="field">What are you opening?<input id="pkName" required maxlength="40" placeholder="e.g. Perfect Order booster"></label>
+    <label class="field">What did it cost? (USD)<input id="pkCost" type="number" inputmode="decimal" step="0.01" min="0" required placeholder="4.99"></label>
+    <div class="presets">${PRESETS.map(([n,c])=>`<button type="button" class="chip" data-n="${esc(n)}" data-c="${c}">${esc(n)} · $${c}</button>`).join('')}</div>
+    <button class="scanbtn" style="margin-top:16px;min-height:60px;font-size:19px" type="submit">Start opening</button></form>`;
+    $('packBody').querySelectorAll('.presets .chip').forEach(b=>b.onclick=()=>{if(!$('pkName').value)$('pkName').value=b.dataset.n;$('pkCost').value=b.dataset.c});
+    $('packForm').onsubmit=e=>{e.preventDefault();const cost=parseFloat($('pkCost').value);packs.push({id:Date.now(),name:$('pkName').value.trim()||'Pack',cost:isFinite(cost)?cost:0,start:Date.now(),cards:[]});savePacks();renderPack()};
+  }else{
+    const v=packVal(a),d=v-a.cost,best=[...a.cards].sort((x,y)=>(y.price||0)-(x.price||0))[0];
+    $('packBody').innerHTML=`<div class="packcard"><div class="port-l">${esc(a.name)} · cost ${money(a.cost)}</div>
+    <div class="big ${d>=0?'ok':'bad'}">${d>=0?'+':'−'}${money(Math.abs(d))}</div><div>${d>=0?'You’re ahead! 🎉':'Not worth it yet, keep ripping'}</div>
+    <div class="kv" style="margin-top:12px"><div><b>${money(v)}</b><span>pulled value</span></div><div><b>${a.cards.length}</b><span>cards</span></div><div><b>${best?money(best.price):'—'}</b><span>best pull</span></div></div>
+    <ul class="pulls">${a.cards.slice().reverse().map(x=>`<li>${imgTag(x.img)}<span>${esc(x.name)}</span><b>${money(x.price)}</b></li>`).join('')||'<li>Scan your pulls. Each card is added here and to your collection.</li>'}</ul></div>
+    <button class="scanbtn" id="pkScan" style="margin-top:14px">Scan pulls</button>
+    <div class="row" style="margin-top:10px"><button class="ghost" id="pkEnd">Finish opening</button><button class="ghost danger" id="pkCancel">Cancel</button></div>`;
+    $('pkScan').onclick=()=>{setRapid(true);openScanner()};
+    $('pkEnd').onclick=()=>{a.end=Date.now();savePacks();renderPack();toast(d>=0?`Nice! You pulled ${money(v)} from a ${money(a.cost)} ${a.name}.`:`You pulled ${money(v)} from a ${money(a.cost)} ${a.name}.`)};
+    $('pkCancel').onclick=()=>{packs=packs.filter(p=>p!==a);savePacks();renderPack()};
+  }
+  const done=packs.filter(p=>p.end).slice().reverse();
+  $('packHistH').hidden=!done.length;
+  $('packHist').innerHTML=done.slice(0,30).map(p=>{const v=packVal(p),d=v-p.cost;return `<li><button disabled style="cursor:default"><b>${esc(p.name)}<span class="${d>=0?'up':'down'}">${d>=0?'+':'−'}${money(Math.abs(d))}</span></b><small>${new Date(p.start).toLocaleDateString()} · paid ${money(p.cost)} · pulled ${money(v)} · ${p.cards.length} cards</small></button></li>`}).join('');
+  if(done.length){const tc=done.reduce((a,p)=>a+p.cost,0),tv=done.reduce((a,p)=>a+packVal(p),0);$('packHistH').innerHTML=`Past openings <small>${done.length} · spent ${money(tc)} · pulled ${money(tv)}</small>`}
+}
+
+/* ---------- share image ---------- */
+async function shareCollection(){
+  const W=1080,H=1350,cv=document.createElement('canvas');cv.width=W;cv.height=H;const x=cv.getContext('2d');
+  x.fillStyle='#ffd23f';x.fillRect(0,0,W,H);
+  x.save();x.translate(820,260);x.rotate(.3);
+  const g=x.createLinearGradient(-150,-210,150,210);['#ff6b9d','#ffd166','#7bf1a8','#5ec8ff','#b38cff'].forEach((c,i)=>g.addColorStop(i/4,c));x.fillStyle=g;x.globalAlpha=.9;x.beginPath();x.roundRect(-150,-210,300,420,26);x.fill();x.restore();
+  x.fillStyle='#16141a';x.beginPath();x.roundRect(60,520,W-120,700,40);x.fill();
+  x.fillStyle='#16141a';x.font='800 64px Rubik, system-ui, sans-serif';x.fillText('My Pokémon',70,170);x.fillText('collection',70,245);
+  x.font='500 34px Rubik, system-ui, sans-serif';x.fillText(new Date().toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}),70,310);
+  const tot=col.reduce((a,i)=>a+itemVal(i),0),n=col.reduce((a,i)=>a+i.qty,0);
+  x.fillStyle='#ffd23f';x.font='500 36px Rubik, system-ui, sans-serif';x.fillText('Collection value',110,610);
+  x.font='800 120px Rubik, system-ui, sans-serif';x.fillText(money(tot),105,740);
+  x.font='500 36px Rubik, system-ui, sans-serif';x.fillText(`${n} cards · ${col.length} unique`,110,800);
+  const top=col.filter(i=>num(i.price)).sort((a,b)=>b.price-a.price).slice(0,4);
+  x.font='700 38px Rubik, system-ui, sans-serif';top.forEach((i,k)=>{const y=900+k*72;x.fillStyle='#f6f2e6';const nm=i.name.length>26?i.name.slice(0,25)+'…':i.name;x.fillText(nm,110,y);x.fillStyle='#ffd23f';x.textAlign='right';x.fillText(money(i.price),W-110,y);x.textAlign='left'});
+  x.fillStyle='#16141a';x.font='700 34px Rubik, system-ui, sans-serif';x.fillText('Priced with HoloValue · '+location.host+location.pathname.replace(/index\.html$/,''),70,1300);
+  const blob=await new Promise(r=>cv.toBlob(r,'image/png'));const file=new File([blob],'my-pokemon-collection.png',{type:'image/png'});
+  try{if(navigator.canShare?.({files:[file]})){await navigator.share({files:[file],title:'My Pokémon collection'});return}}catch(e){if(e?.name==='AbortError')return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=file.name;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);toast('Image saved to your downloads.');
+}
+
+/* ---------- settings: backup / restore ---------- */
+function openSettings(){
+  const n=col.reduce((a,x)=>a+x.qty,0);
+  sheet(`<h3 style="margin:0 0 4px">Settings & backup</h3><p class="meta">Your collection is saved on this phone only. Back it up so you never lose it if you clear Chrome or change phones.</p>
+  <div class="sec"><b>${n} cards · ${wish.length} on wishlist · ${packs.length} pack openings</b>
+  <div class="row" style="margin-top:12px"><button id="bkSave">Save backup file</button><label class="btn ghost" style="position:relative;overflow:hidden">Restore backup<input type="file" id="bkLoad" accept="application/json,.json" style="position:absolute;inset:0;opacity:0"></label></div></div>
+  <div class="sec"><b>Prices</b><p class="meta">TCGplayer market prices update every night. Last update: ${esc(tcgIdx?.updated||'loading…')}.</p></div>
+  <div class="sec"><button class="danger" id="wipe">Delete all my data on this phone</button></div>`);
+  $('bkSave').onclick=()=>{const data={app:'HoloValue',v:1,saved:new Date().toISOString(),col,wish,binders,packs,trade,hist:LS.get('hvl-hist',{})};const blob=new Blob([JSON.stringify(data)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`holovalue-backup-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);toast('Backup saved to your downloads.')};
+  $('bkLoad').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{const d=JSON.parse(await f.text());if(d.app!=='HoloValue'||!Array.isArray(d.col))throw 0;if(!confirm(`Replace what’s on this phone with the backup from ${String(d.saved||'').slice(0,10)} (${d.col.length} cards)?`))return;
+    col=d.col;wish=Array.isArray(d.wish)?d.wish:[];binders=Array.isArray(d.binders)&&d.binders.length?d.binders:['Main'];packs=Array.isArray(d.packs)?d.packs:[];trade=d.trade&&Array.isArray(d.trade.give)?d.trade:{give:[],get:[]};
+    save();saveWish();LS.set('hvl-binders',binders);savePacks();saveTrade();if(d.hist&&typeof d.hist==='object')LS.set('hvl-hist',d.hist);closeSheet();renderAll();toast('Backup restored.')}catch(err){toast('That file isn’t a HoloValue backup.')}};
+  $('wipe').onclick=()=>{if(!confirm('Delete your whole collection, wishlist and history from this phone? This can’t be undone unless you saved a backup.'))return;col=[];wish=[];packs=[];trade={give:[],get:[]};binders=['Main'];['hvl-col','hvl-wish','hvl-packs','hvl-trade','hvl-binders','hvl-hist'].forEach(k=>{try{localStorage.removeItem(k)}catch(e){}});closeSheet();renderAll();toast('All data deleted.')};
+}
+$('setBtn').onclick=openSettings;
+$('shareBtn').onclick=()=>{if(!col.length){toast('Add some cards first, then share your collection.');return}shareCollection()};
+$('packJump').onclick=()=>go('pack');
 /* ---------- navigation ---------- */
 let view='home';
 function route(){
-  const h=location.hash.slice(1),v=['home','col','sets','wish','trade'].includes(h)?h:'home';view=v;
+  const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack'].includes(h)?h:'home';view=v;
   document.querySelectorAll('.view').forEach(s=>s.hidden=s.id!=='v-'+v);
   document.querySelectorAll('.tabbar a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   if(v==='sets'){if(curSet)renderSetDetail(curSet);else renderSets()}
   if(v==='trade')renderTrade();
+  if(v==='pack')renderPack();
   window.scrollTo(0,0);
 }
 window.addEventListener('hashchange',route);
@@ -939,7 +1092,7 @@ $('video').addEventListener('click',e=>{if(!track)return;const r=$('video').getB
   track.applyConstraints({advanced:[{pointsOfInterest:[pt],focusMode:'single-shot'}]}).then(()=>setTimeout(()=>track?.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}),1500)).catch(()=>{});chip('Focusing…')});
 $('closeScan').onclick=closeScanner;
 $('rapidBtn').onclick=()=>{setRapid(!rapid);chip(rapid?'Rapid scan on: each card is added automatically':'Rapid scan off')};
-$('sess').onclick=()=>{closeScanner();go('col')};
+$('sess').onclick=()=>{closeScanner();go(activePack()?'pack':'col')};
 setRapid(rapid);
 $('shutter').onclick=()=>scanOnce(true);
 $('typeIt').onclick=()=>{closeScanner();go('home');setTimeout(()=>$('q').focus(),100)};
