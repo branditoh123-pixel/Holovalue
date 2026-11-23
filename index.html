@@ -117,7 +117,7 @@ tr.sel td{font-weight:700}
   <div class="grid" id="col"></div>
   <p class="empty" id="colEmpty">Scan a card and tap Add to start your collection.</p>
 
-  <p class="fine">Prices are TCGplayer market prices from the free Pokémon TCG API (pokemontcg.io), usually updated daily. Card reading happens on your phone. Not affiliated with Nintendo, The Pokémon Company or TCGplayer.</p>
+  <p class="fine">Prices are TCGplayer market prices from two free card databases, pokemontcg.io and TCGdex (updated hourly to daily). Card reading happens on your phone. Not affiliated with Nintendo, The Pokémon Company or TCGplayer.</p>
 </div>
 
 <div class="scanner" id="scanner" hidden>
@@ -163,7 +163,7 @@ function priceFor(card,v){const p=card?.tcgplayer?.prices?.[v];return p?(num(p.m
 /* ---------- API ---------- */
 async function api(q,size=24){
   const url=`${API}?q=${encodeURIComponent(q)}&pageSize=${size}&select=${SELECT}&orderBy=-set.releaseDate`;
-  const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),20000);
+  const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),9000);
   try{
     const r=await fetch(url,{signal:ctl.signal});
     if(r.status===429)throw new Error('The card database is busy. Wait a minute and try again.');
@@ -255,13 +255,75 @@ async function readName(src,rect){
   try{const r=await w.recognize(c);return parseName(r.data.text||'')}
   finally{await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789/ '})}
 }
+/* ---------- backup database: TCGdex (free, no key, TCGplayer prices hourly) ---------- */
+const TDX='https://api.tcgdex.net/v2/en';
+async function tget(path,ms=9000){
+  const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),ms);
+  try{const r=await fetch(TDX+path,{signal:ctl.signal});if(r.status===404)return null;if(!r.ok)throw new Error('Backup database error ('+r.status+')');return await r.json()}
+  catch(e){if(e.name==='AbortError')throw new Error('The card databases are slow right now. Try again.');if(e instanceof TypeError)throw new Error('Couldn’t reach the card databases. Check your internet connection.');throw e}
+  finally{clearTimeout(t)}
+}
+let setsP=null;
+function tdxSets(){
+  if(!setsP){
+    const c=LS.get('hvl-tdxsets',null);
+    if(c&&Date.now()-c.t<7*864e5)setsP=Promise.resolve(c.m);
+    else setsP=tget('/sets',12000).then(list=>{const m={};(list||[]).forEach(x=>{m[x.id]={name:x.name,official:x.cardCount?.official,total:x.cardCount?.total}});LS.set('hvl-tdxsets',{t:Date.now(),m});return m}).catch(e=>{setsP=null;throw e});
+  }
+  return setsP;
+}
+const VMAP={normal:'normal',holo:'holofoil',holofoil:'holofoil',reverse:'reverseHolofoil','reverse-holofoil':'reverseHolofoil',reverseHolofoil:'reverseHolofoil'};
+function fromTdx(d){
+  const tp=d.pricing?.tcgplayer||{},prices={};
+  Object.entries(tp).forEach(([k,v])=>{if(v&&typeof v==='object'){const key=VMAP[k]||k.replace(/-(\w)/g,(_,c)=>c.toUpperCase());prices[key]={low:v.lowPrice,mid:v.midPrice,high:v.highPrice,market:v.marketPrice}}});
+  const img=typeof d.image==='string'&&/^https:\/\//.test(d.image)?d.image:'';
+  return{id:'tcgdex:'+d.id,name:d.name,number:String(d.localId||'').replace(/^0+(?=\d)/,''),rarity:d.rarity||'',
+    set:{name:d.set?.name||'',printedTotal:d.set?.cardCount?.official??''},
+    images:img?{small:img+'/low.webp',large:img+'/high.webp'}:{},
+    tcgplayer:{url:'',updatedAt:(tp.updated||'').slice(0,10),prices}};
+}
+async function tdxFind(n,tot){
+  const forms=[...new Set([String(+n),String(+n).padStart(3,'0'),String(+n).padStart(2,'0'),n])];
+  const [sets,...lists]=await Promise.all([tdxSets(),...forms.map(f=>tget('/cards?localId=eq:'+encodeURIComponent(f)).catch(()=>[]))]);
+  const seen=new Set(),hits=[];
+  lists.flat().forEach(c=>{if(!c?.id||seen.has(c.id))return;seen.add(c.id);if(+c.localId!==+n)return;const sid=c.id.slice(0,c.id.lastIndexOf('-'));const st=sets[sid];if(st&&(+st.official===+tot||+st.total===+tot))hits.push(c.id)});
+  const full=await Promise.all(hits.slice(0,6).map(id=>tget('/cards/'+encodeURIComponent(id)).catch(()=>null)));
+  return full.filter(Boolean).map(fromTdx);
+}
+async function tdxById(id){const d=await tget('/cards/'+encodeURIComponent(id.replace(/^tcgdex:/,'')));return d?fromTdx(d):null}
+const hasPrice=c=>Object.values(c?.tcgplayer?.prices||{}).some(v=>num(v?.market)||num(v?.mid));
 const lookCache=new Map();
-async function lookup(n,tot){
+// ask both databases at once; use the first that finds the card (prefer one with prices)
+function lookup(n,tot){
   const k=(+n)+'/'+(+tot);if(lookCache.has(k))return lookCache.get(k);
   const nums=[...new Set([n,String(+n),String(+n).padStart(3,'0')])];
-  const cards=await api(`(${nums.map(x=>`number:"${x}"`).join(' OR ')}) set.printedTotal:${+tot}`);
-  lookCache.set(k,cards);return cards;
+  const A=api(`(${nums.map(x=>`number:"${x}"`).join(' OR ')}) set.printedTotal:${+tot}`).then(r=>({r}),e=>({e}));
+  const B=tdxFind(n,tot).then(r=>({r}),e=>({e}));
+  const p=new Promise((resolve,reject)=>{
+    let left=2,fallback=null,errs=[];
+    const fin=o=>{
+      if(o.e)errs.push(o.e);
+      else if(o.r?.length){if(o.r.some(hasPrice)||fallback){resolve(o.r.some(hasPrice)?o.r:fallback);left=-99;return}fallback=o.r}
+      if(--left===0){if(fallback)resolve(fallback);else if(errs.length===2)reject(errs[0]);else resolve([])}
+    };
+    A.then(fin);B.then(fin);
+  });
+  lookCache.set(k,p);p.catch(()=>lookCache.delete(k));
+  return p;
 }
+// fill in missing prices from the other database
+async function enrich(c){
+  if(c._enriched)return c;c._enriched=true;
+  try{
+    let other=[];
+    if(String(c.id).startsWith('tcgdex:')){other=await api(`number:"${qEsc(c.number)}" set.printedTotal:${+c.set?.printedTotal||0}`).catch(()=>[])}
+    else{other=await tdxFind(c.number,c.set?.printedTotal).catch(()=>[])}
+    const m=other.map(o=>[o,sim(o.name.toLowerCase(),c.name.toLowerCase())]).sort((a,b)=>b[1]-a[1])[0];
+    if(m&&m[1]>.6&&hasPrice(m[0])){c.tcgplayer={...(c.tcgplayer||{}),prices:m[0].tcgplayer.prices,updatedAt:m[0].tcgplayer.updatedAt||c.tcgplayer?.updatedAt,url:c.tcgplayer?.url||m[0].tcgplayer.url}}
+  }catch(e){}
+  return c;
+}
+tdxSets().catch(()=>{}); // warm up the backup set list
 function pickByName(cards,name){
   if(!name||cards.length<2)return cards;
   const g=name.toLowerCase(),sc=cards.map(c=>[c,sim(c.name.toLowerCase(),g)]).sort((a,b)=>b[1]-a[1]);
@@ -335,7 +397,7 @@ async function scanOnce(manual){
     $('scanner').classList.add('found');navigator.vibrate?.(60);
     closeScanner();
     if(cards.length===1)openCard(cards[0]);else showChoices(cards,`Which card is ${key}?`);
-  }catch(e){chip(e.message||'Something went wrong. Try again.')}
+  }catch(e){chip((e.message||'Something went wrong.')+' Retrying in a few seconds…');await new Promise(r=>setTimeout(r,manual?0:5000))}
   finally{reading=false}
 }
 async function scanPhoto(file){
@@ -359,6 +421,7 @@ async function scanPhoto(file){
 function closeSheet(){$('sheetHost').innerHTML=''}
 function sheet(html){
   $('sheetHost').innerHTML=`<div class="scrim" id="scrim"></div><div class="sheet" role="dialog" aria-modal="true"><div class="grab"></div>${html}</div>`;
+  return document.querySelector('.sheet');
   $('scrim').onclick=closeSheet;
 }
 function tile(c,extra=''){
@@ -373,6 +436,7 @@ function showChoices(cards,title){
 }
 function openCard(c,variant){
   cache.set(c.id,c);
+  if(!hasPrice(c)&&!c._enriched){enrich(c).then(()=>{if(document.querySelector('.sheet')?.dataset.card===c.id)openCard(c,variant)})}
   const own=col.find(x=>x.id===c.id);
   const prices=c.tcgplayer?.prices||{};
   const keys=Object.keys(prices);
@@ -383,7 +447,7 @@ function openCard(c,variant){
   <div><h3>${esc(c.name)}</h3><p class="meta">${esc(c.set?.name||'')} · #${esc(c.number)}/${esc(c.set?.printedTotal||'')}${c.rarity?' · '+esc(c.rarity):''}</p>
   <div class="sticker"><small>Market${v?' · '+esc(vName(v)):''}</small><strong>${money(p)}</strong></div>
   ${c.tcgplayer?.updatedAt?`<p class="meta">Updated ${esc(c.tcgplayer.updatedAt)}</p>`:''}</div></div>
-  ${keys.length?`<table class="pick"><thead><tr><th>Version</th><th>Low</th><th>Market</th><th>High</th></tr></thead><tbody>${keys.map(k=>{const r=prices[k]||{};return `<tr data-v="${esc(k)}" class="${k===v?'sel':''}"><td>${k===v?'● ':''}${esc(vName(k))}</td><td>${money(r.low)}</td><td>${money(r.market)}</td><td>${money(r.high)}</td></tr>`}).join('')}</tbody></table><p class="meta">Tap a version to pick yours.</p>`:'<p class="meta">No TCGplayer price listed for this card yet. Check eBay sold listings below.</p>'}
+  ${keys.length?`<table class="pick"><thead><tr><th>Version</th><th>Low</th><th>Market</th><th>High</th></tr></thead><tbody>${keys.map(k=>{const r=prices[k]||{};return `<tr data-v="${esc(k)}" class="${k===v?'sel':''}"><td>${k===v?'● ':''}${esc(vName(k))}</td><td>${money(r.low)}</td><td>${money(r.market)}</td><td>${money(r.high)}</td></tr>`}).join('')}</tbody></table><p class="meta">Tap a version to pick yours.</p>`:(c._enriched?'<p class="meta">Neither price database lists this card yet. Check eBay sold listings below.</p>':'<p class="meta">Getting the price…</p>')}
   <div class="row" style="margin-top:14px">
     ${own?`<span class="qty"><button id="dec" aria-label="One fewer">−</button><span>${own.qty} owned</span><button id="inc" aria-label="One more">+</button></span>`:`<button id="add">Add to collection</button>`}
     <button class="ghost" id="again">Not it? Scan again</button>
@@ -392,6 +456,7 @@ function openCard(c,variant){
     ${okUrl(c.tcgplayer?.url)?`<a class="btn ghost" href="${esc(c.tcgplayer.url)}" target="_blank" rel="noopener">TCGplayer</a>`:''}
     <a class="btn ghost" href="https://www.ebay.com/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1" target="_blank" rel="noopener">eBay sold</a>
   </div>`);
+  {const sh=document.querySelector('.sheet');if(sh)sh.dataset.card=c.id}
   document.querySelectorAll('.sheet tr[data-v]').forEach(tr=>tr.onclick=()=>{const nv=tr.dataset.v;if(own){own.v=nv;own.price=priceFor(c,nv);save();renderCol()}openCard(c,nv)});
   $('again').onclick=()=>{closeSheet();openScanner()};
   if(own){
@@ -409,7 +474,7 @@ function renderCol(){
   $('col').innerHTML=[...col].sort((a,b)=>(b.price||0)*b.qty-(a.price||0)*a.qty).map(x=>`<button class="tile" data-cid="${esc(x.id)}">${okUrl(x.img)?`<img src="${esc(x.img)}" alt="" loading="lazy">`:'<span class="ph"></span>'}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${esc(x.num)}</span><span class="tp">${money(num(x.price)?x.price*x.qty:null)}</span></button>`).join('');
   document.querySelectorAll('#col .tile').forEach(b=>b.onclick=async()=>{
     const id=b.dataset.cid;let c=cache.get(id);
-    if(!c){try{c=(await api(`id:"${qEsc(id)}"`,1))[0]}catch(e){toast(e.message);return}}
+    if(!c){try{c=id.startsWith('tcgdex:')?await tdxById(id):(await api(`id:"${qEsc(id)}"`,1))[0]}catch(e){toast(e.message);return}}
     if(c)openCard(c);
   });
 }
@@ -417,8 +482,9 @@ $('refresh').onclick=async()=>{
   const btn=$('refresh');btn.disabled=true;btn.textContent='Refreshing…';
   try{
     for(let i=0;i<col.length;i+=40){
-      const chunk=col.slice(i,i+40);
-      const cards=await api(chunk.map(x=>`id:"${qEsc(x.id)}"`).join(' OR '),40);
+      const chunk=col.slice(i,i+40),ptc=chunk.filter(x=>!x.id.startsWith('tcgdex:')),tdx=chunk.filter(x=>x.id.startsWith('tcgdex:'));
+      const cards=[...(ptc.length?await api(ptc.map(x=>`id:"${qEsc(x.id)}"`).join(' OR '),40).catch(()=>[]):[]),...(await Promise.all(tdx.map(x=>tdxById(x.id).catch(()=>null)))).filter(Boolean)];
+      for(const c of cards)if(!hasPrice(c))await enrich(c);
       cards.forEach(c=>{cache.set(c.id,c);const it=col.find(x=>x.id===c.id);if(it){const p=priceFor(c,it.v||bestVariant(c));if(num(p))it.price=p;it.img=c.images?.small||it.img}});
     }
     save();renderCol();toast('Prices updated.');
@@ -438,7 +504,9 @@ async function search(term){
     const m=t.match(/^(.*?)\s*(\d{1,3})\s*\/\s*(\d{2,3})\s*$/);
     let cards;
     if(m){cards=pickByName(await lookup(m[2],m[3]),m[1])}
-    else{const words=t.replace(/[^\w\sé'-]/g,' ').split(/\s+/).filter(Boolean);cards=await api(words.map(w=>w.replace(/[^A-Za-z0-9é'-]/g,'')).filter(Boolean).map(w=>`name:${w}*`).join(' '),36)}
+    else{const words=t.replace(/[^\w\sé'-]/g,' ').split(/\s+/).filter(Boolean);
+      try{cards=await api(words.map(w=>w.replace(/[^A-Za-z0-9é'-]/g,'')).filter(Boolean).map(w=>`name:${w}*`).join(' '),36)}catch(e){cards=null}
+      if(!cards||!cards.length){const brief=(await tget('/cards?name='+encodeURIComponent(t)))||[];cards=(await Promise.all(brief.slice(-18).reverse().map(b=>tdxById(b.id).catch(()=>null)))).filter(Boolean)}}
     if(!cards.length){$('homeMsg').textContent='No cards found. Check the spelling, or try just the Pokémon’s name.';$('results').innerHTML='';return}
     cards.forEach(c=>cache.set(c.id,c));
     $('homeMsg').textContent=`${cards.length} result${cards.length===1?'':'s'}`;
