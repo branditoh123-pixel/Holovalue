@@ -117,7 +117,7 @@ tr.sel td{font-weight:700}
   <div class="grid" id="col"></div>
   <p class="empty" id="colEmpty">Scan a card and tap Add to start your collection.</p>
 
-  <p class="fine">Prices are TCGplayer market prices from two free card databases, pokemontcg.io and TCGdex (updated hourly to daily). Card reading happens on your phone. Not affiliated with Nintendo, The Pokémon Company or TCGplayer.</p>
+  <p class="fine">Prices are TCGplayer market prices, refreshed nightly from TCGplayer data (via tcgcsv.com), with pokemontcg.io and TCGdex as backups. Card reading happens on your phone. Not affiliated with Nintendo, The Pokémon Company or TCGplayer.</p>
 </div>
 
 <div class="scanner" id="scanner" hidden>
@@ -292,6 +292,29 @@ async function tdxFind(n,tot){
 }
 async function tdxById(id){const d=await tget('/cards/'+encodeURIComponent(id.replace(/^tcgdex:/,'')));return d?fromTdx(d):null}
 const hasPrice=c=>Object.values(c?.tcgplayer?.prices||{}).some(v=>num(v?.market)||num(v?.mid));
+/* ---------- TCGplayer prices file (prices.json, rebuilt nightly on GitHub from tcgcsv.com) ---------- */
+let tcgIdx=null,tcgIdxP=null;
+function tcgIndex(){if(!tcgIdxP)tcgIdxP=fetch('prices.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null).then(j=>{tcgIdx=j&&j.cards?j:null;return tcgIdx});return tcgIdxP}
+const SUBMAP={'Normal':'normal','Holofoil':'holofoil','Reverse Holofoil':'reverseHolofoil','1st Edition Holofoil':'1stEditionHolofoil','1st Edition Normal':'1stEditionNormal','Unlimited Holofoil':'unlimitedHolofoil','Unlimited Normal':'unlimitedNormal'};
+function tcgRows(n,tot){return tcgIdx?.cards?.[(+n)+'/'+(+tot)]||[]}
+function rowPrices(row){const o={};Object.entries(row[3]||{}).forEach(([k,v])=>{o[SUBMAP[k]||k.replace(/\s+(\w)/g,(_,c)=>c.toUpperCase()).replace(/^\w/,c=>c.toLowerCase())]={low:v[0],market:v[1],high:v[2]}});return o}
+function tcgBest(rows,name){
+  if(!rows.length)return null;if(!name)return rows.length===1?rows[0]:null;
+  const g=name.toLowerCase(),sc=rows.map(r=>[r,sim(r[0].toLowerCase(),g)]).sort((a,b)=>b[1]-a[1]);
+  return sc[0][1]>.55?sc[0][0]:null;
+}
+function cardFromRow(row,n,tot){
+  const pid=+row[2];
+  return{id:'tcg:'+pid,name:row[0],number:String(+n),rarity:'',set:{name:String(row[1]).replace(/^[A-Za-z0-9.]+:\s*/,''),printedTotal:+tot},
+    images:pid?{small:`https://tcgplayer-cdn.tcgplayer.com/product/${pid}_200w.jpg`,large:`https://tcgplayer-cdn.tcgplayer.com/product/${pid}_400w.jpg`}:{},
+    tcgplayer:{url:pid?`https://www.tcgplayer.com/product/${pid}`:'',updatedAt:tcgIdx?.updated||'',prices:rowPrices(row)}};
+}
+function tcgFill(c){
+  const row=tcgBest(tcgRows(c.number,c.set?.printedTotal),c.name);
+  if(row&&Object.keys(row[3]||{}).length){c.tcgplayer={...(c.tcgplayer||{}),prices:rowPrices(row),updatedAt:tcgIdx.updated,url:c.tcgplayer?.url||`https://www.tcgplayer.com/product/${row[2]}`};return true}
+  return false;
+}
+tcgIndex();
 const lookCache=new Map();
 // ask both databases at once; use the first that finds the card (prefer one with prices)
 function lookup(n,tot){
@@ -299,14 +322,15 @@ function lookup(n,tot){
   const nums=[...new Set([n,String(+n),String(+n).padStart(3,'0')])];
   const A=api(`(${nums.map(x=>`number:"${x}"`).join(' OR ')}) set.printedTotal:${+tot}`).then(r=>({r}),e=>({e}));
   const B=tdxFind(n,tot).then(r=>({r}),e=>({e}));
+  const C=tcgIndex().then(()=>({r:tcgRows(n,tot).map(row=>cardFromRow(row,n,tot))}),e=>({e}));
   const p=new Promise((resolve,reject)=>{
-    let left=2,fallback=null,errs=[];
+    let left=3,fallback=null,errs=[];
     const fin=o=>{
       if(o.e)errs.push(o.e);
       else if(o.r?.length){if(o.r.some(hasPrice)||fallback){resolve(o.r.some(hasPrice)?o.r:fallback);left=-99;return}fallback=o.r}
-      if(--left===0){if(fallback)resolve(fallback);else if(errs.length===2)reject(errs[0]);else resolve([])}
+      if(--left===0){if(fallback)resolve(fallback);else if(errs.length>=2)reject(errs[0]);else resolve([])}
     };
-    A.then(fin);B.then(fin);
+    A.then(fin);B.then(fin);C.then(fin);
   });
   lookCache.set(k,p);p.catch(()=>lookCache.delete(k));
   return p;
@@ -314,6 +338,7 @@ function lookup(n,tot){
 // fill in missing prices from the other database
 async function enrich(c){
   if(c._enriched)return c;c._enriched=true;
+  await tcgIndex();if(tcgFill(c))return c;
   try{
     let other=[];
     if(String(c.id).startsWith('tcgdex:')){other=await api(`number:"${qEsc(c.number)}" set.printedTotal:${+c.set?.printedTotal||0}`).catch(()=>[])}
@@ -474,6 +499,7 @@ function renderCol(){
   $('col').innerHTML=[...col].sort((a,b)=>(b.price||0)*b.qty-(a.price||0)*a.qty).map(x=>`<button class="tile" data-cid="${esc(x.id)}">${okUrl(x.img)?`<img src="${esc(x.img)}" alt="" loading="lazy">`:'<span class="ph"></span>'}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${esc(x.num)}</span><span class="tp">${money(num(x.price)?x.price*x.qty:null)}</span></button>`).join('');
   document.querySelectorAll('#col .tile').forEach(b=>b.onclick=async()=>{
     const id=b.dataset.cid;let c=cache.get(id);
+    if(!c&&id.startsWith('tcg:')){await tcgIndex();const it=col.find(x=>x.id===id);const [n,t]=(it?.num||'').split('/');const row=tcgRows(n,t).find(r=>'tcg:'+r[2]===id);if(row)c=cardFromRow(row,n,t)}
     if(!c){try{c=id.startsWith('tcgdex:')?await tdxById(id):(await api(`id:"${qEsc(id)}"`,1))[0]}catch(e){toast(e.message);return}}
     if(c)openCard(c);
   });
@@ -481,6 +507,7 @@ function renderCol(){
 $('refresh').onclick=async()=>{
   const btn=$('refresh');btn.disabled=true;btn.textContent='Refreshing…';
   try{
+    await fillFromFile(true);
     for(let i=0;i<col.length;i+=40){
       const chunk=col.slice(i,i+40),ptc=chunk.filter(x=>!x.id.startsWith('tcgdex:')),tdx=chunk.filter(x=>x.id.startsWith('tcgdex:'));
       const cards=[...(ptc.length?await api(ptc.map(x=>`id:"${qEsc(x.id)}"`).join(' OR '),40).catch(()=>[]):[]),...(await Promise.all(tdx.map(x=>tdxById(x.id).catch(()=>null)))).filter(Boolean)];
@@ -491,6 +518,19 @@ $('refresh').onclick=async()=>{
   }catch(e){toast(e.message)}
   finally{btn.disabled=false;btn.textContent='Refresh prices'}
 };
+// fill collection prices from the TCGplayer file (also runs once on load)
+async function fillFromFile(force){
+  await tcgIndex();if(!tcgIdx)return 0;let changed=0;
+  col.forEach(x=>{
+    if(!force&&num(x.price))return;
+    const [n,t]=(x.num||'').split('/');let rows=tcgRows(n,t);
+    const row=x.id.startsWith('tcg:')?rows.find(r=>'tcg:'+r[2]===x.id):tcgBest(rows,x.name);
+    if(!row)return;const pr=rowPrices(row);const v=x.v&&pr[x.v]?x.v:Object.keys(pr).find(k=>num(pr[k].market))||Object.keys(pr)[0];
+    const p=v?(num(pr[v].market)?pr[v].market:pr[v].low):null;if(num(p)&&p!==x.price){x.price=p;x.v=v;changed++}
+  });
+  if(changed){save();renderCol()}return changed;
+}
+fillFromFile(false);
 $('copyBtn').onclick=async()=>{
   const text=col.map(x=>`${x.qty}× ${x.name} (${x.set} ${x.num}) ${money(x.price)}`).join('\n')+`\nTotal: ${$('total').textContent}`;
   try{await navigator.clipboard.writeText(text);toast('List copied.')}catch(e){toast('Couldn’t copy on this browser.')}

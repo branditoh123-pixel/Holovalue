@@ -1,0 +1,39 @@
+name: Update card prices
+
+on:
+  schedule:
+    - cron: "37 21 * * *" # daily, after tcgcsv.com refreshes (~20:00 UTC)
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/prices.yml"
+      - "scripts/build_prices.py"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: prices
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build prices.json from TCGplayer (via tcgcsv.com)
+        run: python scripts/build_prices.py prices.json
+      - name: Commit if changed
+        run: |
+          git config user.name "holovalue-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add prices.json
+          if git diff --cached --quiet; then echo "No price changes"; exit 0; fi
+          git commit -m "Update card prices $(date -u +%F)"
+          git pull --rebase origin main
+          git push
