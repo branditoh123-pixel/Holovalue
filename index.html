@@ -30,7 +30,7 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Rubik,system-u
 button,.btn{font:inherit;font-weight:700;min-height:46px;padding:0 18px;border-radius:999px;border:2px solid var(--ink);background:var(--ink);color:var(--bg);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:8px;text-decoration:none;font-size:15px;white-space:nowrap}
 .ghost{background:transparent!important;color:var(--ink)!important}
 :focus-visible{outline:3px solid var(--red);outline-offset:2px}
-.search{display:flex;gap:8px;margin-top:16px}
+.search{display:flex;gap:8px;margin-top:14px}
 input[type=search]{flex:1;font:inherit;font-size:16px;min-height:48px;border-radius:14px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:0 14px}
 h2{font-size:22px;margin:26px 0 10px;display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
 h2 small{font-size:14px;font-weight:500;color:var(--soft)}
@@ -46,6 +46,29 @@ h2 small{font-size:14px;font-weight:500;color:var(--soft)}
 .msg{font-size:14px;color:var(--soft);margin:10px 0 0}
 .err{color:var(--red);font-weight:500}
 .row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+
+.port{background:#16141a;color:#ffd23f;border:1px solid #ffffff1a;border-radius:26px;padding:20px 20px 16px;box-shadow:0 14px 34px #0003;position:relative;overflow:hidden}
+.port::after{content:"";position:absolute;right:-40px;top:-40px;width:150px;height:200px;border-radius:18px;background:var(--foil);opacity:.18;transform:rotate(18deg)}
+.port-l{font-size:14px;font-weight:500;opacity:.75}
+.port-v{font-size:clamp(40px,11vw,56px);font-weight:800;line-height:1.05;letter-spacing:-.02em;white-space:nowrap;margin-top:2px}
+.port-c{font-size:15px;opacity:.9;margin-top:2px}
+.port-c span{font-weight:700}
+.spark{display:block;width:100%;height:64px;margin:12px 0 6px}
+.port-s{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;border-top:1px solid #ffd23f40;padding-top:12px}
+.port-s b{display:block;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.port-s span{font-size:12px;opacity:.7}
+.acts{margin-top:16px}
+.acts .scanbtn{max-width:none}
+.acts2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.act{min-height:64px;border-radius:18px;background:var(--paper)!important;color:var(--ink)!important;border:0;justify-content:flex-start;text-align:left;padding:10px 14px;font-size:16px;box-shadow:0 4px 14px #0001;white-space:normal;display:grid;grid-template-columns:auto 1fr;column-gap:10px;align-items:center}
+.act svg{width:24px;height:24px;grid-row:span 2}
+.act small{font-size:12px;font-weight:500;color:var(--soft)}
+.onboard{background:var(--paper);border-radius:20px;padding:4px 18px 10px;margin-top:18px}
+.onboard ol{margin:0 0 6px;padding-left:20px}.onboard li{margin:8px 0}
+.hrow{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:2px 2px 12px;margin:0 -2px}
+.hrow .tile{flex:0 0 132px;scroll-snap-align:start}
+.fab{position:fixed;z-index:15;right:18px;bottom:calc(20px + env(safe-area-inset-bottom));width:64px;height:64px;border-radius:50%;padding:0;min-height:0;box-shadow:0 10px 26px #0005}
+.fab svg{width:30px;height:30px}
 /* scanner */
 .scanner{position:fixed;inset:0;z-index:20;background:#000;color:#fff;display:flex;flex-direction:column}
 .scanner video{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -100,20 +123,42 @@ tr.sel td{font-weight:700}
 <div class="wrap">
   <div class="top">
     <div class="logo" aria-hidden="true"></div>
-    <div class="brand">HoloValue<small>Live Pokémon card scanner</small></div>
-    <div class="hv"><b id="total">$0.00</b><small id="count">0 cards</small></div>
+    <div class="brand">HoloValue<small id="upd">Pokémon card scanner</small></div>
   </div>
 
-  <div class="hero">
-    <h1>Point. Scan. Know.</h1>
-    <p>Tap Scan, hold a card inside the frame, and it reads the card number and shows today’s TCGplayer market price. Good light and a sharp card number make it fastest.</p>
+  <section class="port" aria-label="Collection value">
+    <div class="port-l">Collection value</div>
+    <div class="port-v" id="total">$0.00</div>
+    <div class="port-c" id="count">0 cards</div>
+    <svg class="spark" id="spark" viewBox="0 0 300 64" preserveAspectRatio="none" aria-hidden="true"></svg>
+    <div class="port-s"><div><b id="stUnique">0</b><span>unique</span></div><div><b id="stTop">—</b><span>top card</span></div><div><b id="stAvg">—</b><span>avg card</span></div></div>
+  </section>
+
+  <div class="acts">
     <button class="scanbtn" id="scanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><rect x="8" y="7" width="8" height="10" rx="1.5"/></svg>Scan a card</button>
-    <form class="search" id="searchForm">
-      <input type="search" id="q" placeholder="Or search: Charizard, Umbreon VMAX…" aria-label="Search cards" autocomplete="off">
-      <button type="submit">Search</button>
-    </form>
-    <p class="msg" id="homeMsg" aria-live="polite"></p>
+    <div class="acts2">
+      <button class="act" id="rapidHome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Rapid scan<small>Add a stack fast</small></button>
+      <button class="act" id="searchJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Search<small>By name or number</small></button>
+    </div>
   </div>
+
+  <form class="search" id="searchForm">
+    <input type="search" id="q" placeholder="Charizard, Umbreon VMAX, 199/165…" aria-label="Search cards" autocomplete="off">
+    <button type="submit">Search</button>
+  </form>
+  <p class="msg" id="homeMsg" aria-live="polite"></p>
+
+  <section class="onboard" id="onboard">
+    <h2 style="margin-top:6px">How it works</h2>
+    <ol>
+      <li><b>Tap Scan a card</b> and allow the camera.</li>
+      <li><b>Fit the card in the frame</b> with its number (like 199/165) in the yellow box.</li>
+      <li><b>See the TCGplayer price</b> and add it to your collection.</li>
+    </ol>
+  </section>
+
+  <section id="topSec" hidden><h2>Top cards <small id="topNote"></small></h2><div class="hrow" id="topRow"></div></section>
+  <section id="recentSec" hidden><h2>Recently added</h2><div class="hrow" id="recentRow"></div></section>
 
   <div id="results"></div>
 
@@ -127,10 +172,12 @@ tr.sel td{font-weight:700}
     <select id="sortBy" aria-label="Sort collection" style="font:inherit;font-size:16px;min-height:48px;border-radius:14px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:0 10px"><option value="value">Highest value</option><option value="new">Newest</option><option value="name">Name</option><option value="set">Set</option></select>
   </div>
   <div class="grid" id="col"></div>
-  <p class="empty" id="colEmpty">Scan a card and tap Add to start your collection.</p>
+  <p class="empty" id="colEmpty">Your collection is empty. Scan a card to start it.</p>
 
   <p class="fine">Prices are TCGplayer market prices, refreshed nightly from TCGplayer data (via tcgcsv.com), with pokemontcg.io and TCGdex as backups. Card reading happens on your phone. Not affiliated with Nintendo, The Pokémon Company or TCGplayer.</p>
 </div>
+
+<button class="fab" id="fab" aria-label="Scan a card" hidden><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" aria-hidden="true"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><rect x="8" y="7" width="8" height="10" rx="1.5"/></svg></button>
 
 <div class="scanner" id="scanner" hidden>
   <video id="video" playsinline muted autoplay></video>
@@ -528,6 +575,23 @@ function openCard(c,variant){
 }
 
 /* ---------- collection ---------- */
+const ownedTile=x=>`<button class="tile" data-cid="${esc(x.id)}">${okUrl(x.img)?`<img src="${esc(x.img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`:'<span class="ph"></span>'}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${esc(x.num)}</span><span class="tp">${money(num(x.price)?x.price*x.qty:null)}</span></button>`;
+function renderHome(tot,n){
+  $('onboard').hidden=col.length>0;
+  const top=[...col].filter(x=>num(x.price)).sort((a,b)=>b.price-a.price);
+  $('topSec').hidden=top.length<2;$('topRow').innerHTML=top.slice(0,10).map(ownedTile).join('');
+  $('recentSec').hidden=col.length<2;$('recentRow').innerHTML=[...col].sort((a,b)=>b.t-a.t).slice(0,10).map(ownedTile).join('');
+  $('stUnique').textContent=col.length;$('stTop').textContent=top[0]?money(top[0].price):'—';$('stAvg').textContent=n?money(tot/n):'—';
+  $('topNote').textContent=top[0]?top[0].name:'';
+  // sparkline from daily values
+  const h=LS.get('hvl-hist',{}),pts=Object.keys(h).sort().map(k=>h[k]);
+  const sv=$('spark');
+  if(pts.length<2){sv.innerHTML=col.length?'<line x1="0" y1="40" x2="300" y2="40" stroke="currentColor" stroke-opacity=".35" stroke-width="2" stroke-dasharray="4 6"/><text x="0" y="60" font-size="11" fill="currentColor" fill-opacity=".6">Your value trend starts today</text>':'';return}
+  const lo=Math.min(...pts),hi=Math.max(...pts),rg=hi-lo||1,X=i=>i*300/(pts.length-1),Y=v=>6+(1-(v-lo)/rg)*50;
+  const d=pts.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('');
+  const up=pts[pts.length-1]>=pts[0];
+  sv.innerHTML=`<path d="${d}L300,64L0,64Z" fill="${up?'#6fdc95':'#e5383b'}" fill-opacity=".18"/><path d="${d}" fill="none" stroke="${up?'#6fdc95':'#e5383b'}" stroke-width="2.5" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>`;
+}
 function addCard(c,v){
   v=v||bestVariant(c);const p=priceFor(c,v);
   let it=col.find(x=>x.id===c.id);
@@ -540,14 +604,16 @@ function renderCol(){
   const hist=LS.get('hvl-hist',{}),today=new Date().toISOString().slice(0,10);
   if(col.length&&hist[today]!==Math.round(tot*100)/100){hist[today]=Math.round(tot*100)/100;const ks=Object.keys(hist).sort();while(ks.length>120)delete hist[ks.shift()];LS.set('hvl-hist',hist)}
   const prevDay=Object.keys(hist).filter(k=>k<today).sort().pop();
-  let ch='';if(prevDay&&col.length){const d=tot-hist[prevDay];if(Math.abs(d)>=.01)ch=` · <span style="color:${d>0?'var(--green)':'var(--red)'}">${d>0?'▲':'▼'} ${money(Math.abs(d))}</span>`}
+  let ch='';if(prevDay&&col.length){const d=tot-hist[prevDay];if(Math.abs(d)>=.01)ch=` · <span style="color:${d>0?'#6fdc95':'#ff7b7d'}">${d>0?'▲':'▼'} ${money(Math.abs(d))}</span>`}
   $('count').innerHTML=`${n} card${n===1?'':'s'}${ch}`;
+  if(tcgIdx?.updated)$('upd').textContent='Prices updated '+tcgIdx.updated;
   $('colEmpty').hidden=!!col.length;$('refresh').parentElement.hidden=!col.length;$('colTools').hidden=col.length<4;
   $('colNote').textContent=col.length?money(tot):'';
   const so=$('sortBy')?.value||'value',qf=($('colQ')?.value||'').toLowerCase();
   const rows=col.filter(x=>!qf||(x.name+' '+x.set).toLowerCase().includes(qf)).sort(so==='new'?(a,b)=>b.t-a.t:so==='name'?(a,b)=>a.name.localeCompare(b.name):so==='set'?(a,b)=>a.set.localeCompare(b.set)||parseInt(a.num)-parseInt(b.num):(a,b)=>(b.price||0)*b.qty-(a.price||0)*a.qty);
-  $('col').innerHTML=rows.map(x=>`<button class="tile" data-cid="${esc(x.id)}">${okUrl(x.img)?`<img src="${esc(x.img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`:'<span class="ph"></span>'}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${esc(x.num)}</span><span class="tp">${money(num(x.price)?x.price*x.qty:null)}</span></button>`).join('');
-  document.querySelectorAll('#col .tile').forEach(b=>b.onclick=async()=>{
+  $('col').innerHTML=rows.map(ownedTile).join('');
+  renderHome(tot,n);
+  document.querySelectorAll('[data-cid]').forEach(b=>b.onclick=async()=>{
     const id=b.dataset.cid;let c=cache.get(id);
     if(!c&&id.startsWith('tcg:')){await tcgIndex();const it=col.find(x=>x.id===id);const [n,t]=(it?.num||'').split('/');const row=tcgRows(n,t).find(r=>'tcg:'+r[2]===id);if(row)c=cardFromRow(row,n,t)}
     if(!c){try{c=id.startsWith('tcgdex:')?await tdxById(id):(await api(`id:"${qEsc(id)}"`,1))[0]}catch(e){toast(e.message);return}}
@@ -609,6 +675,11 @@ async function search(term){
 let toastT;function toast(m){clearTimeout(toastT);$('toastHost').innerHTML='<div class="toast" role="status"></div>';$('toastHost').firstChild.textContent=m;toastT=setTimeout(()=>$('toastHost').innerHTML='',2400)}
 
 $('scanBtn').onclick=openScanner;
+$('fab').onclick=openScanner;
+$('rapidHome').onclick=()=>{setRapid(true);openScanner()};
+$('searchJump').onclick=()=>{$('q').focus();$('q').scrollIntoView({block:'center',behavior:'smooth'})};
+if('IntersectionObserver' in window){const io=new IntersectionObserver(es=>{$('fab').hidden=es[0].isIntersecting});io.observe($('scanBtn'))}
+tcgIndex().then(()=>{if(tcgIdx?.updated)$('upd').textContent='Prices updated '+tcgIdx.updated});
 $('colQ').oninput=renderCol;$('sortBy').onchange=renderCol;
 $('video').addEventListener('click',e=>{if(!track)return;const r=$('video').getBoundingClientRect();const pt={x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};
   track.applyConstraints({advanced:[{pointsOfInterest:[pt],focusMode:'single-shot'}]}).then(()=>setTimeout(()=>track?.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}),1500)).catch(()=>{});chip('Focusing…')});
