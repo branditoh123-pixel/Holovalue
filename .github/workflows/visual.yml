@@ -1,0 +1,48 @@
+name: Build visual scanner index
+
+on:
+  workflow_dispatch: {}
+  schedule:
+    - cron: "23 3 * * 1" # weekly, picks up new sets
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build_embeddings.py"
+      - ".github/workflows/visual.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: visual
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Restore card image cache
+        uses: actions/cache@v4
+        with:
+          path: img-cache
+          key: card-images-${{ github.run_id }}
+          restore-keys: card-images-
+      - name: Install
+        run: |
+          pip install --quiet torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
+          pip install --quiet numpy pillow onnx onnxruntime
+      - name: Build index
+        run: python scripts/build_embeddings.py
+      - name: Commit
+        run: |
+          git config user.name "holovalue-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vis
+          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
+          git commit -m "Update visual scanner index $(date -u +%F)"
+          for i in 1 2 3; do git pull --rebase origin main && git push && break; sleep 5; done
