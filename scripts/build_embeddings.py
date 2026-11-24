@@ -128,7 +128,8 @@ class Feat(torch.nn.Module):
         super().__init__()
         m = torchvision.models.mobilenet_v3_large(weights=torchvision.models.MobileNet_V3_Large_Weights.IMAGENET1K_V2)
         self.features = m.features
-        self.pool = torch.nn.AdaptiveAvgPool2d((2, 2))
+        # same windows as AdaptiveAvgPool2d((2,2)) on a 7x7 map ([0:4] and [3:7]), but exportable to ONNX
+        self.pool = torch.nn.AvgPool2d(kernel_size=4, stride=3)
 
     def forward(self, x):
         return torch.flatten(self.pool(self.features(x)), 1)
@@ -179,6 +180,12 @@ def main():
     np.random.seed(0)
     model = Feat().eval()
     rng = random.Random(7)
+    # export first, so a problem shows up in minutes rather than after hours of work
+    torch.onnx.export(model, torch.zeros(1, 3, SIZE, SIZE), "vis/model.onnx", input_names=["input"], output_names=["feat"],
+                      opset_version=13, do_constant_folding=True)
+    with torch.no_grad():
+        assert model(torch.zeros(1, 3, SIZE, SIZE)).shape[1] == F, "unexpected feature size"
+    print("model exported", flush=True)
 
     # 1) frozen features for the clean image + VIEWS phone-like views of every card
     feats = np.zeros((N, VIEWS + 1, F), np.float16)
@@ -258,8 +265,6 @@ def main():
     accept = best or {"score": 0.95, "margin": 0.14, "precision": None, "coverage": 0}
     print("self-test accuracy:", ev, "accept:", accept, flush=True)
 
-    torch.onnx.export(model, torch.zeros(1, 3, SIZE, SIZE), "vis/model.onnx", input_names=["input"], output_names=["feat"],
-                      opset_version=13, do_constant_folding=True)
     with open("vis/proj.bin", "wb") as f:
         f.write(mean.astype(np.float32).tobytes())
         f.write(Wm.astype(np.float32).tobytes())
