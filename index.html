@@ -201,6 +201,8 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .tile .own{position:absolute;top:12px;right:12px;background:#1d7a3c;color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .hit{position:absolute;top:12px;right:12px;background:#e5383b;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .mv{display:block;font-size:13px;font-weight:700}
+.jp{position:absolute;bottom:76px;right:12px;background:#fff;color:#bc002d;border:2px solid #bc002d;font-size:11px;font-weight:800;border-radius:6px;padding:0 5px}
+.langs{display:flex;gap:8px;margin-top:14px}.langs .chip{flex:1;justify-content:center}
 .slab{position:absolute;top:12px;right:12px;background:#c8102e;color:#fff;font-size:11px;font-weight:800;border-radius:6px;padding:2px 6px;letter-spacing:.02em;box-shadow:0 2px 6px #0004}
 .shared{position:fixed;inset:0;z-index:50;background:var(--bg);overflow:auto;padding:calc(16px + env(safe-area-inset-top)) max(4vw,16px) 40px}
 .shared .wrapin{max-width:900px;margin:0 auto}
@@ -303,12 +305,13 @@ input[type=search]{width:100%}
       <button class="scanbtn" id="scanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><rect x="8" y="7" width="8" height="10" rx="1.5"/></svg>Scan a card</button>
       <div class="acts2">
         <button class="act" id="rapidHome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Rapid scan<small>Add a stack fast</small></button>
-        <button class="act" id="searchJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Search<small>25,000+ cards</small></button>
+        <button class="act" id="searchJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Search<small>50,000+ cards, EN + JP</small></button>
         <button class="act" id="packJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 3h12l-1 4H7zM7 7h10v14H7z"/><path d="M10 12h4"/></svg>Rip a pack<small>Was it worth it?</small></button>
         <button class="act" id="tradeJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg>Trade check<small>Is it fair?</small></button>
       </div>
     </div>
-    <form class="search" id="searchForm">
+    <div class="langs" role="group" aria-label="Card language"><button class="chip" data-lang="en" aria-pressed="true">🇺🇸 English</button><button class="chip" data-lang="jp" aria-pressed="false">🇯🇵 Japanese</button></div>
+    <form class="search" id="searchForm" style="margin-top:8px">
       <input type="search" id="q" placeholder="Charizard, Umbreon VMAX, 199/165…" aria-label="Search cards" autocomplete="off">
       <button type="submit">Search</button>
     </form>
@@ -348,6 +351,7 @@ input[type=search]{width:100%}
       <select id="sortBy" aria-label="Sort collection" style="font:inherit;font-size:16px;min-height:48px;border-radius:14px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:0 10px"><option value="value">Highest value</option><option value="gain">Biggest gain</option><option value="new">Newest</option><option value="name">Name</option><option value="set">Set</option></select>
     </div>
     <div class="row" style="margin-bottom:10px"><button class="ghost" id="selBtn">Select</button><a class="btn ghost" href="#insights">📊 Insights</a><button class="ghost" id="shareBinderBtn">🔗 Share binder</button></div>
+    <div class="chips" id="typeChips" role="group" aria-label="Show"><button class="chip" data-ty="all" aria-pressed="true">Everything</button><button class="chip" data-ty="cards" aria-pressed="false">Cards</button><button class="chip" data-ty="sealed" aria-pressed="false">Sealed</button><button class="chip" data-ty="jp" aria-pressed="false">Japanese</button><button class="chip" data-ty="graded" aria-pressed="false">Graded</button></div>
     <div class="grid" id="col"></div>
     <div class="binderv" id="binderView" hidden></div>
     <p class="empty" id="colEmpty">Nothing here yet. Tap the yellow scan button to add cards.</p>
@@ -629,12 +633,23 @@ function tcgBest(rows,name){
   const g=name.toLowerCase(),sc=rows.map(r=>[r,sim(r[0].toLowerCase(),g)]).sort((a,b)=>b[1]-a[1]);
   return sc[0][1]>.55?sc[0][0]:null;
 }
-function cardFromRow(row,n,tot){
+function cardFromRow(row,n,tot,jp){
   const pid=+row[2];
-  return{id:'tcg:'+pid,name:row[0],number:String(+n),rarity:'',set:{name:String(row[1]).replace(/^[A-Za-z0-9.]+:\s*/,''),printedTotal:+tot},
+  return{id:(jp?'tcgjp:':'tcg:')+pid,_jp:!!jp,name:row[0],number:String(+n),rarity:jp?'Japanese':'',set:{name:String(row[1]).replace(/^[A-Za-z0-9.]+:\s*/,''),printedTotal:+tot},
     images:pid?{small:`https://tcgplayer-cdn.tcgplayer.com/product/${pid}_200w.jpg`,large:`https://tcgplayer-cdn.tcgplayer.com/product/${pid}_400w.jpg`}:{},
-    tcgplayer:{url:pid?`https://www.tcgplayer.com/product/${pid}`:'',updatedAt:tcgIdx?.updated||'',prices:rowPrices(row)}};
+    tcgplayer:{url:pid?`https://www.tcgplayer.com/product/${pid}`:'',updatedAt:(jp?jpIdx:tcgIdx)?.updated||'',prices:rowPrices(row)}};
 }
+let jpIdx=null,jpIdxP=null;
+function jpIndex(){if(!jpIdxP)jpIdxP=fetch('prices_jp.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null).then(j=>{jpIdx=j&&j.cards?j:null;if(!jpIdx)jpIdxP=null;return jpIdx});return jpIdxP}
+function sealedCard(r,jp){
+  const pid=+r[2];
+  return{id:(jp?'sealedjp:':'sealed:')+pid,_sealed:true,_jp:!!jp,name:r[0],number:'',rarity:jp?'Sealed · Japanese':'Sealed product',set:{name:String(r[1]).replace(/^[A-Za-z0-9.]+:\s*/,''),printedTotal:''},
+    images:{small:`https://tcgplayer-cdn.tcgplayer.com/product/${pid}_200w.jpg`,large:`https://tcgplayer-cdn.tcgplayer.com/product/${pid}_400w.jpg`},
+    tcgplayer:{url:`https://www.tcgplayer.com/product/${pid}`,updatedAt:(jp?jpIdx:tcgIdx)?.updated||'',prices:{normal:{market:r[3]}}}};
+}
+const isJPid=id=>/^(tcgjp|sealedjp):/.test(String(id));
+const isSealedId=id=>/^sealed(jp)?:/.test(String(id));
+const pidOf=id=>{const m=String(id).match(/^(?:tcg|tcgjp|sealed|sealedjp):(\d+)$/);return m?+m[1]:0};
 function tcgFill(c){
   const row=tcgBest(tcgRows(c.number,c.set?.printedTotal),c.name);
   if(row&&Object.keys(row[3]||{}).length){c.tcgplayer={...(c.tcgplayer||{}),prices:rowPrices(row),updatedAt:tcgIdx.updated,url:c.tcgplayer?.url||`https://www.tcgplayer.com/product/${row[2]}`};return true}
@@ -876,6 +891,7 @@ async function scanPhoto(file){
 }
 
 /* ---------- shared UI ---------- */
+let colType='all';
 let wish=LS.get('hvl-wish',[]),binders=LS.get('hvl-binders',['Main']),curBinder='All',trade=LS.get('hvl-trade',{give:[],get:[]});
 const saveWish=()=>{LS.set('hvl-wish',wish);if(typeof syncWatch==='function')syncWatch()},saveTrade=()=>LS.set('hvl-trade',trade);
 let toastT;function toast(m,undo){clearTimeout(toastT);$('toastHost').innerHTML='<div class="toast" role="status"><span></span></div>';$('toastHost').querySelector('span').textContent=m;if(undo){const b=document.createElement('button');b.textContent='Undo';b.onclick=()=>{undo();$('toastHost').innerHTML=''};$('toastHost').firstChild.appendChild(b)}toastT=setTimeout(()=>$('toastHost').innerHTML='',undo?6000:2400)}
@@ -887,7 +903,7 @@ function sheet(html){
 const imgTag=(u,cls='')=>okUrl(u)?`<img src="${esc(u)}" alt="" loading="lazy" onerror="this.outerHTML='<span class=&quot;ph&quot;></span>'"${cls}>`:'<span class="ph"></span>';
 function tile(c,extra=''){
   const v=bestVariant(c),p=priceFor(c,v);
-  return `<button class="tile" data-id="${esc(c.id)}">${imgTag(c.images?.small)}${extra}<span class="tn">${esc(c.name)}</span><span class="ts">${esc(c.set?.name||'')} · ${esc(c.number)}/${esc(c.set?.printedTotal||'')}</span><span class="tp">${money(p)}</span></button>`;
+  return `<button class="tile" data-id="${esc(c.id)}">${imgTag(c.images?.small)}${extra}${c._jp?'<span class="jp">JP</span>':''}<span class="tn">${esc(c.name)}</span><span class="ts">${esc(c.set?.name||'')} · ${c._sealed?'Sealed':esc(c.number)+'/'+esc(c.set?.printedTotal||'')}</span><span class="tp">${money(p)}</span></button>`;
 }
 let cache=new Map();
 function showChoices(cards,title){
@@ -899,18 +915,25 @@ function bindTiles(root){root.querySelectorAll('.tile[data-id]').forEach(b=>b.on
 
 /* ---------- matching items to the TCGplayer file ---------- */
 function rowForItem(x){
-  const [n,t]=(x.num||'').split('/');const rows=tcgRows(n,t);
-  const pid=x.pid||(String(x.id).startsWith('tcg:')?+String(x.id).slice(4):0);
-  return (pid&&rows.find(r=>+r[2]===pid))||tcgBest(rows,x.name);
+  if(x.sealed||isSealedId(x.id))return null;
+  const [n,t]=(x.num||'').split('/');
+  const jp=x.jp||isJPid(x.id);const rows=jp?(jpIdx?.cards?.[(+n)+'/'+(+t)]||[]):tcgRows(n,t);
+  const pid=x.pid||pidOf(x.id);
+  return (pid&&rows.find(r=>+r[2]===pid))||(jp?null:tcgBest(rows,x.name));
 }
+function sealedRow(x){const pid=x.pid||pidOf(x.id);return ((x.jp||isJPid(x.id)?jpIdx:tcgIdx)?.sealed||[]).find(r=>+r[2]===pid)}
 function itemFromCard(c,v){
   v=v||bestVariant(c);
-  const it={id:c.id,name:c.name,set:c.set?.name||'',num:`${c.number}/${c.set?.printedTotal||''}`,img:c.images?.small||'',v,price:priceFor(c,v),t:Date.now()};
+  const it={id:c.id,name:c.name,set:c.set?.name||'',num:c._sealed?'':`${c.number}/${c.set?.printedTotal||''}`,img:c.images?.small||'',v,price:priceFor(c,v),t:Date.now()};
+  if(c._jp)it.jp=true;if(c._sealed){it.sealed=true;it.pid=pidOf(c.id);return it}
   const row=tcgIdx?rowForItem(it):null;if(row){it.pid=+row[2];it.group=row[1];if(!okUrl(it.img))it.img=`https://tcgplayer-cdn.tcgplayer.com/product/${row[2]}_200w.jpg`}
   return it;
 }
 async function cardForItem(x){
   let c=cache.get(x.id);if(c)return c;
+  if(x.sealed||isSealedId(x.id)){const jp=x.jp||isJPid(x.id);await(jp?jpIndex():tcgIndex());const r=sealedRow(x)||[x.name,x.set,x.pid||pidOf(x.id),x.price];c=sealedCard(r,jp);cache.set(c.id,c);return c}
+  if(x.jp||isJPid(x.id)){await jpIndex();const row=rowForItem(x),[n,t]=(x.num||'').split('/');if(row){c=cardFromRow(row,n,t,true);cache.set(c.id,c);return c}
+    return{id:x.id,_jp:true,name:x.name,number:String(+n||''),rarity:'Japanese',set:{name:x.set,printedTotal:+t||''},images:okUrl(x.img)?{small:x.img}:{},tcgplayer:{prices:num(x.price)?{[x.v||'normal']:{market:x.price}}:{}}}}
   await tcgIndex();const row=rowForItem(x);const [n,t]=(x.num||'').split('/');
   if(String(x.id).startsWith('tcg:')&&row)c=cardFromRow(row,n,t);
   if(!c){try{c=String(x.id).startsWith('tcgdex:')?await tdxById(x.id):(await api(`id:"${qEsc(x.id)}"`,1))[0]}catch(e){}}
@@ -924,6 +947,8 @@ async function openItem(id,list){const x=(list||col).find(i=>i.id===id)||wish.fi
 function updatePrices(){
   if(!tcgIdx)return 0;const stamp=tcgIdx.updated;let changed=0;
   [...col,...wish].forEach(x=>{
+    if(x.sealed||isSealedId(x.id)){const r=sealedRow(x);if(!r||!num(r[3]))return;const p=r[3];if(p!==x.price){if(num(x.price))x.prev=x.price;x.price=p;changed++}
+      x.hist=x.hist||[];const last=x.hist[x.hist.length-1];if(!last||last[0]!==stamp){x.hist.push([stamp,p]);if(x.hist.length>90)x.hist.shift()}else last[1]=p;return}
     const row=rowForItem(x);if(!row)return;
     if(!x.pid){x.pid=+row[2];x.group=row[1]}
     if(!okUrl(x.img))x.img=`https://tcgplayer-cdn.tcgplayer.com/product/${row[2]}_200w.jpg`;
@@ -939,7 +964,8 @@ function updatePrices(){
 /* ---------- card sheet ---------- */
 function openCard(c,variant){
   cache.set(c.id,c);
-  if(!hasPrice(c)&&!c._enriched){enrich(c).then(()=>{if(document.querySelector('.sheet')?.dataset.card===c.id)openCard(c,variant)})}
+  if(!hasPrice(c)&&!c._enriched&&!c._sealed&&!c._jp){enrich(c).then(()=>{if(document.querySelector('.sheet')?.dataset.card===c.id)openCard(c,variant)})}
+  if(c._sealed||c._jp){c._liveTried=1;c._enriched=1}
   const own=col.find(x=>x.id===c.id),w=wish.find(x=>x.id===c.id);
   const prices=c.tcgplayer?.prices||{},keys=Object.keys(prices);
   const v=variant||own?.v||bestVariant(c),p=priceFor(c,v);
@@ -947,7 +973,7 @@ function openCard(c,variant){
   const gain=own&&num(own.paid)&&num(p)?Math.abs((unitVal(own,p)-own.paid)*own.qty):null;
   const hist=own?.hist||w?.hist||[];
   sheet(`<div class="holo" id="holo"><div class="holo-card">${okUrl(c.images?.large||c.images?.small)?`<img src="${esc(c.images.large||c.images.small)}" alt="${esc(c.name)} card" onerror="this.outerHTML='<span class=&quot;ph&quot;></span>'">`:'<span class="ph"></span>'}<i class="glare"></i></div></div>
-  <div class="sinfo"><div><h3>${esc(c.name)}</h3><p class="meta">${esc(c.set?.name||'')} · #${esc(c.number)}/${esc(c.set?.printedTotal||'')}${c.rarity?' · '+esc(c.rarity):''}</p>
+  <div class="sinfo"><div><h3>${esc(c.name)}</h3><p class="meta">${c._sealed?`${esc(c.set?.name||'')} · ${esc(c.rarity)}`:`${esc(c.set?.name||'')} · #${esc(c.number)}/${esc(c.set?.printedTotal||'')}${c.rarity?' · '+esc(c.rarity):''}`}</p>
   <div class="sticker"><small>Market${v?' · '+esc(vName(v)):''}</small><strong>${money(p)}</strong></div>
   ${c._live?`<p class="meta live">● Live price · updated ${esc(ago(c._live))}</p>`:c.tcgplayer?.updatedAt?`<p class="meta">Updated ${esc(c.tcgplayer.updatedAt)}</p>`:''}
   ${own&&num(own.prev)&&own.prev!==own.price?`<p class="meta ${own.price>own.prev?'up':'down'}">${own.price>own.prev?'▲':'▼'} ${money(Math.abs(own.price-own.prev))} since last update</p>`:''}</div></div>
@@ -1013,7 +1039,7 @@ const gradeLabel=x=>isGraded(x)&&x.gco?`${x.gco} ${x.gr||''}`.trim():'';
 const delta=x=>num(x.prev)&&num(x.price)?x.price-x.prev:0;
 function ownedTile(x){
   const d=delta(x);
-  return `<button class="tile" data-cid="${esc(x.id)}">${imgTag(x.img)}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}${gradeLabel(x)?`<span class="slab">${esc(gradeLabel(x))}</span>`:''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${esc(x.num)}</span><span class="tp">${money(num(x.price)?itemVal(x):null)}</span>${d?`<span class="mv ${d>0?'up':'down'}">${d>0?'▲':'▼'} ${money(Math.abs(d))}</span>`:''}</button>`;
+  return `<button class="tile" data-cid="${esc(x.id)}">${imgTag(x.img)}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}${gradeLabel(x)?`<span class="slab">${esc(gradeLabel(x))}</span>`:''}${x.jp||isJPid(x.id)?'<span class="jp">JP</span>':''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${x.sealed||isSealedId(x.id)?'Sealed':esc(x.num)}</span><span class="tp">${money(num(x.price)?itemVal(x):null)}</span>${d?`<span class="mv ${d>0?'up':'down'}">${d>0?'▲':'▼'} ${money(Math.abs(d))}</span>`:''}</button>`;
 }
 function renderCol(){renderAll()}
 function renderAll(){
@@ -1045,7 +1071,10 @@ function renderAll(){
   $('binders').innerHTML=bset.map(b=>`<button class="chip" data-b="${esc(b)}" aria-pressed="${b===curBinder}">${esc(b)}${b==='All'?'':' · '+col.filter(x=>(x.binder||'Main')===b).reduce((a,x)=>a+x.qty,0)}</button>`).join('')+`<button class="chip" data-b="__new">+ New binder</button>`;
   $('binders').querySelectorAll('.chip').forEach(bt=>bt.onclick=()=>{const b=bt.dataset.b;if(b==='__new'){const nb=(prompt('Name your new binder (for example: Trade binder)')||'').trim().slice(0,30);if(nb&&!binders.includes(nb)){binders.push(nb);LS.set('hvl-binders',binders)}if(nb)curBinder=nb}else curBinder=b;renderAll()});
   const so=$('sortBy').value,qf=$('colQ').value.toLowerCase();
-  const inB=col.filter(x=>curBinder==='All'||(x.binder||'Main')===curBinder);
+  const tyOk=x=>colType==='all'||(colType==='sealed'?(x.sealed||isSealedId(x.id)):colType==='jp'?(x.jp||isJPid(x.id)):colType==='graded'?isGraded(x):!(x.sealed||isSealedId(x.id)));
+  const inB=col.filter(x=>(curBinder==='All'||(x.binder||'Main')===curBinder)&&tyOk(x));
+  document.querySelectorAll('#typeChips [data-ty]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.ty===colType));
+  $('typeChips').hidden=!col.some(x=>x.sealed||x.jp||isGraded(x)||isSealedId(x.id)||isJPid(x.id));
   const rows=inB.filter(x=>!qf||(x.name+' '+x.set).toLowerCase().includes(qf)).sort(so==='new'?(a,b)=>b.t-a.t:so==='name'?(a,b)=>a.name.localeCompare(b.name):so==='set'?(a,b)=>a.set.localeCompare(b.set)||parseInt(a.num)-parseInt(b.num):so==='gain'?(a,b)=>((num(b.paid)?itemVal(b)-b.paid*b.qty:delta(b)*b.qty)-(num(a.paid)?itemVal(a)-a.paid*a.qty:delta(a)*a.qty)):(a,b)=>itemVal(b)-itemVal(a));
   $('col').innerHTML=rows.map(ownedTile).join('');
   renderBinderPages(rows);applyColMode();if(typeof updateSelbar==='function'&&selecting)updateSelbar();if(view==='insights'&&typeof renderInsights==='function')renderInsights();
@@ -1103,22 +1132,47 @@ function localSearch(term,limit=40){
   hits.sort((a,b)=>(b[0].startsWith(words[0])-a[0].startsWith(words[0]))||rowMarket(b[1])-rowMarket(a[1]));
   return hits.slice(0,limit).map(e=>cardFromRow(e[1],e[2],e[3]));
 }
+let searchLang=LS.get('hvl-lang','en'),nameIdxJP=null;
+function localSearchJP(term,limit=40){
+  if(!jpIdx)return[];
+  if(!nameIdxJP){nameIdxJP=[];for(const [k,rows] of Object.entries(jpIdx.cards)){const [n,t]=k.split('/');for(const r of rows)nameIdxJP.push([r[0].toLowerCase(),r,n,t])}}
+  const words=term.toLowerCase().replace(/[^a-z0-9é'\s-]/g,' ').split(/\s+/).filter(Boolean);if(!words.length)return[];
+  const hits=nameIdxJP.filter(e=>words.every(w=>e[0].includes(w)||String(e[1][1]).toLowerCase().includes(w)));
+  hits.sort((a,b)=>(b[0].startsWith(words[0])-a[0].startsWith(words[0]))||rowMarket(b[1])-rowMarket(a[1]));
+  return hits.slice(0,limit).map(e=>cardFromRow(e[1],e[2],e[3],true));
+}
+function sealedSearch(term,jp){
+  const list=(jp?jpIdx:tcgIdx)?.sealed||[];const words=term.toLowerCase().split(/\s+/).filter(w=>w.length>1);if(!words.length)return[];
+  return list.filter(r=>words.every(w=>(r[0]+' '+r[1]).toLowerCase().includes(w))).sort((x,y)=>(/case|display/i.test(x[0])-/case|display/i.test(y[0]))||y[3]-x[3]).slice(0,8).map(r=>sealedCard(r,jp));
+}
+function setLang(l){searchLang=l;LS.set('hvl-lang',l);document.querySelectorAll('[data-lang]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.lang===l));$('q').placeholder=l==='jp'?'Japanese cards: Pikachu, Mew ex, 151…':'Charizard, Umbreon VMAX, 199/165…';if(l==='jp')jpIndex()}
+let lastSealed=[];
 async function search(term){
   const t=term.trim();if(!t)return;
   $('homeMsg').textContent='Searching…';$('homeMsg').classList.remove('err');
   try{
     const m=t.match(/^(.*?)\s*(\d{1,3})\s*\/\s*(\d{2,3})\s*$/);
-    let cards;
+    let cards;lastSealed=[];
+    if(searchLang==='jp'){
+      const j=await jpIndex();if(!j){$('homeMsg').textContent='Japanese prices aren’t ready yet. They’ll appear after the next nightly update.';$('results').innerHTML='';return}
+      if(m){cards=(j.cards[(+m[2])+'/'+(+m[3])]||[]).map(r=>cardFromRow(r,m[2],m[3],true));if(m[1])cards=pickByName(cards,m[1])}
+      else{cards=localSearchJP(t);lastSealed=sealedSearch(t,true)}
+      if(!cards.length&&!lastSealed.length){$('homeMsg').textContent='No Japanese cards found. Try the English Pokémon name, like Pikachu or Mew.';$('results').innerHTML='';return}
+      cards.forEach(c=>cache.set(c.id,c));lastSealed.forEach(c=>cache.set(c.id,c));
+      $('homeMsg').textContent=`${cards.length} Japanese card${cards.length===1?'':'s'}${lastSealed.length?` and ${lastSealed.length} sealed products`:''}`;
+      lastResults=cards;renderResults();return;
+    }
+    if(!m){await tcgIndex();lastSealed=sealedSearch(t,false);lastSealed.forEach(c=>cache.set(c.id,c))}
     if(m){cards=pickByName(await lookup(m[2],m[3]),m[1])}
     else{
       await tcgIndex();cards=localSearch(t);
-      if(!cards.length){const words=t.replace(/[^\w\sé'-]/g,' ').split(/\s+/).filter(Boolean);
+      if(!cards.length&&!lastSealed.length){const words=t.replace(/[^\w\sé'-]/g,' ').split(/\s+/).filter(Boolean);
         try{cards=await api(words.map(w=>w.replace(/[^A-Za-z0-9é'-]/g,'')).filter(Boolean).map(w=>`name:${w}*`).join(' '),36)}catch(e){cards=null}
         if(!cards||!cards.length){const brief=(await tget('/cards?name='+encodeURIComponent(t)))||[];cards=(await Promise.all(brief.slice(-18).reverse().map(b=>tdxById(b.id).catch(()=>null)))).filter(Boolean)}}
     }
-    if(!cards.length){$('homeMsg').textContent='No cards found. Check the spelling, or try just the Pokémon’s name.';$('results').innerHTML='';return}
+    if(!cards.length&&!lastSealed.length){$('homeMsg').textContent='No cards found. Check the spelling, or try just the Pokémon’s name.';$('results').innerHTML='';return}
     cards.forEach(c=>cache.set(c.id,c));
-    $('homeMsg').textContent=`${cards.length} result${cards.length===1?'':'s'}, most valuable first`;
+    $('homeMsg').textContent=[cards.length?`${cards.length} card${cards.length===1?'':'s'}`:'',lastSealed.length?`${lastSealed.length} sealed product${lastSealed.length===1?'':'s'}`:''].filter(Boolean).join(' and ')+', most valuable first';
     lastResults=cards;renderResults();
   }catch(e){$('homeMsg').textContent=e.message;$('homeMsg').classList.add('err')}
 }
@@ -1376,8 +1430,9 @@ function renderResults(){
   $('results').innerHTML=`<h2>Results <small><button class="ghost" id="clr" style="min-height:36px">Clear</button></small></h2>
   <div class="rtools"><select id="rSort" aria-label="Sort results"><option value="value"${so==='value'?' selected':''}>Price: high to low</option><option value="low"${so==='low'?' selected':''}>Price: low to high</option><option value="name"${so==='name'?' selected':''}>Name</option></select>
   <select id="rSet" aria-label="Filter by set"><option value="">All sets (${sets.length})</option>${sets.map(x=>`<option${x===sf?' selected':''}>${esc(x)}</option>`).join('')}</select></div>
+  ${lastSealed.length?`<h2 style="margin-top:4px">Sealed products</h2><div class="hrow">${lastSealed.map(c=>tile(c)).join('')}</div>${list.length?'<h2>Cards</h2>':''}`:''}
   <div class="grid">${list.map(c=>tile(c)).join('')}</div>`;
-  $('clr').onclick=()=>{$('results').innerHTML='';$('homeMsg').textContent='';lastResults=[]};
+  $('clr').onclick=()=>{$('results').innerHTML='';$('homeMsg').textContent='';lastResults=[];lastSealed=[]};
   $('rSort').onchange=renderResults;$('rSet').onchange=renderResults;
   bindTiles($('results'));
 }
@@ -1708,6 +1763,9 @@ $('hitAlert').onclick=()=>go('wish');
 document.querySelector('.port').style.cursor='pointer';document.querySelector('.port').onclick=()=>go('insights');
 $('colQ').oninput=renderAll;$('sortBy').onchange=renderAll;
 $('shareBinderBtn').onclick=shareBinder;
+document.querySelectorAll('#typeChips [data-ty]').forEach(b=>b.onclick=()=>{colType=b.dataset.ty;renderAll()});
+document.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>{setLang(b.dataset.lang);if($('q').value.trim())search($('q').value)});setLang(searchLang);
+if(col.some(x=>x.jp||isJPid(x.id))||wish.some(x=>x.jp||isJPid(x.id)))jpIndex().then(j=>{if(j){updatePrices();renderAll()}});
 $('video').addEventListener('click',e=>{if(!track)return;const r=$('video').getBoundingClientRect();const pt={x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};
   track.applyConstraints({advanced:[{pointsOfInterest:[pt],focusMode:'single-shot'}]}).then(()=>setTimeout(()=>track?.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}),1500)).catch(()=>{});chip('Focusing…')});
 $('closeScan').onclick=closeScanner;
