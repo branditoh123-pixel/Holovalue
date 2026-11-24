@@ -197,6 +197,15 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .tile .own{position:absolute;top:12px;right:12px;background:#1d7a3c;color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .hit{position:absolute;top:12px;right:12px;background:#e5383b;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .mv{display:block;font-size:13px;font-weight:700}
+.live{color:var(--green)!important;font-weight:700}
+.sellt{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px}.sellt td{padding:7px 4px;border-bottom:1px solid var(--line)}.sellt td:last-child{text-align:right;font-weight:800;white-space:nowrap}.sellt small{color:var(--soft);display:block;font-size:12px}
+.sellt tr.best td{color:var(--green)}
+.recap{background:var(--paper);border-radius:20px;padding:14px 16px;margin-top:14px;box-shadow:0 4px 14px #0001}
+.recap h3{margin:0 0 4px;font-size:17px}.recap .big{font-size:26px;font-weight:800}
+.recap ul{list-style:none;margin:8px 0 0;padding:0}.recap li{display:flex;justify-content:space-between;gap:10px;padding:5px 0;font-size:14px;border-top:1px solid var(--line)}
+.recap li span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.recap li b{white-space:nowrap}
+.refreshing{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--green);margin-right:6px;animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.25}}
 .cotd{display:grid;grid-template-columns:110px minmax(0,1fr);gap:14px;align-items:center;width:100%;text-align:left;background:var(--paper)!important;color:var(--ink)!important;border:0;border-radius:20px;padding:12px;min-height:0;white-space:normal;font-weight:500;box-shadow:0 6px 18px #0002}
 .cotd img,.cotd .ph{width:110px;aspect-ratio:63/88;border-radius:8px;object-fit:cover;box-shadow:0 6px 14px #0003}
 .cotd b{display:block;font-size:20px;line-height:1.15}.cotd .p{display:block;font-size:26px;font-weight:800;margin-top:6px}.cotd small{display:block;color:var(--soft)}
@@ -282,6 +291,7 @@ input[type=search]{width:100%}
       <div class="port-s"><div><b id="stUnique">0</b><span>unique</span></div><div><b id="stTop">—</b><span>top card</span></div><div><b id="stAvg">—</b><span>avg card</span></div></div>
     </section>
     <button class="alert" id="hitAlert" hidden></button>
+    <section class="recap" id="recap" hidden></section>
     <div class="acts">
       <button class="scanbtn" id="scanBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M3 8V5a2 2 0 0 1 2-2h3M16 3h3a2 2 0 0 1 2 2v3M21 16v3a2 2 0 0 1-2 2h-3M8 21H5a2 2 0 0 1-2-2v-3"/><rect x="8" y="7" width="8" height="10" rx="1.5"/></svg>Scan a card</button>
       <div class="acts2">
@@ -852,7 +862,7 @@ function openCard(c,variant){
   sheet(`<div class="holo" id="holo"><div class="holo-card">${okUrl(c.images?.large||c.images?.small)?`<img src="${esc(c.images.large||c.images.small)}" alt="${esc(c.name)} card" onerror="this.outerHTML='<span class=&quot;ph&quot;></span>'">`:'<span class="ph"></span>'}<i class="glare"></i></div></div>
   <div class="sinfo"><div><h3>${esc(c.name)}</h3><p class="meta">${esc(c.set?.name||'')} · #${esc(c.number)}/${esc(c.set?.printedTotal||'')}${c.rarity?' · '+esc(c.rarity):''}</p>
   <div class="sticker"><small>Market${v?' · '+esc(vName(v)):''}</small><strong>${money(p)}</strong></div>
-  ${c.tcgplayer?.updatedAt?`<p class="meta">Updated ${esc(c.tcgplayer.updatedAt)}</p>`:''}
+  ${c._live?`<p class="meta live">● Live price · updated ${esc(ago(c._live))}</p>`:c.tcgplayer?.updatedAt?`<p class="meta">Updated ${esc(c.tcgplayer.updatedAt)}</p>`:''}
   ${own&&num(own.prev)&&own.prev!==own.price?`<p class="meta ${own.price>own.prev?'up':'down'}">${own.price>own.prev?'▲':'▼'} ${money(Math.abs(own.price-own.prev))} since last update</p>`:''}</div></div>
   ${keys.length?`<table class="pick"><thead><tr><th>Version</th><th>Low</th><th>Market</th></tr></thead><tbody>${keys.map(k=>{const r=prices[k]||{};return `<tr data-v="${esc(k)}" class="${k===v?'sel':''}"><td>${k===v?'● ':''}${esc(vName(k))}</td><td>${money(r.low)}</td><td>${money(r.market)}</td></tr>`}).join('')}</tbody></table><p class="meta">Tap a version to pick yours.</p>`:(c._enriched?'<p class="meta">No price database lists this card yet. Check eBay sold listings below.</p>':'<p class="meta">Getting the price…</p>')}
   ${hist.length>1?`<svg class="hspark" id="hsp" viewBox="0 0 300 60" preserveAspectRatio="none" aria-label="Price history"></svg><p class="meta">Price over the last ${hist.length} updates</p>`:''}
@@ -867,13 +877,15 @@ function openCard(c,variant){
     <label class="field">Condition<select id="condIn">${['Near Mint','Lightly Played','Moderately Played','Heavily Played','Damaged','Graded'].map(o=>`<option${(own.cond||'Near Mint')===o?' selected':''}>${o}</option>`).join('')}</select></label>
     ${gain!==null?`<p class="gain ${(p*condMult(own)-own.paid)>=0?'up':'down'}">${(p*condMult(own)-own.paid)>=0?'Gain':'Loss'} ${money(gain)} (${own.paid?Math.round((p*condMult(own)-own.paid)/own.paid*100):0}%) on ${own.qty} card${own.qty===1?'':'s'}</p>`:''}</div>`:''}
   ${w?`<div class="sec"><label class="field">Target price (tell me when it drops to this)<input type="number" inputmode="decimal" step="0.01" min="0" id="targetIn" value="${num(w.target)?w.target:''}" placeholder="$0.00"></label>${num(w.target)&&num(p)&&p<=w.target?'<p class="gain up">Target hit! It’s at or below your price.</p>':''}</div>`:''}
+  ${num(p)?sellHTML(own?p*condMult(own):p):''}
   <div class="links">
     ${okUrl(c.tcgplayer?.url)?`<a class="btn ghost" href="${esc(c.tcgplayer.url)}" target="_blank" rel="noopener">TCGplayer</a>`:''}
     <a class="btn ghost" href="https://www.ebay.com/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1" target="_blank" rel="noopener">eBay sold</a>
     <button class="ghost" id="again">Not it? Scan again</button>
   </div>
   ${own?`<div class="row" style="margin-top:10px"><button class="danger" id="rmOwn">Remove from collection</button></div>`:''}`);
-  const sh=document.querySelector('.sheet');sh.dataset.card=c.id;holoTilt($('holo'));setTimeout(()=>{if(document.querySelector('.sheet')?.dataset.card===c.id)sheetExtras(c)},0);
+  const sh=document.querySelector('.sheet');sh.dataset.card=c.id;holoTilt($('holo'));
+  if(!c._liveTried){c._liveTried=1;livePrice(c).then(rec=>{const ch=applyLive(c,rec);if(rec&&document.querySelector('.sheet')?.dataset.card===c.id){if(ch)renderAll();openCard(c,variant)}}).catch(()=>{})}setTimeout(()=>{if(document.querySelector('.sheet')?.dataset.card===c.id)sheetExtras(c)},0);
   if(hist.length>1){const pts=hist.map(h=>h[1]),lo=Math.min(...pts),hi=Math.max(...pts),rg=hi-lo||1,X=i=>i*300/(pts.length-1),Y=v=>5+(1-(v-lo)/rg)*50;const d=pts.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('');const up=pts[pts.length-1]>=pts[0];$('hsp').innerHTML=`<path d="${d}" fill="none" stroke="${up?'#1d7a3c':'#e5383b'}" stroke-width="2.5" vector-effect="non-scaling-stroke"/>`}
   sh.querySelectorAll('tr[data-v]').forEach(tr=>tr.onclick=()=>{const nv=tr.dataset.v;if(own){own.v=nv;own.price=priceFor(c,nv);save();renderAll()}openCard(c,nv)});
   $('again').onclick=()=>{closeSheet();openScanner()};
@@ -964,7 +976,9 @@ function drawSpark(h){
 $('refresh').onclick=async()=>{
   const btn=$('refresh');btn.disabled=true;btn.textContent='Refreshing…';
   try{
-    tcgIdxP=null;await tcgIndex();const ch=updatePrices();
+    tcgIdxP=null;await tcgIndex();let ch=updatePrices();
+    btn.innerHTML='<span class="refreshing"></span>Getting live prices…';
+    ch+=await refreshLive(col,(d,t)=>{btn.innerHTML=`<span class="refreshing"></span>Live prices ${d}/${t}`});LS.set('hvl-lastlive',Date.now());
     const rest=col.filter(x=>!rowForItem(x));
     for(const x of rest){const c=await cardForItem(x);if(c){if(!hasPrice(c))await enrich(c);const p=priceFor(c,x.v||bestVariant(c));if(num(p)&&p!==x.price){if(num(x.price))x.prev=x.price;x.price=p}}}
     save();renderAll();toast(ch?`Updated ${ch} price${ch===1?'':'s'}.`:'Prices are up to date.');
@@ -1441,6 +1455,63 @@ function renderGame(res){
   const best=LS.get('hvl-gbest',0);$('gameBest').textContent=best?`Your best streak: ${best}. Can you beat it?`:'Guess which card is worth more. How long can your streak go?';
 }
 $('gameJump').onclick=()=>go('game');
+
+/* ---------- live prices (TCGdex updates TCGplayer prices hourly) ---------- */
+const ago=t=>{const m=Math.round((Date.now()-t)/60000);return m<1?'just now':m<60?`${m} min ago`:m<1440?`${Math.round(m/60)} h ago`:`${Math.round(m/1440)} d ago`};
+const liveCache=LS.get('hvl-live',{}); // id -> {t, prices, at}
+function saveLive(){const ks=Object.keys(liveCache);if(ks.length>400)ks.sort((a,b)=>liveCache[a].t-liveCache[b].t).slice(0,ks.length-400).forEach(k=>delete liveCache[k]);LS.set('hvl-live',liveCache)}
+async function livePrice(c,maxAgeMin=30){
+  const hit=liveCache[c.id];if(hit&&Date.now()-hit.t<maxAgeMin*60000)return hit;
+  const found=await tdxFind(c.number,c.set?.printedTotal).catch(()=>[]);
+  const m=found.map(o=>[o,sim(o.name.toLowerCase(),c.name.toLowerCase())]).sort((a,b)=>b[1]-a[1])[0];
+  if(!m||m[1]<.6||!hasPrice(m[0]))return null;
+  const rec={t:Date.now(),prices:m[0].tcgplayer.prices,at:m[0].tcgplayer.updatedAt};liveCache[c.id]=rec;saveLive();return rec;
+}
+function applyLive(c,rec){
+  if(!rec)return false;const v=bestVariant(c)||Object.keys(rec.prices)[0];const before=priceFor(c,v);
+  // only take the live number for the same version, to avoid mixing up holo/normal
+  const nv=rec.prices[v]?v:null;if(!nv)return false;
+  c.tcgplayer={...(c.tcgplayer||{}),prices:{...(c.tcgplayer?.prices||{}),[nv]:{...(c.tcgplayer?.prices?.[nv]||{}),...rec.prices[nv]}}};c._live=rec.t;
+  const after=priceFor(c,nv);const it=col.find(x=>x.id===c.id)||wish.find(x=>x.id===c.id);
+  if(it&&num(after)&&after!==it.price&&(it.v||nv)===nv){if(num(it.price))it.prev=it.price;it.price=after;save();saveWish();return true}
+  return before!==after;
+}
+async function refreshLive(list,onProgress){
+  let done=0,changed=0;const q=[...list];
+  const worker=async()=>{while(q.length){const x=q.shift();try{const c=await cardForItem(x);if(c){const rec=await livePrice(c,60);if(applyLive(c,rec))changed++}}catch(e){}done++;onProgress?.(done,list.length)}};
+  await Promise.all([worker(),worker(),worker(),worker()]);return changed;
+}
+async function autoLive(){
+  const last=LS.get('hvl-lastlive',0);if(Date.now()-last<3*3600e3||!col.length)return;
+  LS.set('hvl-lastlive',Date.now());
+  const top=[...col].filter(x=>num(x.price)).sort((a,b)=>itemVal(b)-itemVal(a)).slice(0,20);
+  const ch=await refreshLive(top);if(ch){renderAll();toast(`Live prices: ${ch} of your top cards moved.`)}
+}
+
+/* ---------- since your last visit ---------- */
+function renderRecap(){
+  const lv=LS.get('hvl-lastvisit',null),tot=col.reduce((a,x)=>a+itemVal(x),0);
+  if(!lv||!col.length||Date.now()-lv.t<20*3600e3||Math.abs(tot-lv.v)<.01){$('recap').hidden=true;return}
+  const d=tot-lv.v,snap=lv.p||{};
+  const moves=col.map(x=>[x,num(snap[x.id])&&num(x.price)?(x.price-snap[x.id])*x.qty:0]).filter(m=>Math.abs(m[1])>=.01).sort((a,b)=>Math.abs(b[1])-Math.abs(a[1])).slice(0,4);
+  $('recap').hidden=false;
+  $('recap').innerHTML=`<h3>Since your last visit <small style="color:var(--soft);font-weight:500">${esc(ago(lv.t))}</small></h3><div class="big ${d>=0?'up':'down'}">${d>=0?'▲ +':'▼ −'}${money(Math.abs(d))}</div>${moves.length?`<ul>${moves.map(([x,m])=>`<li><span>${esc(x.name)}</span><b class="${m>=0?'up':'down'}">${m>=0?'+':'−'}${money(Math.abs(m))}</b></li>`).join('')}</ul>`:''}<button class="ghost" id="recapOk" style="margin-top:10px;min-height:38px;font-size:14px">Got it</button>`;
+  $('recapOk').onclick=()=>{markVisit();$('recap').hidden=true};
+}
+function markVisit(){const p={};col.forEach(x=>{if(num(x.price))p[x.id]=x.price});LS.set('hvl-lastvisit',{t:Date.now(),v:col.reduce((a,x)=>a+itemVal(x),0),p})}
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&$('recap').hidden)markVisit()});
+
+/* ---------- sell calculator ---------- */
+function sellHTML(p){
+  const tcg=p-Math.min(p*.1075,75)-(p*.025+.30),ebay=p-p*.1325-(p>10?.40:.30),wn=p-p*.08-(p*.029+.30),cash=[p*.6,p*.75],credit=[p*.7,p*.85];
+  const rows=[['TCGplayer','10.75% commission + 2.5% + $0.30',tcg],['eBay','13.25% final value fee + per-order fee',ebay],['Whatnot','8% + 2.9% + $0.30',wn]].map(r=>[...r,Math.max(0,r[2])]);
+  const best=Math.max(...rows.map(r=>r[3]));
+  return `<div class="sec"><b>If you sell it for ${money(p)}</b><p class="meta">What you’d keep after fees, before shipping.</p>
+  <table class="sellt">${rows.map(([n,f,,v])=>`<tr class="${v===best?'best':''}"><td>${n}<small>${f}</small></td><td>${money(v)}</td></tr>`).join('')}
+  <tr><td>Local shop (cash)<small>Shops usually pay about 60–75% of market</small></td><td>${money(cash[0])}–${money(cash[1])}</td></tr>
+  <tr><td>Local shop (store credit)<small>Usually about 70–85% of market</small></td><td>${money(credit[0])}–${money(credit[1])}</td></tr></table>
+  <p class="meta" style="font-size:12px">Fee rates as of 2026. Shop offers vary.</p></div>`;
+}
 /* ---------- navigation ---------- */
 let view='home';
 function route(){
@@ -1484,7 +1555,8 @@ col.forEach(x=>{x.qty=x.qty||1});
 {const gb=LS.get('hvl-gbest',0);if(gb)$('gameBest').textContent=`Your best streak: ${gb}. Can you beat it?`}
 $('onbType').innerHTML=typePickerHTML();bindTypePicker($('onbType'));
 route();renderAll();
-tcgIndex().then(()=>{updatePrices();renderAll();loadMovers().then(renderMarket)});
+tcgIndex().then(()=>{updatePrices();renderAll();renderRecap();loadMovers().then(renderMarket);setTimeout(autoLive,1500)});
+if(!LS.get('hvl-lastvisit',null))setTimeout(markVisit,3000);
 if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});let reloaded=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloaded)return;reloaded=true;if(!$('scanner').hidden||$('sheetHost').innerHTML)return;location.reload()})}
 }
 </script>

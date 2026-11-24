@@ -110,6 +110,16 @@ def main(out_path):
             previous = json.load(f)
     except Exception:  # noqa: BLE001
         previous = None
+    stamp = None
+    try:
+        req = urllib.request.Request("https://tcgcsv.com/last-updated.txt", headers=UA)
+        with urllib.request.urlopen(req, timeout=30) as r:
+            stamp = r.read().decode("utf-8").strip()[:40]
+    except Exception as e:  # noqa: BLE001
+        print(f"could not read tcgcsv last-updated: {e}", file=sys.stderr)
+    if stamp and previous and previous.get("source") == stamp:
+        print(f"tcgcsv data unchanged since {stamp}; nothing to do")
+        return
     data = get(f"{BASE}/groups")
     groups = (data or {}).get("results") or []
     if not groups:
@@ -131,12 +141,21 @@ def main(out_path):
         sys.exit(1)
     sets = {g.get("name", ""): [g.get("groupId"), (g.get("publishedOn") or "")[:10], g.get("abbreviation") or ""] for g in groups}
     sealed.sort(key=lambda x: x[3], reverse=True)
-    out = {"updated": today, "sets": sets, "sealed": sealed[:4000], "cards": cards}
+    out = {"updated": today, "source": stamp, "sets": sets, "sealed": sealed[:4000], "cards": cards}
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
     print(f"wrote {total} cards and {len(sealed)} sealed products across {len(groups)} sets to {out_path}")
-    if previous and previous.get("updated") != today:
+    if not previous:
+        return
+    if previous.get("source"):
+        new_data = bool(stamp) and previous["source"] != stamp
+    else:  # older file without a source stamp: fall back to the date
+        new_data = previous.get("updated") != today
+    if new_data:
         up, down = movers(previous.get("cards"), cards)
+        if not up and not down:
+            print("no price movement found; keeping the previous movers.json")
+            return
         with open("movers.json", "w", encoding="utf-8") as f:
             json.dump({"updated": today, "from": previous.get("updated"), "up": up, "down": down}, f, separators=(",", ":"), ensure_ascii=False)
         print(f"movers: {len(up)} up, {len(down)} down since {previous.get('updated')}")
