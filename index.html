@@ -201,6 +201,9 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .tile .own{position:absolute;top:12px;right:12px;background:#1d7a3c;color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .hit{position:absolute;top:12px;right:12px;background:#e5383b;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .mv{display:block;font-size:13px;font-weight:700}
+.slab{position:absolute;top:12px;right:12px;background:#c8102e;color:#fff;font-size:11px;font-weight:800;border-radius:6px;padding:2px 6px;letter-spacing:.02em;box-shadow:0 2px 6px #0004}
+.shared{position:fixed;inset:0;z-index:50;background:var(--bg);overflow:auto;padding:calc(16px + env(safe-area-inset-top)) max(4vw,16px) 40px}
+.shared .wrapin{max-width:900px;margin:0 auto}
 .live{color:var(--green)!important;font-weight:700}
 .sellt{width:100%;border-collapse:collapse;margin-top:8px;font-size:14px}.sellt td{padding:7px 4px;border-bottom:1px solid var(--line)}.sellt td:last-child{text-align:right;font-weight:800;white-space:nowrap}.sellt small{color:var(--soft);display:block;font-size:12px}
 .sellt tr.best td{color:var(--green)}
@@ -344,7 +347,7 @@ input[type=search]{width:100%}
       <input type="search" id="colQ" placeholder="Find in collection" aria-label="Find in collection" style="flex:1 1 160px">
       <select id="sortBy" aria-label="Sort collection" style="font:inherit;font-size:16px;min-height:48px;border-radius:14px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:0 10px"><option value="value">Highest value</option><option value="gain">Biggest gain</option><option value="new">Newest</option><option value="name">Name</option><option value="set">Set</option></select>
     </div>
-    <div class="row" style="margin-bottom:10px"><button class="ghost" id="selBtn">Select</button><a class="btn ghost" href="#insights">📊 Insights</a></div>
+    <div class="row" style="margin-bottom:10px"><button class="ghost" id="selBtn">Select</button><a class="btn ghost" href="#insights">📊 Insights</a><button class="ghost" id="shareBinderBtn">🔗 Share binder</button></div>
     <div class="grid" id="col"></div>
     <div class="binderv" id="binderView" hidden></div>
     <p class="empty" id="colEmpty">Nothing here yet. Tap the yellow scan button to add cards.</p>
@@ -460,7 +463,7 @@ const VARIANTS=[['holofoil','Holo'],['normal','Normal'],['reverseHolofoil','Reve
 const vName=k=>(VARIANTS.find(v=>v[0]===k)||[k,k.replace(/([A-Z])/g,' $1')])[1];
 const LS={get(k,d){try{const v=localStorage.getItem(k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}}};
 let col=LS.get('hvl-col',[]);
-const save=()=>LS.set('hvl-col',col);
+const save=()=>{LS.set('hvl-col',col);if(typeof syncWatch==='function')syncWatch()};
 
 function bestVariant(card){
   const p=card?.tcgplayer?.prices||{};
@@ -874,7 +877,7 @@ async function scanPhoto(file){
 
 /* ---------- shared UI ---------- */
 let wish=LS.get('hvl-wish',[]),binders=LS.get('hvl-binders',['Main']),curBinder='All',trade=LS.get('hvl-trade',{give:[],get:[]});
-const saveWish=()=>LS.set('hvl-wish',wish),saveTrade=()=>LS.set('hvl-trade',trade);
+const saveWish=()=>{LS.set('hvl-wish',wish);if(typeof syncWatch==='function')syncWatch()},saveTrade=()=>LS.set('hvl-trade',trade);
 let toastT;function toast(m,undo){clearTimeout(toastT);$('toastHost').innerHTML='<div class="toast" role="status"><span></span></div>';$('toastHost').querySelector('span').textContent=m;if(undo){const b=document.createElement('button');b.textContent='Undo';b.onclick=()=>{undo();$('toastHost').innerHTML=''};$('toastHost').firstChild.appendChild(b)}toastT=setTimeout(()=>$('toastHost').innerHTML='',undo?6000:2400)}
 function closeSheet(){$('sheetHost').innerHTML=''}
 function sheet(html){
@@ -941,7 +944,7 @@ function openCard(c,variant){
   const prices=c.tcgplayer?.prices||{},keys=Object.keys(prices);
   const v=variant||own?.v||bestVariant(c),p=priceFor(c,v);
   const q=encodeURIComponent(`${c.name} ${c.number}/${c.set?.printedTotal||''} ${c.set?.name||''}`);
-  const gain=own&&num(own.paid)&&num(p)?Math.abs((p*condMult(own)-own.paid)*own.qty):null;
+  const gain=own&&num(own.paid)&&num(p)?Math.abs((unitVal(own,p)-own.paid)*own.qty):null;
   const hist=own?.hist||w?.hist||[];
   sheet(`<div class="holo" id="holo"><div class="holo-card">${okUrl(c.images?.large||c.images?.small)?`<img src="${esc(c.images.large||c.images.small)}" alt="${esc(c.name)} card" onerror="this.outerHTML='<span class=&quot;ph&quot;></span>'">`:'<span class="ph"></span>'}<i class="glare"></i></div></div>
   <div class="sinfo"><div><h3>${esc(c.name)}</h3><p class="meta">${esc(c.set?.name||'')} · #${esc(c.number)}/${esc(c.set?.printedTotal||'')}${c.rarity?' · '+esc(c.rarity):''}</p>
@@ -959,12 +962,17 @@ function openCard(c,variant){
     <label class="field">Binder<select id="binderIn">${binders.map(b=>`<option${(own.binder||'Main')===b?' selected':''}>${esc(b)}</option>`).join('')}<option value="__new">+ New binder…</option></select></label></div>
     ${(own.cond&&own.cond!=='Near Mint'&&own.cond!=='Graded'&&num(p))?`<p class="gain">Your ${esc(own.cond.toLowerCase())} copy: about ${money(p*condMult(own))} each (estimated ${Math.round(condMult(own)*100)}% of Near Mint)</p>`:''}
     <label class="field">Condition<select id="condIn">${['Near Mint','Lightly Played','Moderately Played','Heavily Played','Damaged','Graded'].map(o=>`<option${(own.cond||'Near Mint')===o?' selected':''}>${o}</option>`).join('')}</select></label>
-    ${gain!==null?`<p class="gain ${(p*condMult(own)-own.paid)>=0?'up':'down'}">${(p*condMult(own)-own.paid)>=0?'Gain':'Loss'} ${money(gain)} (${own.paid?Math.round((p*condMult(own)-own.paid)/own.paid*100):0}%) on ${own.qty} card${own.qty===1?'':'s'}</p>`:''}</div>`:''}
+    ${isGraded(own)?`<div class="frow"><label class="field">Grading company<select id="gcoIn">${['PSA','BGS','CGC','TAG','SGC','ACE'].map(o=>`<option${(own.gco||'PSA')===o?' selected':''}>${o}</option>`).join('')}</select></label>
+    <label class="field">Grade<select id="grIn">${['10','9.5','9','8.5','8','7.5','7','6','5','4','3','2','1'].map(o=>`<option${(own.gr||'10')===o?' selected':''}>${o}</option>`).join('')}</select></label></div>
+    <label class="field">What it’s worth graded (each)<input type="number" inputmode="decimal" step="0.01" min="0" id="gvalIn" value="${num(own.gval)?own.gval:''}" placeholder="Check eBay sold for ${esc((own.gco||'PSA')+' '+(own.gr||'10'))}"></label>
+    <p class="meta">Graded prices aren’t in TCGplayer’s data. Tap “eBay sold (graded)” below to see what this slab recently sold for, then enter it here.</p>`:''}
+    ${gain!==null?`<p class="gain ${(unitVal(own,p)-own.paid)>=0?'up':'down'}">${(unitVal(own,p)-own.paid)>=0?'Gain':'Loss'} ${money(gain)} (${own.paid?Math.round((unitVal(own,p)-own.paid)/own.paid*100):0}%) on ${own.qty} card${own.qty===1?'':'s'}</p>`:''}</div>`:''}
   ${w?`<div class="sec"><label class="field">Target price (tell me when it drops to this)<input type="number" inputmode="decimal" step="0.01" min="0" id="targetIn" value="${num(w.target)?w.target:''}" placeholder="$0.00"></label>${num(w.target)&&num(p)&&p<=w.target?'<p class="gain up">Target hit! It’s at or below your price.</p>':''}</div>`:''}
-  ${num(p)?sellHTML(own?p*condMult(own):p):''}
+  ${num(p)?sellHTML(own?unitVal(own,p):p):''}
   <div class="links">
     ${okUrl(c.tcgplayer?.url)?`<a class="btn ghost" href="${esc(c.tcgplayer.url)}" target="_blank" rel="noopener">TCGplayer</a>`:''}
     <a class="btn ghost" href="https://www.ebay.com/sch/i.html?_nkw=${q}&LH_Sold=1&LH_Complete=1" target="_blank" rel="noopener">eBay sold</a>
+    ${isGraded(own)?`<a class="btn ghost" href="https://www.ebay.com/sch/i.html?_nkw=${q}%20${encodeURIComponent((own.gco||'PSA')+' '+(own.gr||'10'))}&LH_Sold=1&LH_Complete=1" target="_blank" rel="noopener">eBay sold (${esc((own.gco||'PSA')+' '+(own.gr||'10'))})</a>`:''}
     <button class="ghost" id="again">Not it? Scan again</button>
   </div>
   ${own?`<div class="row" style="margin-top:10px"><button class="danger" id="rmOwn">Remove from collection</button></div>`:''}`);
@@ -979,7 +987,8 @@ function openCard(c,variant){
     $('dec').onclick=()=>{own.qty--;if(own.qty<=0){col=col.filter(x=>x!==own);toast(`Removed ${c.name}.`)}save();renderAll();openCard(c,v)};
     $('rmOwn').onclick=()=>{const keep=own;col=col.filter(x=>x!==own);save();renderAll();closeSheet();toast(`Removed ${c.name}.`,()=>{col.unshift(keep);save();renderAll()})};
     $('paidIn').onchange=e=>{const n=parseFloat(e.target.value);own.paid=isFinite(n)&&n>=0?n:null;save();renderAll();openCard(c,v)};
-    $('condIn').onchange=e=>{own.cond=e.target.value;save();renderAll();openCard(c,v)};
+    $('condIn').onchange=e=>{own.cond=e.target.value;if(own.cond==='Graded'){own.gco=own.gco||'PSA';own.gr=own.gr||'10'}save();renderAll();openCard(c,v)};
+    if(isGraded(own)){$('gcoIn').onchange=e=>{own.gco=e.target.value;save();renderAll();openCard(c,v)};$('grIn').onchange=e=>{own.gr=e.target.value;save();renderAll();openCard(c,v)};$('gvalIn').onchange=e=>{const n=parseFloat(e.target.value);own.gval=isFinite(n)&&n>0?n:null;save();renderAll();openCard(c,v)}}
     $('binderIn').onchange=e=>{let b=e.target.value;if(b==='__new'){b=(prompt('Name your new binder (for example: Trade binder)')||'').trim().slice(0,30);if(!b){e.target.value=own.binder||'Main';return}if(!binders.includes(b)){binders.push(b);LS.set('hvl-binders',binders)}}own.binder=b;save();renderAll();openCard(c,v)};
   }else $('add').onclick=()=>{addCard(c,v);toast(`Added ${c.name}.`);openCard(c,v)};
   if(w)$('targetIn').onchange=e=>{const n=parseFloat(e.target.value);w.target=isFinite(n)&&n>0?n:null;saveWish();renderAll();openCard(c,v)};
@@ -997,11 +1006,14 @@ function addCard(c,v){
 }
 const COND={'Near Mint':1,'Lightly Played':.85,'Moderately Played':.7,'Heavily Played':.5,'Damaged':.35,'Graded':1};
 const condMult=x=>COND[x.cond||'Near Mint']??1;
-const itemVal=x=>(num(x.price)?x.price*condMult(x):0)*(x.qty||1);
+const isGraded=x=>x&&x.cond==='Graded';
+const unitVal=(x,p)=>{p=p??x.price;if(isGraded(x)&&num(x.gval))return x.gval;return num(p)?p*condMult(x):0};
+const itemVal=x=>unitVal(x)*(x.qty||1);
+const gradeLabel=x=>isGraded(x)&&x.gco?`${x.gco} ${x.gr||''}`.trim():'';
 const delta=x=>num(x.prev)&&num(x.price)?x.price-x.prev:0;
 function ownedTile(x){
   const d=delta(x);
-  return `<button class="tile" data-cid="${esc(x.id)}">${imgTag(x.img)}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${esc(x.num)}</span><span class="tp">${money(num(x.price)?itemVal(x):null)}</span>${d?`<span class="mv ${d>0?'up':'down'}">${d>0?'▲':'▼'} ${money(Math.abs(d))}</span>`:''}</button>`;
+  return `<button class="tile" data-cid="${esc(x.id)}">${imgTag(x.img)}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}${gradeLabel(x)?`<span class="slab">${esc(gradeLabel(x))}</span>`:''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${esc(x.num)}</span><span class="tp">${money(num(x.price)?itemVal(x):null)}</span>${d?`<span class="mv ${d>0?'up':'down'}">${d>0?'▲':'▼'} ${money(Math.abs(d))}</span>`:''}</button>`;
 }
 function renderCol(){renderAll()}
 function renderAll(){
@@ -1071,7 +1083,7 @@ $('refresh').onclick=async()=>{
 };
 $('exportBtn').onclick=()=>{
   const cell=v=>{const s=String(v??'');return /[",\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s};
-  const rows=[['Name','Set','Number','Version','Condition','Binder','Quantity','Market each (USD)','Total (USD)','Paid each (USD)','Gain (USD)','TCGplayer'],...col.map(x=>[x.name,x.set,x.num,vName(x.v||'normal'),x.cond||'Near Mint',x.binder||'Main',x.qty,num(x.price)?x.price.toFixed(2):'',num(x.price)?itemVal(x).toFixed(2):'',num(x.paid)?x.paid.toFixed(2):'',num(x.paid)&&num(x.price)?(itemVal(x)-x.paid*x.qty).toFixed(2):'',x.pid?`https://www.tcgplayer.com/product/${x.pid}`:''])];
+  const rows=[['Name','Set','Number','Version','Condition','Grade','Binder','Quantity','Market each (USD)','Total (USD)','Paid each (USD)','Gain (USD)','TCGplayer'],...col.map(x=>[x.name,x.set,x.num,vName(x.v||'normal'),x.cond||'Near Mint',gradeLabel(x),x.binder||'Main',x.qty,num(x.price)?unitVal(x).toFixed(2):'',num(x.price)||num(x.gval)?itemVal(x).toFixed(2):'',num(x.paid)?x.paid.toFixed(2):'',num(x.paid)&&num(x.price)?(itemVal(x)-x.paid*x.qty).toFixed(2):'',x.pid?`https://www.tcgplayer.com/product/${x.pid}`:''])];
   const blob=new Blob([rows.map(r=>r.map(cell).join(',')).join('\n')],{type:'text/csv'});
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`holovalue-collection-${new Date().toISOString().slice(0,10)}.csv`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);toast('Collection exported.');
 };
@@ -1270,12 +1282,15 @@ async function shareCollection(){
 function openSettings(){
   const n=col.reduce((a,x)=>a+x.qty,0);
   sheet(`<h3 style="margin:0 0 4px">Settings & backup</h3><p class="meta">Your collection is saved on this phone only. Back it up so you never lose it if you clear Chrome or change phones.</p>
+  <div class="sec"><b>Price alerts</b><p class="meta">Get a notification when a wishlist card hits your target price, or one of your cards jumps or drops 15% or more.</p>
+  <div class="row" style="margin-top:8px"><button id="alertBtn">${LS.get('hvl-alerts',false)?'Turn alerts off':'Turn on price alerts'}</button></div>${LS.get('hvl-alerts',false)?`<p class="meta">${LS.get('hvl-bgalerts',false)?'On, including while the app is closed.':'On while you use the app. Install the app (⋮ → Install app) to get them while it’s closed.'}</p>`:''}</div>
   <div class="sec"><b>Background theme</b><p class="meta">Pick your favorite type.</p>${typePickerHTML()}</div>
   <div class="sec"><b>${n} cards · ${wish.length} on wishlist · ${packs.length} pack openings</b>
   <div class="row" style="margin-top:12px"><button id="bkSave">Save backup file</button><label class="btn ghost" style="position:relative;overflow:hidden">Restore backup<input type="file" id="bkLoad" accept="application/json,.json" style="position:absolute;inset:0;opacity:0"></label></div></div>
   <div class="sec"><b>Prices</b><p class="meta">TCGplayer market prices update every night. Last update: ${esc(tcgIdx?.updated||'loading…')}.</p></div>
   <div class="sec"><button class="danger" id="wipe">Delete all my data on this phone</button></div>`);
   bindTypePicker(document.querySelector('.sheet'));
+  $('alertBtn').onclick=async()=>{await enableAlerts(!LS.get('hvl-alerts',false));openSettings()};
   $('bkSave').onclick=()=>{const data={app:'HoloValue',v:1,saved:new Date().toISOString(),col,wish,binders,packs,trade,hist:LS.get('hvl-hist',{})};const blob=new Blob([JSON.stringify(data)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`holovalue-backup-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);toast('Backup saved to your downloads.');stats.backup=1;LS.set('hvl-stats',stats);checkAch()};
   $('bkLoad').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{const d=JSON.parse(await f.text());if(d.app!=='HoloValue'||!Array.isArray(d.col))throw 0;if(!confirm(`Replace what’s on this phone with the backup from ${String(d.saved||'').slice(0,10)} (${d.col.length} cards)?`))return;
     col=d.col;wish=Array.isArray(d.wish)?d.wish:[];binders=Array.isArray(d.binders)&&d.binders.length?d.binders:['Main'];packs=Array.isArray(d.packs)?d.packs:[];trade=d.trade&&Array.isArray(d.trade.give)?d.trade:{give:[],get:[]};
@@ -1596,9 +1611,80 @@ function sellHTML(p){
   <tr><td>Local shop (store credit)<small>Usually about 70–85% of market</small></td><td>${money(credit[0])}–${money(credit[1])}</td></tr></table>
   <p class="meta" style="font-size:12px">Fee rates as of 2026. Shop offers vary.</p></div>`;
 }
+
+/* ---------- share a binder as a link (read-only) ---------- */
+const b64u=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const ub64u=s=>Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((s.length+3)%4)),c=>c.charCodeAt(0));
+async function packShare(items,title){
+  const data={t:title,d:new Date().toISOString().slice(0,10),c:items.slice(0,400).map(x=>[x.pid||0,x.name,x.set,x.num,Math.round(unitVal(x)*100)/100,x.qty,gradeLabel(x)])};
+  const raw=new TextEncoder().encode(JSON.stringify(data));
+  if(!window.CompressionStream)return 'j'+b64u(raw);
+  const cs=new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+  return 'z'+b64u(await new Response(cs).arrayBuffer());
+}
+async function unpackShare(code){
+  let bytes=ub64u(code.slice(1));
+  if(code[0]==='z'){const ds=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'));bytes=new Uint8Array(await new Response(ds).arrayBuffer())}
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+async function shareBinder(){
+  const items=col.filter(x=>curBinder==='All'||(x.binder||'Main')===curBinder);
+  if(!items.length){toast('Nothing in this binder to share yet.');return}
+  const title=curBinder==='All'?'My Pokémon collection':curBinder;
+  const url=location.origin+location.pathname.replace(/index\.html$/,'')+'#s='+await packShare(items,title);
+  try{if(navigator.share){await navigator.share({title,text:`Check out my ${title} on HoloValue`,url});return}}catch(e){if(e?.name==='AbortError')return}
+  try{await navigator.clipboard.writeText(url);toast('Link copied. Paste it anywhere to share.')}catch(e){prompt('Copy this link:',url)}
+}
+async function showShared(code){
+  let d;try{d=await unpackShare(code)}catch(e){toast('That share link looks broken.');return}
+  const items=(d.c||[]).map(a=>({pid:+a[0]||0,name:String(a[1]||''),set:String(a[2]||''),num:String(a[3]||''),price:num(a[4])?a[4]:null,qty:+a[5]||1,g:String(a[6]||'')}));
+  const tot=items.reduce((s,x)=>s+(x.price||0)*x.qty,0),n=items.reduce((s,x)=>s+x.qty,0);
+  const el=document.createElement('div');el.className='shared';el.id='sharedView';
+  el.innerHTML=`<div class="wrapin"><div class="row" style="justify-content:space-between"><div class="brand">HoloValue<small>Shared binder · ${esc(d.d||'')}</small></div><button class="ghost" id="shClose">Close</button></div>
+  <section class="port" style="margin-top:14px"><div class="port-l">${esc(d.t||'Shared binder')}</div><div class="port-v">${money(tot)}</div><div class="port-c">${n} card${n===1?'':'s'} · values when shared</div></section>
+  <div class="grid" style="margin-top:16px">${items.sort((a,b)=>(b.price||0)-(a.price||0)).map(x=>`<div class="tile">${imgTag(x.pid?`https://tcgplayer-cdn.tcgplayer.com/product/${x.pid}_200w.jpg`:'')}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}${x.g?`<span class="slab">${esc(x.g)}</span>`:''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${esc(x.num)}</span><span class="tp">${money(x.price)}</span></div>`).join('')}</div>
+  <p class="fine">Want your own? Scan your cards free with HoloValue: no account, no ads.</p></div>`;
+  document.body.appendChild(el);document.body.style.overflow='hidden';
+  $('shClose').onclick=()=>{el.remove();document.body.style.overflow='';history.replaceState(null,'',location.pathname);route()};
+}
+
+/* ---------- price alerts (notifications) ---------- */
+const SUBNAME={normal:'Normal',holofoil:'Holofoil',reverseHolofoil:'Reverse Holofoil','1stEditionHolofoil':'1st Edition Holofoil','1stEditionNormal':'1st Edition Normal',unlimitedHolofoil:'Unlimited Holofoil',unlimitedNormal:'Unlimited Normal'};
+function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('holovalue',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function idbSet(k,v){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)})}
+let watchT;
+function syncWatch(){
+  if(!LS.get('hvl-alerts',false))return;clearTimeout(watchT);
+  watchT=setTimeout(()=>{
+    const mk=x=>{const [n,t]=(x.num||'').split('/');return{pid:x.pid||0,key:(+n)+'/'+(+t),name:x.name,sub:SUBNAME[x.v]||'',price:num(x.price)?x.price:null}};
+    const watch={wish:wish.filter(w=>num(w.target)&&w.pid).map(w=>({...mk(w),target:w.target})),own:col.filter(x=>x.pid&&num(x.price)).sort((a,b)=>itemVal(b)-itemVal(a)).slice(0,300).map(mk),url:new URL('prices.json',location.href).href,app:location.href.split('#')[0]};
+    idbSet('watch',watch).catch(()=>{});
+  },800);
+}
+async function enableAlerts(on){
+  if(!on){LS.set('hvl-alerts',false);toast('Price alerts off.');return false}
+  if(!('Notification' in window)){toast('This browser can’t show notifications.');return false}
+  const perm=await Notification.requestPermission();
+  if(perm!=='granted'){toast('Notifications were blocked. Allow them for this site in Chrome settings.');return false}
+  LS.set('hvl-alerts',true);syncWatch();
+  let bg=false;
+  try{const reg=await navigator.serviceWorker.ready;if('periodicSync' in reg){const st=await navigator.permissions.query({name:'periodic-background-sync'});if(st.state==='granted'){await reg.periodicSync.register('price-check',{minInterval:12*3600e3});bg=true}}}catch(e){}
+  LS.set('hvl-bgalerts',bg);
+  toast(bg?'Price alerts on, even when the app is closed.':'Price alerts on. Install the app (⋮ → Install app) for alerts while it’s closed.');
+  return true;
+}
+function alertNow(){ // checks when the app opens, using the price file already loaded
+  if(!LS.get('hvl-alerts',false)||!tcgIdx||!('Notification' in window)||Notification.permission!=='granted')return;
+  const seen=LS.get('hvl-alerted',{}),stamp=tcgIdx.source||tcgIdx.updated,msgs=[];
+  wish.forEach(w=>{if(num(w.target)&&num(w.price)&&w.price<=w.target&&seen['w'+w.id]!==stamp){msgs.push(`🎯 ${w.name} is ${money(w.price)} (your target ${money(w.target)})`);seen['w'+w.id]=stamp}});
+  col.forEach(x=>{if(num(x.prev)&&num(x.price)){const d=x.price-x.prev;if(Math.abs(d)>=2&&Math.abs(d)/x.prev>=.15&&seen['o'+x.id]!==stamp){msgs.push(`${d>0?'📈':'📉'} ${x.name} ${d>0?'+':'−'}${money(Math.abs(d))}`);seen['o'+x.id]=stamp}}});
+  if(!msgs.length)return;LS.set('hvl-alerted',seen);
+  navigator.serviceWorker?.ready.then(reg=>reg.showNotification('HoloValue price alert',{body:msgs.slice(0,4).join('\n')+(msgs.length>4?`\n+${msgs.length-4} more`:''),icon:'icon-192.png',badge:'icon-192.png',tag:'price-alert',data:{url:location.href.split('#')[0]+'#wish'}})).catch(()=>{});
+}
 /* ---------- navigation ---------- */
 let view='home';
 function route(){
+  if(location.hash.startsWith('#s=')){if(!$('sharedView')&&!window._shOpen){window._shOpen=1;showShared(location.hash.slice(3)).finally(()=>{window._shOpen=0})}return}
   const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack','insights','game'].includes(h)?h:'home';view=v;
   document.querySelectorAll('.view').forEach(s=>s.hidden=s.id!=='v-'+v);
   document.querySelectorAll('.tabbar a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
@@ -1621,6 +1707,7 @@ $('tradeJump').onclick=()=>go('trade');
 $('hitAlert').onclick=()=>go('wish');
 document.querySelector('.port').style.cursor='pointer';document.querySelector('.port').onclick=()=>go('insights');
 $('colQ').oninput=renderAll;$('sortBy').onchange=renderAll;
+$('shareBinderBtn').onclick=shareBinder;
 $('video').addEventListener('click',e=>{if(!track)return;const r=$('video').getBoundingClientRect();const pt={x:(e.clientX-r.left)/r.width,y:(e.clientY-r.top)/r.height};
   track.applyConstraints({advanced:[{pointsOfInterest:[pt],focusMode:'single-shot'}]}).then(()=>setTimeout(()=>track?.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}),1500)).catch(()=>{});chip('Focusing…')});
 $('closeScan').onclick=closeScanner;
@@ -1639,9 +1726,9 @@ col.forEach(x=>{x.qty=x.qty||1});
 {const gb=LS.get('hvl-gbest',0);if(gb)$('gameBest').textContent=`Your best streak: ${gb}. Can you beat it?`}
 $('onbType').innerHTML=typePickerHTML();bindTypePicker($('onbType'));
 route();renderAll();
-tcgIndex().then(()=>{updatePrices();renderAll();renderRecap();loadMovers().then(renderMarket);setTimeout(autoLive,1500)});
+tcgIndex().then(()=>{updatePrices();renderAll();renderRecap();alertNow();syncWatch();loadMovers().then(renderMarket);setTimeout(autoLive,1500)});
 if(!LS.get('hvl-lastvisit',null))setTimeout(markVisit,3000);
-if('serviceWorker' in navigator&&location.protocol==='https:'){navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});let reloaded=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloaded)return;reloaded=true;if(!$('scanner').hidden||$('sheetHost').innerHTML)return;location.reload()})}
+if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){navigator.serviceWorker.register('sw.js').then(r=>r.update()).catch(()=>{});let reloaded=false;navigator.serviceWorker.addEventListener('controllerchange',()=>{if(reloaded)return;reloaded=true;if(!$('scanner').hidden||$('sheetHost').innerHTML)return;location.reload()})}
 }
 </script>
 </body>
