@@ -103,6 +103,43 @@ def movers(old_cards, new_cards, limit=40):
     return up, down
 
 
+def collect(base):
+    data = get(f"{base}/groups")
+    groups = (data or {}).get("results") or []
+    if not groups:
+        return [], {}, []
+
+    def products(gid):
+        time.sleep(0.05)
+        return (get(f"{base}/{gid}/products") or {}).get("results")
+
+    def prices(gid):
+        time.sleep(0.05)
+        return (get(f"{base}/{gid}/prices") or {}).get("results")
+
+    cards, sealed = build(groups, products, prices)
+    return groups, cards, sealed
+
+
+def build_japanese(stamp, today):
+    cats = (get("https://tcgcsv.com/tcgplayer/categories") or {}).get("results") or []
+    jp = next((c for c in cats if re.search(r"pok[eé]mon\s*japan", f"{c.get('name', '')} {c.get('displayName', '')}", re.I)), None)
+    if not jp:
+        print("no Pokemon Japan category found", file=sys.stderr)
+        return
+    groups, cards, sealed = collect(f"https://tcgcsv.com/tcgplayer/{jp['categoryId']}")
+    total = sum(len(v) for v in cards.values())
+    if total < 500:
+        print(f"only {total} japanese cards; not writing", file=sys.stderr)
+        return
+    sets = {g.get("name", ""): [g.get("groupId"), (g.get("publishedOn") or "")[:10], g.get("abbreviation") or ""] for g in groups}
+    sealed.sort(key=lambda x: x[3], reverse=True)
+    with open("prices_jp.json", "w", encoding="utf-8") as f:
+        json.dump({"updated": today, "source": stamp, "category": jp["categoryId"], "sets": sets, "sealed": sealed[:3000], "cards": cards},
+                  f, separators=(",", ":"), ensure_ascii=False)
+    print(f"wrote {total} japanese cards across {len(groups)} sets (category {jp['categoryId']})")
+
+
 def main(out_path):
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
     try:
@@ -117,24 +154,23 @@ def main(out_path):
             stamp = r.read().decode("utf-8").strip()[:40]
     except Exception as e:  # noqa: BLE001
         print(f"could not read tcgcsv last-updated: {e}", file=sys.stderr)
-    if stamp and previous and previous.get("source") == stamp:
+    jp_prev = None
+    try:
+        with open("prices_jp.json", encoding="utf-8") as f:
+            jp_prev = json.load(f)
+    except Exception:  # noqa: BLE001
+        pass
+    if stamp and previous and previous.get("source") == stamp and jp_prev and jp_prev.get("source") == stamp:
         print(f"tcgcsv data unchanged since {stamp}; nothing to do")
         return
-    data = get(f"{BASE}/groups")
-    groups = (data or {}).get("results") or []
+    try:
+        build_japanese(stamp, today)
+    except Exception as e:  # noqa: BLE001  (Japanese prices are a bonus; never block the English ones)
+        print(f"japanese build failed: {e}", file=sys.stderr)
+    groups, cards, sealed = collect(BASE)
     if not groups:
         print("no groups returned; keeping the existing prices.json", file=sys.stderr)
         sys.exit(1)
-
-    def products(gid):
-        time.sleep(0.05)
-        return (get(f"{BASE}/{gid}/products") or {}).get("results")
-
-    def prices(gid):
-        time.sleep(0.05)
-        return (get(f"{BASE}/{gid}/prices") or {}).get("results")
-
-    cards, sealed = build(groups, products, prices)
     total = sum(len(v) for v in cards.values())
     if total < 1000:
         print(f"only {total} cards found; refusing to overwrite", file=sys.stderr)
