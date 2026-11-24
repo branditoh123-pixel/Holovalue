@@ -84,6 +84,10 @@ h2 small{font-size:14px;font-weight:500;color:var(--soft)}
 .sbar{position:relative;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:calc(12px + env(safe-area-inset-top)) 16px 12px}
 .sbar button{background:#0008!important;color:#fff!important;border:0;min-width:48px;padding:0 14px}
 .sbar #rapidBtn[aria-pressed=true]{background:#ffd23f!important;color:#16141a!important}
+.vsugg{position:absolute;z-index:3;left:8px;right:8px;bottom:calc(214px + env(safe-area-inset-bottom));display:flex;gap:6px;align-items:stretch;background:#000a;border-radius:16px;padding:6px;overflow-x:auto}
+.vsugg .vs-l{color:#fff;font-size:12px;font-weight:700;align-self:center;padding:0 4px;flex:0 0 70px;line-height:1.2}
+.vsugg button{flex:1 1 0;min-width:0;min-height:56px;display:flex;align-items:center;gap:6px;background:#fffdf5!important;color:#16141a!important;border:0;border-radius:12px;padding:4px 8px 4px 4px;font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden}
+.vsugg button img{width:32px;border-radius:3px;flex:none}.vsugg button span{overflow:hidden;text-overflow:ellipsis}
 .found{position:absolute;z-index:3;left:12px;right:12px;top:calc(70px + env(safe-area-inset-top));display:flex;align-items:center;gap:12px;background:#fffdf5;color:#16141a;border-radius:16px;padding:8px 10px;box-shadow:0 10px 30px #0006}
 .found img{width:40px;border-radius:4px}.found div{flex:1;min-width:0;line-height:1.25}.found b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.found span{font-size:13px;color:#5b5547}
 .found button{min-height:40px;padding:0 12px;font-size:14px}
@@ -431,6 +435,7 @@ input[type=search]{width:100%}
   <div class="guide" id="guide"><span class="lineA">Fit the whole card in the frame</span><div class="beam"></div><div class="nb l"></div><div class="nb r"></div><span class="lineB">Card number goes in the yellow box</span></div>
   <div class="schip" id="schip">Starting camera…</div>
   <div class="sdbg" id="sdbg" aria-hidden="true"></div>
+  <div class="vsugg" id="vsugg" hidden></div>
   <div class="sbot">
     <label class="btn side" style="position:relative;overflow:hidden">Photo<input type="file" id="photo" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0"></label>
     <button class="shutter" id="shutter" aria-label="Scan now"></button>
@@ -680,6 +685,7 @@ let stream=null,track=null,loopOn=false,reading=false,torchOn=false;
 const chip=t=>{$('schip').textContent=t};
 async function openScanner(){
   $('scanner').hidden=false;document.body.style.overflow='hidden';chip('Starting camera…');
+  visAgree=[];visRecent=null;$('vsugg').hidden=true;if(!vis&&!visFail)loadVis().then(x=>{if(x)dbg('Picture recognition ready')});
   getWorker().catch(e=>chip(e.message));
   if(!navigator.mediaDevices?.getUserMedia){chip('This browser can’t open the live camera. Tap Photo to take a picture instead.');return}
   try{
@@ -725,11 +731,86 @@ function renderSession(){
   $('sess').hidden=!rapid||!session.length;$('sess').textContent=`${session.length} scanned · ${money(t)} · Done`;
 }
 function setRapid(on){rapid=on;LS.set('hvl-rapid',on);$('rapidBtn').textContent=on?'Rapid: On':'Rapid: Off';$('rapidBtn').setAttribute('aria-pressed',on);renderSession()}
+function handleFound(cards,key,manual){
+  if(!manual&&rapid&&key===lastAddedKey)return;
+  $('scanner').classList.add('found');navigator.vibrate?.(60);
+  if(cards.length===1&&typeof logScan==='function')logScan(cards[0]);
+  if(rapid&&cards.length===1){rapidAdd(cards[0],key);visAgree=[];setTimeout(()=>$('scanner').classList.remove('found'),600);return}
+  closeScanner();
+  if(cards.length===1)openCard(cards[0]);else showChoices(cards,`Which card is ${key}?`);
+}
+
+/* ---------- picture recognition (matches the whole card against ~25,000 card images) ---------- */
+const ORT_VER='1.20.1';
+let vis=null,visP=null,visRecent=null,visAgree=[],visFail=false;
+function loadVis(){
+  if(vis)return Promise.resolve(vis);if(visP)return visP;
+  visP=(async()=>{
+    const meta=await fetch('vis/meta.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null);
+    if(!meta||!meta.n)return null;
+    if(!window.ort)await new Promise((res,rej)=>{const sc=document.createElement('script');sc.src=`https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VER}/dist/ort.min.js`;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc)});
+    ort.env.wasm.wasmPaths=`https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VER}/dist/`;ort.env.wasm.numThreads=1;
+    const [sess,pca,emb]=await Promise.all([
+      ort.InferenceSession.create('vis/model.onnx',{executionProviders:['wasm'],graphOptimizationLevel:'all'}),
+      fetch('vis/pca.bin').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}),fetch('vis/emb.bin').then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})]);
+    const F=576,D=meta.d,pf=new Float32Array(pca);
+    await tcgIndex();const pidMap=new Map();if(tcgIdx)for(const [k,rows] of Object.entries(tcgIdx.cards))for(const r of rows)pidMap.set(+r[2],[k,r]);
+    vis={meta,sess,F,D,mean:pf.subarray(0,F),comps:pf.subarray(F,F+F*D),emb:new Int8Array(emb),pidMap,cv:Object.assign(document.createElement('canvas'),{width:meta.size||224,height:meta.size||224})};
+    return vis;
+  })().catch(e=>{console.warn('picture recognition unavailable',e);visFail=true;visP=null;return null});
+  return visP;
+}
+async function visEmbed(src,rect){
+  const {F,D,mean,comps,cv,meta}=vis,S=cv.width,x=cv.getContext('2d',{willReadFrequently:true});
+  x.drawImage(src,rect.x,rect.y,rect.w,rect.h,0,0,S,S);
+  const d=x.getImageData(0,0,S,S).data,N=S*S,t=new Float32Array(3*N),m=meta.mean,sd=meta.std;
+  for(let i=0,j=0;i<d.length;i+=4,j++){t[j]=(d[i]/255-m[0])/sd[0];t[N+j]=(d[i+1]/255-m[1])/sd[1];t[2*N+j]=(d[i+2]/255-m[2])/sd[2]}
+  const out=await vis.sess.run({input:new ort.Tensor('float32',t,[1,3,S,S])});
+  const f=(out.feat||out[vis.sess.outputNames[0]]).data;
+  let n=0;for(let i=0;i<F;i++)n+=f[i]*f[i];n=Math.sqrt(n)||1;
+  const e=new Float32Array(D);
+  for(let i=0;i<F;i++){const v=f[i]/n-mean[i],row=i*D;for(let k=0;k<D;k++)e[k]+=v*comps[row+k]}
+  let en=0;for(let k=0;k<D;k++)en+=e[k]*e[k];en=Math.sqrt(en)||1;for(let k=0;k<D;k++)e[k]/=en;
+  return e;
+}
+function visSearch(e,k=5){
+  const {emb,D,meta}=vis,n=meta.n,best=[];
+  for(let i=0;i<n;i++){let s=0;const o=i*D;for(let j=0;j<D;j++)s+=e[j]*emb[o+j];s/=127;
+    if(best.length<k||s>best[best.length-1][1]){best.push([i,s]);best.sort((a,b)=>b[1]-a[1]);if(best.length>k)best.pop()}}
+  return best.map(([i,s])=>{const pid=meta.pids[i],hit=vis.pidMap.get(+pid);if(!hit)return null;const [key,r]=hit,[nn,tt]=key.split('/');return{pid,score:s,key,card:cardFromRow(r,nn,tt)}}).filter(Boolean);
+}
+function showSuggestions(top){
+  const el=$('vsugg');if(!top.length){el.hidden=true;return}
+  el.hidden=false;
+  el.innerHTML=`<span class="vs-l">Is it one of these? Tap it</span>`+top.slice(0,3).map((m,i)=>`<button data-i="${i}">${okUrl(m.card.images?.small)?`<img src="${esc(m.card.images.small)}" alt="">`:''}<span>${esc(m.card.name)}</span></button>`).join('');
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{const m=top[+b.dataset.i];m.card&&cache.set(m.card.id,m.card);handleFound([m.card],m.key,true)});
+}
+async function visOnce(){
+  const v=$('video'),r=guideRect();if(!r||reading)return;reading=true;
+  try{
+    const t0=performance.now(),e=await visEmbed(v,r),top=visSearch(e,5),ms=Math.round(performance.now()-t0);
+    if(!loopOn||!top.length)return;
+    visRecent={t:Date.now(),top};
+    dbg(`picture: ${top[0].card.name} ${(top[0].score*100).toFixed(0)}% · ${ms}ms`);
+    visAgree.push(top[0].pid);if(visAgree.length>4)visAgree.shift();
+    const same=visAgree.filter(p=>p===top[0].pid).length,margin=top[0].score-(top[1]?.score??0);
+    showSuggestions(top);
+    // auto-accept when the same card wins 3 of the last 4 looks with a clear lead
+    if(same>=3&&margin>=.03&&top[0].score>=.5){
+      if(rapid&&top[0].key===lastAddedKey){chip('Got it! Swap in the next card…');return}
+      const dup=top.filter(m=>m.card.name===top[0].card.name&&m.key===top[0].key);
+      handleFound(dup.length>1?dup.map(m=>m.card):[top[0].card],top[0].key,false);
+    }else if(same<=1&&visAgree.length>=4){emptyFrames++;if(emptyFrames>=3)lastAddedKey=''}
+  }catch(e){console.warn(e)}
+  finally{reading=false}
+}
 async function loop(){
+  let i=0;
   while(loopOn){
     await new Promise(r=>setTimeout(r,16));
     if(!loopOn||reading)continue;
-    await scanOnce(false);
+    if(vis&&i%2===0)await visOnce();else await scanOnce(false);
+    i++;
   }
 }
 async function scanOnce(manual){
@@ -756,16 +837,14 @@ async function scanOnce(manual){
     if(key!==lastAddedKey&&lastAddedKey&&!manual)lastAddedKey='';
     if(!manual&&rapid&&key===lastAddedKey){chip('Got it! Swap in the next card…');return} // same card still in view
     chip(`Read ${key} · checking…`);
+    // if the picture recogniser recently saw a card with this number, trust that match
+    if(visRecent&&Date.now()-visRecent.t<2000){const hit=visRecent.top.find(m=>m.key===key);if(hit){handleFound([hit.card],key,manual);return}}
     let cards=await lookup(number.n,number.tot);
     if(!loopOn&&!manual)return;
     if(!cards.length){chip(manual?`No card found for ${key}. Hold steadier or tap Type.`:'Looking for the card number…');return}
     if(cards.length>1){chip(`Read ${key} · checking the set…`);cards=await narrowBySetCode(cards,v,r)}
     if(cards.length>1){chip(`Read ${key} · checking the name…`);try{cards=pickByName(cards,await readName(v,r))}catch(e){}}
-    $('scanner').classList.add('found');navigator.vibrate?.(60);
-    if(cards.length===1&&typeof logScan==='function')logScan(cards[0]);
-    if(rapid&&cards.length===1){rapidAdd(cards[0],key);setTimeout(()=>$('scanner').classList.remove('found'),600);return}
-    closeScanner();
-    if(cards.length===1)openCard(cards[0]);else showChoices(cards,`Which card is ${key}?`);
+    handleFound(cards,key,manual);
   }catch(e){chip((e.message||'Something went wrong.')+' Retrying in a few seconds…');await new Promise(r=>setTimeout(r,manual?0:5000))}
   finally{reading=false}
 }
