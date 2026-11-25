@@ -132,6 +132,8 @@ html[data-type=grass]{--bg:light-dark(#86d98f,#101a12)}
 html[data-type=psychic]{--bg:light-dark(#c9a4ff,#17121f)}
 body::before{content:"";position:fixed;inset:0;z-index:-1;background-image:var(--pat,none),radial-gradient(120% 70% at 50% -10%,#ffffff55,transparent 60%);background-size:230px 230px,100% 100%;pointer-events:none}
 @media(prefers-color-scheme:dark){body::before{background-image:var(--patd,none),radial-gradient(120% 70% at 50% -10%,var(--glow,#ffd23f22),transparent 60%)}}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+:root[data-theme=light] body::before{background-image:var(--pat,none),radial-gradient(120% 70% at 50% -10%,#ffffff55,transparent 60%)!important}
 :root[data-theme=dark] body::before{background-image:var(--patd,none),radial-gradient(120% 70% at 50% -10%,var(--glow,#ffd23f22),transparent 60%)}
 .typepick{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:10px}
 .typepick button{min-height:64px;border-radius:16px;flex-direction:column;gap:4px;font-size:12px;padding:6px 2px;border:3px solid transparent;color:#16141a!important}
@@ -227,7 +229,7 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .shopl{padding-left:22px;margin:10px 0;max-height:46vh;overflow:auto}.shopl li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line);opacity:.55}
 .shopl li.in{opacity:1}.shopl li.in b{color:var(--green)}.shopl a{color:inherit}.shopl small{color:var(--soft)}.mvl li+li{margin-top:6px}
 .mvr{width:100%;justify-content:space-between;text-align:left;border-radius:14px!important;min-height:52px;white-space:normal}
-.mvr small{display:block;font-weight:400;color:var(--soft);font-size:12px}.mvr b{text-align:right;white-space:nowrap;flex:none}.mvr>span{min-width:0}
+.mvr small{display:block;font-weight:400;color:var(--soft);font-size:12px}.mvr>b{text-align:right;white-space:nowrap;flex:none}.mvr>span{min-width:0;flex:1}.mvr>span>b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.mvr>span small{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .hchart{position:relative;margin-top:8px}.hchart svg{display:block;width:100%;height:auto;touch-action:pan-y}
 .hchart .tip{position:absolute;top:0;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px;pointer-events:none;white-space:nowrap}
 .hstats{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:13px}.hstats b{font-size:15px}
@@ -363,6 +365,7 @@ input[type=search]{width:100%}
       <div class="port-c" id="count">0 cards</div>
       <div class="port-c" id="gainLine" hidden></div>
       <svg class="spark" id="spark" viewBox="0 0 300 64" preserveAspectRatio="none" aria-hidden="true"></svg>
+      <div class="port-c" id="sparkLbl" style="font-size:12px;opacity:.75;margin-top:-4px"></div>
       <div class="port-s"><div><b id="stUnique">0</b><span>unique</span></div><div><b id="stTop">—</b><span>top card</span></div><div><b id="stAvg">—</b><span>avg card</span></div></div>
     </section>
     <button class="alert" id="hitAlert" hidden></button>
@@ -1234,6 +1237,7 @@ function ownedTile(x){
 }
 function renderCol(){renderAll()}
 const pctTxt=p=>(p>=0?'+':'−')+(Math.abs(p)<10?Math.abs(p).toFixed(1):Math.round(Math.abs(p)).toLocaleString())+'%';
+const moneyShort=v=>!num(v)?'—':v>=1e6?'$'+(v/1e6).toFixed(1)+'M':v>=1e4?'$'+(v/1e3).toFixed(v>=1e5?0:1)+'k':money(v);
 function renderAll(){
   const tot=col.reduce((a,x)=>a+itemVal(x),0),n=col.reduce((a,x)=>a+x.qty,0);
   countUp(tot);
@@ -1258,7 +1262,7 @@ function renderAll(){
   $('recentSec').hidden=col.length<2;$('recentRow').innerHTML=[...col].sort((a,b)=>b.t-a.t).slice(0,10).map(ownedTile).join('');
   const mv=col.filter(x=>delta(x)).sort((a,b)=>Math.abs(delta(b)*b.qty)-Math.abs(delta(a)*a.qty));
   $('moverSec').hidden=!mv.length;$('moverRow').innerHTML=mv.slice(0,10).map(ownedTile).join('');
-  $('stUnique').textContent=col.length;$('stTop').textContent=top[0]?money(top[0].price):'—';$('stAvg').textContent=n?money(tot/n):'—';
+  $('stUnique').textContent=col.length;$('stTop').textContent=top[0]?moneyShort(unitVal(top[0])):'—';$('stAvg').textContent=n?moneyShort(tot/n):'—';
   $('topNote').textContent=top[0]?top[0].name:'';
   const hits=wish.filter(w=>num(w.target)&&num(w.price)&&w.price<=w.target);
   $('hitAlert').hidden=!hits.length;$('hitAlert').textContent=hits.length?`🎯 ${hits.length} wishlist card${hits.length===1?' is':'s are'} at or below your target price. Tap to see.`:'';
@@ -1289,8 +1293,13 @@ function renderAll(){
   if(view==='sets'&&!$('setDetail').hidden&&curSet)renderSetDetail(curSet);else if(view==='sets')renderSets();
   if(typeof renderScans==='function'){renderScans();renderCotd();checkAch()}
 }
+let homeHistTried=false;
 function drawSpark(h){
-  const pts=Object.keys(h).sort().map(k=>h[k]),sv=$('spark');
+  const sv=$('spark');let label='';
+  const hd=colHistData&&colHistData.sig.startsWith(colSig()+'|')?colHistData:null;
+  if(hd){const cut=new Date(Date.now()-91*864e5).toISOString().slice(0,10);const ks=Object.keys(hd.byDate).filter(k=>k>=cut).sort();if(ks.length>=3){h={};ks.forEach(k=>h[k]=hd.byDate[k]);const a=h[ks[0]],z=h[ks[ks.length-1]];if(a>0)label=`3 months · ${pctTxt((z-a)/a*100)}`}}
+  else if(col.length&&col.length<=800&&!homeHistTried){homeHistTried=true;setTimeout(()=>colHistory(16).catch(()=>{}),1500)}
+  const pts=Object.keys(h).sort().map(k=>h[k]);$('sparkLbl').textContent=label;
   if(pts.length<2){sv.innerHTML=col.length?'<line x1="0" y1="40" x2="300" y2="40" stroke="currentColor" stroke-opacity=".35" stroke-width="2" stroke-dasharray="4 6"/><text x="0" y="60" font-size="11" fill="currentColor" fill-opacity=".6">Your value trend starts today</text>':'';return}
   const lo=Math.min(...pts),hi=Math.max(...pts),rg=hi-lo||1,X=i=>i*300/(pts.length-1),Y=v=>6+(1-(v-lo)/rg)*50;
   const d=pts.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(''),up=pts[pts.length-1]>=pts[0];
@@ -1547,6 +1556,7 @@ function openSettings(){
   <div class="row" style="margin-top:8px"><label class="btn" style="position:relative;overflow:hidden">Choose CSV file<input type="file" id="csvIn" accept=".csv,text/csv,text/plain" style="position:absolute;inset:0;opacity:0"></label></div></div>
   <div class="sec"><b>Price alerts</b><p class="meta">Get a notification when a wishlist card hits your target price, or one of your cards jumps or drops 15% or more.</p>
   <div class="row" style="margin-top:8px"><button id="alertBtn">${LS.get('hvl-alerts',false)?'Turn alerts off':'Turn on price alerts'}</button></div>${LS.get('hvl-alerts',false)?`<p class="meta">${LS.get('hvl-bgalerts',false)?'On, including while the app is closed.':'On while you use the app. Install the app (⋮ → Install app) to get them while it’s closed.'}</p>`:''}</div>
+  <div class="sec"><b>Appearance</b><div class="seg" role="group" aria-label="Appearance" id="themeSeg" style="margin-top:8px">${[['auto','Auto'],['light','☀️ Light'],['dark','🌙 Dark']].map(([k,l])=>`<button data-th="${k}" aria-pressed="${LS.get('hvl-theme','auto')===k}">${l}</button>`).join('')}</div><p class="meta" style="font-size:13px">Auto follows your phone’s setting.</p></div>
   <div class="sec"><b>Background theme</b><p class="meta">Pick your favorite type.</p>${typePickerHTML()}</div>
   <div class="sec"><b>${n} cards · ${wish.length} on wishlist · ${packs.length} pack openings</b>
   <div class="row" style="margin-top:12px"><button id="bkSave">Save backup file</button><label class="btn ghost" style="position:relative;overflow:hidden">Restore backup<input type="file" id="bkLoad" accept="application/json,.json" style="position:absolute;inset:0;opacity:0"></label></div></div>
@@ -1669,8 +1679,8 @@ function renderInsights(){
   const tot=col.reduce((a,x)=>a+itemVal(x),0),n=col.reduce((a,x)=>a+x.qty,0);
   $('insSub').textContent=`${n} cards · ${money(tot)} · condition-adjusted`;
   // chart
-  let h=LS.get('hvl-hist',{});const ch0=colHistData&&colHistData.sig===colSig()?colHistData:null;
-  if(ch0)h=ch0.byDate;else colHistory().then(d=>{if(d&&view==='insights')renderInsights()});
+  let h=LS.get('hvl-hist',{});const ch0=colHistData&&colHistData.sig===colSig()+'|40'?colHistData:null;
+  if(ch0)h=ch0.byDate;else colHistory(40).then(d=>{if(d&&view==='insights')renderInsights()});
   let keys=Object.keys(h).sort();
   if(insRange){const cut=new Date(Date.now()-insRange*864e5).toISOString().slice(0,10);keys=keys.filter(k=>k>=cut)}
   $('colMovers').innerHTML=ch0?moversHTML(ch0):'';
@@ -1745,6 +1755,9 @@ function applyType(t){
   LS.set('hvl-type',t);
 }
 applyType(LS.get('hvl-type','electric'));
+function applyTheme(m){const r=document.documentElement;if(m==='light'||m==='dark')r.dataset.theme=m;else delete r.dataset.theme;LS.set('hvl-theme',m)}
+applyTheme(LS.get('hvl-theme','auto'));
+document.addEventListener('click',e=>{const b=e.target.closest('#themeSeg [data-th]');if(!b)return;applyTheme(b.dataset.th);document.querySelectorAll('#themeSeg [data-th]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
 function typePickerHTML(){const cur=LS.get('hvl-type','electric');return `<div class="typepick">${Object.entries(TYPES).map(([k,T])=>`<button data-type="${k}" aria-pressed="${k===cur}" style="background:${T.sw}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[T.icon]}" ${T.icon==='leaf'||T.icon==='swirl'?'fill="none" stroke="#16141a" stroke-width="2.2" stroke-linecap="round"':'fill="#16141a"'}/></svg>${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>`}
 function bindTypePicker(root){root.querySelectorAll('[data-type]').forEach(b=>b.onclick=()=>{applyType(b.dataset.type);root.querySelectorAll('[data-type]').forEach(x=>x.setAttribute('aria-pressed',x===b));toast(`${b.textContent.trim()} theme on.`)})}
 
@@ -2282,13 +2295,13 @@ $('dupeTrade').onclick=()=>{let n=0;col.filter(x=>x.qty>1).forEach(x=>{for(let i
 /* ---------- collection value over the past year (from price history) ---------- */
 let colHistData=null,colHistBusy=null;
 const colSig=()=>(histMeta&&histMeta.then?'':'')+col.map(x=>x.id+'*'+x.qty+(x.v||'')+(x.cond||'')+(x.gval||'')).join(',');
-async function colHistory(){
-  const sig=colSig();if(colHistData&&colHistData.sig===sig)return colHistData;if(colHistBusy)return colHistBusy;
+async function colHistory(maxS=40){
+  const sig=colSig()+'|'+maxS;if(colHistData&&colHistData.sig===sig)return colHistData;if(colHistBusy)return colHistBusy;
   colHistBusy=(async()=>{
     const m=await histMetaP();if(!m||!col.length)return null;
     const items=col.map(x=>({x,val:itemVal(x),pid:pidOf(x.id)||+x.pid||0,graded:isGraded(x)&&num(x.gval)})).filter(i=>i.val>0).sort((a,b)=>b.val-a.val);
     const total=items.reduce((a,i)=>a+i.val,0),need=new Set();let cum=0;
-    for(const i of items){if(!i.pid||i.graded)continue;const k=i.pid%64;if(!need.has(k)&&(need.size>=40||cum>=total*.97))continue;need.add(k);cum+=i.val}
+    for(const i of items){if(!i.pid||i.graded)continue;const k=i.pid%64;if(!need.has(k)&&(need.size>=maxS||cum>=total*.97))continue;need.add(k);cum+=i.val}
     await Promise.all([...need].map(k=>{if(!histShards.has(k))histShards.set(k,fetch(`history/h${k}.json?d=${m.today}`).then(r=>r.ok?r.json():{}).catch(()=>({})));return histShards.get(k)}));
     const sh={};for(const k of need)sh[k]=await histShards.get(k);
     const days=m.dates,ep=new Date(m.epoch+'T00:00:00Z').getTime(),tot=new Array(days.length).fill(0),mv=[];
@@ -2301,7 +2314,7 @@ async function colHistory(){
       if(p30)mv.push({x:i.x,val:i.val,chg:i.val-i.val*p30/last,pct:(last-p30)/p30*100});
     }
     tot[tot.length-1]=total;const byDate={};days.forEach((d,j)=>{byDate[new Date(ep+d*864e5).toISOString().slice(0,10)]=Math.round(tot[j]*100)/100});
-    colHistData={sig,byDate,movers:mv};if(view==='col')renderAll();return colHistData;
+    colHistData={sig,byDate,movers:mv};if(view==='col'||view==='home')renderAll();return colHistData;
   })().finally(()=>{colHistBusy=null});
   return colHistBusy;
 }
@@ -2602,7 +2615,7 @@ let bulk=(()=>{try{const b=JSON.parse(localStorage.getItem('hvl-bulk'));if(Array
 function renderBulk(){
   const tot=bulk.reduce((a,[n,r])=>a+(+n||0)*(+r||0),0),cnt=bulk.reduce((a,[n])=>a+(+n||0),0);
   $('bulkCalc').innerHTML=`<div class="bulkg"><b>Type</b><b>How many</b><b>$ each</b>${BULKDEF.map((d,i)=>`<span>${d[0]}${d[3]?`<small class="meta" style="display:block;font-size:12px">${d[3]}</small>`:''}</span><input type="number" inputmode="numeric" min="0" data-i="${i}" data-f="0" value="${bulk[i][0]||''}" placeholder="0"><input type="number" inputmode="decimal" min="0" step="0.001" data-i="${i}" data-f="1" value="${bulk[i][1]}">`).join('')}</div>
-  <div class="big" style="margin-top:12px" id="bulkTot">${money(tot)}</div><p class="meta" id="bulkCnt">for ${cnt.toLocaleString()} cards at buylist prices. Check that cards are really bulk before selling: some commons and uncommons are worth dollars.</p>
+  <div style="margin-top:12px;font-size:32px;font-weight:800" id="bulkTot">${money(tot)}</div><p class="meta" id="bulkCnt">for ${cnt.toLocaleString()} cards at buylist prices. Check that cards are really bulk before selling: some commons and uncommons are worth dollars.</p>
   <div class="row"><button class="ghost" id="bulkReset">Reset counts</button></div>`;
   $('bulkCalc').querySelectorAll('input').forEach(x=>x.oninput=()=>{bulk[+x.dataset.i][+x.dataset.f]=+x.value||0;try{localStorage.setItem('hvl-bulk',JSON.stringify(bulk))}catch(e){}
     const t=bulk.reduce((a,[n,r])=>a+n*r,0),c=bulk.reduce((a,[n])=>a+n,0);$('bulkTot').textContent=money(t);$('bulkCnt').firstChild.textContent=`for ${c.toLocaleString()} cards at buylist prices. Check that cards are really bulk before selling: some commons and uncommons are worth dollars.`});
