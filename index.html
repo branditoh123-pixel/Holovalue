@@ -201,6 +201,10 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .tile .own{position:absolute;top:12px;right:12px;background:#1d7a3c;color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .hit{position:absolute;top:12px;right:12px;background:#e5383b;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .mv{display:block;font-size:13px;font-weight:700}
+.hchart{position:relative;margin-top:8px}.hchart svg{display:block;width:100%;height:auto;touch-action:pan-y}
+.hchart .tip{position:absolute;top:0;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px;pointer-events:none;white-space:nowrap}
+.hstats{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:13px}.hstats b{font-size:15px}
+.seg.sm button{min-height:34px;padding:0 12px;font-size:13px}
 .fakecmp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .fakecmp figure{margin:0;text-align:center}.fakecmp img,.fakecmp .ph{width:100%;aspect-ratio:63/88;object-fit:contain;border-radius:10px;background:#0002;display:block}
 .fakecmp figcaption{font-size:13px;font-weight:700;margin-top:4px}
@@ -1506,9 +1510,11 @@ function sheetExtras(c){
   let html='';
   if(g)html+=`<div class="row" style="margin-top:10px"><button class="ghost" id="viewSet">See the ${esc(String(g).replace(/^[A-Za-z0-9.]+:\s*/,''))} set</button></div>`;
   if(others.length){others.forEach(o=>cache.set(o.id,o));html+=`<div class="sec" id="otherSec"><b>Other versions of ${esc(c.name.replace(/\s*\(.*$/,''))}</b><div class="hrow" style="margin-top:10px">${others.map(o=>tile(o)).join('')}</div></div>`}
+  html+='<div class="sec" id="histSec" hidden></div>';
   html+=oddsHTML(c,g);
   html+=`<div class="row" style="margin-top:10px"><button class="ghost" id="fakeFromCard">🛡️ Real or fake? Compare with the real card</button></div>`;
   sh.insertAdjacentHTML('beforeend',html);
+  histFill(c);
   $('fakeFromCard').onclick=()=>{closeSheet();fakeCard=c;fakeAns={};fakeAuto=null;fakeImg=null;fakePhoto='';go('fake')};
   if(g)$('viewSet').onclick=()=>{closeSheet();curSet=g;setFilter='all';go('sets');setTimeout(()=>renderSetDetail(g),0)};
   sh.querySelectorAll('#otherSec .tile[data-id]').forEach(b=>b.onclick=()=>{const x=cache.get(b.dataset.id);if(x){openCard(x);document.querySelector('.sheet')?.scrollTo(0,0)}});
@@ -2060,6 +2066,55 @@ $('centerJump').onclick=()=>go('center');
 /* ---------- duplicates → trade ---------- */
 $('dupeTrade').onclick=()=>{let n=0;col.filter(x=>x.qty>1).forEach(x=>{for(let i=1;i<x.qty;i++){trade.give.push({id:x.id,name:x.name,set:x.set,num:x.num,img:x.img,price:num(x.price)?unitVal(x):x.price});n++}});saveTrade();toast(`Added ${n} extra card${n===1?'':'s'} to Trade check.`);go('trade')};
 
+
+/* ---------- price history ---------- */
+let histMeta=null,histShards=new Map(),histRange=LS.get('hvl-hrange','3M');
+function histMetaP(){if(!histMeta)histMeta=fetch('history/meta.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null).then(m=>{if(!m)histMeta=null;return m});return histMeta}
+async function histFor(pid){
+  const m=await histMetaP();if(!m||!pid)return null;const k=pid%64;
+  if(!histShards.has(k))histShards.set(k,fetch(`history/h${k}.json?d=${m.today}`).then(r=>r.ok?r.json():{}).catch(()=>({})));
+  const sh=await histShards.get(k);const sr=sh[String(pid)];if(!sr||sr.length<3)return null;
+  const ep=new Date(m.epoch+'T00:00:00Z');return{sub:sr[0],pts:sr.slice(1).map(([d,p])=>({t:new Date(ep.getTime()+d*864e5),p}))};
+}
+const fmtD=(t,y)=>t.toLocaleDateString('en-US',{month:'short',day:'numeric',...(y?{year:'numeric'}:{}),timeZone:'UTC'});
+function pidForCard(c){const p=pidOf(c.id);if(p)return p;if(c._sealed)return 0;const rows=tcgRows(c.number,c.set?.printedTotal);const r=tcgBest(rows,c.name);return r?+r[2]:0}
+function chg(pts,days){const last=pts[pts.length-1],cut=last.t.getTime()-days*864e5;let base=null;for(const x of pts)if(x.t.getTime()<=cut+864e5*2)base=x;if(!base||base===last||!base.p)return null;return{pct:(last.p-base.p)/base.p*100,abs:last.p-base.p}}
+async function histFill(c){
+  const el=document.querySelector('.sheet #histSec');if(!el)return;
+  const h=await histFor(pidForCard(c));const el2=document.querySelector('.sheet #histSec');if(!h||!el2||document.querySelector('.sheet')?.dataset.card!==c.id)return;
+  el2.hidden=false;
+  const R={'1M':31,'3M':92,'6M':183,'1Y':366},span=(h.pts[h.pts.length-1].t-h.pts[0].t)/864e5;
+  const avail=Object.keys(R).filter((k,i)=>i===0||span>R[Object.keys(R)[i-1]]+3);if(!avail.includes(histRange))histRange=avail[avail.length-1];
+  const draw=()=>{
+    const last=h.pts[h.pts.length-1],cut=last.t.getTime()-R[histRange]*864e5,pts=h.pts.filter(x=>x.t.getTime()>=cut);
+    const W=340,H=150,pl=44,pr=8,pt=22,pb=22,lo=Math.min(...pts.map(x=>x.p)),hi=Math.max(...pts.map(x=>x.p)),pad=(hi-lo)*.12||hi*.05||1;
+    const y0=Math.max(0,lo-pad),y1=hi+pad,t0=pts[0].t.getTime(),t1=last.t.getTime()||t0+1;
+    const X=t=>pl+(W-pl-pr)*((t.getTime()-t0)/((t1-t0)||1)),Y=p=>pt+(H-pt-pb)*(1-(p-y0)/((y1-y0)||1));
+    const line=pts.map((x,i)=>`${i?'L':'M'}${X(x.t).toFixed(1)},${Y(x.p).toFixed(1)}`).join('');
+    const ticks=[y0+(y1-y0)*.15,(y0+y1)/2,y1-(y1-y0)*.15];const short=v=>v>=1000?'$'+(v/1000).toFixed(v>=1e4?0:1)+'k':v>=100?'$'+Math.round(v):'$'+v.toFixed(v<10?2:0);
+    const c1=chg(pts,R[histRange]+400)||{pct:(last.p-pts[0].p)/pts[0].p*100,abs:last.p-pts[0].p};
+    const up=c1.abs>=0;const stat=(lbl,d)=>{const x=chg(h.pts,d);return x?`<span>${lbl} <b class="${x.abs>=0?'up':'down'}">${x.abs>=0?'▲':'▼'} ${Math.abs(x.pct).toFixed(x.pct&&Math.abs(x.pct)<10?1:0)}%</b></span>`:''};
+    el2.innerHTML=`<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b>📈 Price history</b><div class="seg sm" role="group" aria-label="Time range">${avail.map(k=>`<button data-r="${k}" aria-pressed="${k===histRange}">${k}</button>`).join('')}</div></div>
+    <div class="hstats">${stat('7 days',7)}${stat('30 days',30)}${stat('3 months',91)}${stat('1 year',365)}</div>
+    <div class="hchart"><div class="tip" hidden></div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(c.name)} price over ${histRange}: from ${money(pts[0].p)} to ${money(last.p)}">
+    ${ticks.map(v=>`<line x1="${pl}" x2="${W-pr}" y1="${Y(v).toFixed(1)}" y2="${Y(v).toFixed(1)}" stroke="var(--line)" stroke-width="1"/><text x="${pl-6}" y="${(Y(v)+4).toFixed(1)}" text-anchor="end" font-size="10" fill="var(--soft)">${short(v)}</text>`).join('')}
+    <path d="${line}L${X(last.t).toFixed(1)},${H-pb}L${pl},${H-pb}Z" fill="var(--ink)" opacity=".07"/>
+    <path d="${line}" fill="none" stroke="var(--ink)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${X(last.t).toFixed(1)}" cy="${Y(last.p).toFixed(1)}" r="4" fill="var(--ink)" stroke="var(--paper)" stroke-width="2"/>
+    <text x="${pl}" y="${H-6}" font-size="10" fill="var(--soft)">${fmtD(pts[0].t,histRange==='1Y')}</text><text x="${W-pr}" y="${H-6}" font-size="10" fill="var(--soft)" text-anchor="end">${fmtD(last.t)}</text>
+    <g class="hx" style="display:none"><line y1="${pt-6}" y2="${H-pb}" stroke="var(--soft)" stroke-width="1"/><circle r="5" fill="var(--ink)" stroke="var(--paper)" stroke-width="2"/></g>
+    <rect x="${pl}" y="0" width="${W-pl-pr}" height="${H}" fill="transparent" class="hhit"/></svg></div>
+    <p class="meta" style="font-size:12px;margin:4px 0 0">${esc(vName(SUBMAP[h.sub]||h.sub.toLowerCase()))} · TCGplayer market price · ${up?'up':'down'} ${money(Math.abs(c1.abs))} over ${histRange==='1M'?'the last month':histRange==='1Y'?'the last year':'the last '+histRange.replace('M',' months')}</p>`;
+    el2.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{histRange=b.dataset.r;try{localStorage.setItem('hvl-hrange',JSON.stringify(histRange))}catch(e){}draw()});
+    const svg=el2.querySelector('svg'),hx=svg.querySelector('.hx'),tip=el2.querySelector('.tip'),hit=svg.querySelector('.hhit');
+    const show=e=>{const r=svg.getBoundingClientRect(),cx=((e.touches?e.touches[0].clientX:e.clientX)-r.left)/r.width*W;let best=pts[0],bd=1e9;for(const x of pts){const d=Math.abs(X(x.t)-cx);if(d<bd){bd=d;best=x}}
+      const px=X(best.t),py=Y(best.p);hx.style.display='';hx.querySelector('line').setAttribute('x1',px);hx.querySelector('line').setAttribute('x2',px);hx.querySelector('circle').setAttribute('cx',px);hx.querySelector('circle').setAttribute('cy',py);
+      tip.hidden=false;tip.textContent=`${fmtD(best.t,true)} · ${money(best.p)}`;tip.style.left=Math.min(78,Math.max(22,px/W*100))+'%'};
+    const hide=()=>{hx.style.display='none';tip.hidden=true};
+    hit.addEventListener('pointermove',show);hit.addEventListener('pointerdown',show);hit.addEventListener('pointerleave',hide);hit.addEventListener('touchmove',show,{passive:true});hit.addEventListener('touchend',()=>setTimeout(hide,1500));
+  };
+  draw();
+}
 /* ---------- chase it or buy it? (pull odds) ---------- */
 function oddsHTML(c,g){
   if(!g||c._sealed||c._jp)return'';const set=buildSets()?.find(x=>x.name===g);if(!set)return'';
