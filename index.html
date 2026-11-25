@@ -749,8 +749,10 @@ function renderSession(){
   $('sess').hidden=!rapid||!session.length;$('sess').textContent=`${session.length} scanned · ${money(t)} · Done`;
 }
 function setRapid(on){rapid=on;LS.set('hvl-rapid',on);$('rapidBtn').textContent=on?'Rapid: On':'Rapid: Off';$('rapidBtn').setAttribute('aria-pressed',on);renderSession()}
+let lastAlts=[];
 function handleFound(cards,key,manual){
   if(!manual&&rapid&&key===lastAddedKey)return;
+  lastAlts=(visRecent&&Date.now()-visRecent.t<3000?visRecent.top:[]).filter(m=>!cards.some(c=>c.id===m.card.id)).slice(0,6);lastAltsFor=cards[0]?.id||'';
   $('scanner').classList.add('found');navigator.vibrate?.(60);
   if(cards.length===1&&typeof logScan==='function')logScan(cards[0]);
   if(rapid&&cards.length===1){rapidAdd(cards[0],key);visAgree=[];setTimeout(()=>$('scanner').classList.remove('found'),600);return}
@@ -760,7 +762,26 @@ function handleFound(cards,key,manual){
 
 /* ---------- picture recognition (matches the whole card against ~25,000 card images) ---------- */
 const ORT_VER='1.20.1';
-let vis=null,visP=null,visRecent=null,visAgree=[],visFail=false,lastNumKey='',lastNumAt=0;
+let lastAltsFor='';
+let vis=null,visP=null,visRecent=null,visAgree=[],visFail=false,lastNumKey='',lastNumAt=0,visPrevE=null,visLastE=null;
+const dotVec=(a,b)=>{let s=0;for(let i=0;i<a.length;i++)s+=a[i]*b[i];return s};
+const normVec=a=>{let n=Math.sqrt(dotVec(a,a))||1;return Float32Array.from(a,x=>x/n)};
+// personal memory: when you correct the scanner, it remembers how that card looks on your camera
+let vmem=LS.get('hvl-vmem',[]);
+function memRemember(card,key){
+  if(!visLastE||!card)return;const pid=pidOf(card.id);if(!pid)return;
+  vmem=vmem.filter(m=>!(m.p===pid&&dotVec(Int8Array.from(m.e),visLastE)/127>.97));
+  vmem.unshift({p:pid,k:key,j:!!card._jp,e:Array.from(visLastE,x=>Math.round(x*127))});vmem=vmem.slice(0,300);LS.set('hvl-vmem',vmem);
+}
+function memBoost(e,top){
+  if(!vmem.length||!vis)return top;
+  let best=null;for(const m of vmem){const s=dotVec(e,m.e)/127;if(s>.9&&(!best||s>best.s))best={...m,s}}
+  if(!best)return top;
+  const i=top.findIndex(t=>+t.pid===best.p),boosted=Math.min(.99,best.s);
+  if(i>=0){const t=top.splice(i,1)[0];t.score=Math.max(t.score,boosted);t.mem=1;top.unshift(t);return top}
+  const hit=vis.pidMap.get(best.p);if(!hit)return top;const [key,row,jp]=hit,[n,tt]=key.split('/');
+  top.unshift({pid:best.p,score:boosted,key,card:cardFromRow(row,n,tt,jp),mem:1});return top;
+}
 function loadVis(){
   if(vis)return Promise.resolve(vis);if(visP)return visP;
   visP=(async()=>{
@@ -804,12 +825,19 @@ function showSuggestions(top){
   const el=$('vsugg');if(!top.length){el.hidden=true;return}
   el.hidden=false;
   el.innerHTML=`<span class="vs-l">Is it one of these? Tap it</span>`+top.slice(0,3).map((m,i)=>`<button data-i="${i}">${okUrl(m.card.images?.small)?`<img src="${esc(m.card.images.small)}" alt="">`:''}<span>${esc(m.card.name)}</span></button>`).join('');
-  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{const m=top[+b.dataset.i];m.card&&cache.set(m.card.id,m.card);handleFound([m.card],m.key,true)});
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{const m=top[+b.dataset.i];m.card&&cache.set(m.card.id,m.card);if(+b.dataset.i>0||!m.mem)memRemember(m.card,m.key);handleFound([m.card],m.key,true)});
 }
 async function visOnce(){
   const v=$('video'),r=guideRect();if(!r||reading)return;reading=true;
   try{
-    const t0=performance.now(),e=await visEmbed(v,r),top=visSearch(e,20),ms=Math.round(performance.now()-t0);
+    const t0=performance.now();
+    // two looks: the whole guide and a slightly tighter crop of the card, averaged
+    const e1=await visEmbed(v,r),ins={x:r.x+r.w*.05,y:r.y+r.h*.04,w:r.w*.9,h:r.h*.92},e2=await visEmbed(v,ins);
+    let e=normVec(e1.map((x,i)=>x+e2[i]));
+    // blend with the previous frame when it's clearly the same card, to steady blurry or glary frames
+    if(visPrevE&&dotVec(e,visPrevE)>.75)e=normVec(e.map((x,i)=>x*.6+visPrevE[i]*.4));
+    visPrevE=e;visLastE=e;
+    const top=memBoost(e,visSearch(e,20)),ms=Math.round(performance.now()-t0);
     if(!loopOn||!top.length)return;
     visRecent={t:Date.now(),top};
     dbg(`picture: ${top[0].card.name} ${(top[0].score*100).toFixed(0)}% · ${ms}ms`);
@@ -821,7 +849,7 @@ async function visOnce(){
     // auto-accept only when the self-tested confidence rule says it's almost always right,
     // and the same card won at least 2 of the last 3 looks. Otherwise the user taps a suggestion.
     const acc=vis.meta.v===2?vis.meta.accept:null;
-    if(acc&&acc.precision&&top[0].score>=acc.score&&margin>=acc.margin&&visAgree.slice(-3).filter(p=>p===top[0].pid).length>=2){
+    if((top[0].mem&&top[0].score>=.93&&visAgree.slice(-2).every(p=>p===top[0].pid))||(acc&&acc.precision&&top[0].score>=acc.score&&margin>=acc.margin&&visAgree.slice(-3).filter(p=>p===top[0].pid).length>=2)){
       if(rapid&&top[0].key===lastAddedKey){chip('Got it! Swap in the next card…');return}
       const dup=top.filter(m=>m.card.name===top[0].card.name&&m.key===top[0].key);
       handleFound(dup.length>1?dup.map(m=>m.card):[top[0].card],top[0].key,false);
@@ -977,7 +1005,7 @@ function openCard(c,variant){
   sheet(`<div class="holo" id="holo"><div class="holo-card">${okUrl(c.images?.large||c.images?.small)?`<img src="${esc(c.images.large||c.images.small)}" alt="${esc(c.name)} card" onerror="this.outerHTML='<span class=&quot;ph&quot;></span>'">`:'<span class="ph"></span>'}<i class="glare"></i></div></div>
   <div class="sinfo"><div><h3>${esc(c.name)}</h3><p class="meta">${c._sealed?`${esc(c.set?.name||'')} · ${esc(c.rarity)}`:`${esc(c.set?.name||'')} · #${esc(c.number)}/${esc(c.set?.printedTotal||'')}${c.rarity?' · '+esc(c.rarity):''}`}</p>
   <div class="sticker"><small>Market${v?' · '+esc(vName(v)):''}</small><strong>${money(p)}</strong></div>
-  ${c._live?`<p class="meta live">● Live price · updated ${esc(ago(c._live))}</p>`:c.tcgplayer?.updatedAt?`<p class="meta">Updated ${esc(c.tcgplayer.updatedAt)}</p>`:''}
+  ${c._live?`<p class="meta live">● Live TCGplayer price via TCGdex · checked ${esc(ago(c._live))}</p>`:c.tcgplayer?.updatedAt?`<p class="meta">TCGplayer market · ${esc(String(c._sealed||c._jp?(c._jp?jpIdx:tcgIdx)?.source||c.tcgplayer.updatedAt:tcgIdx?.source||c.tcgplayer.updatedAt).slice(0,10))}${!c._sealed&&!c._jp&&!c._liveDone?' · checking live…':''}</p>`:''}
   ${own&&num(own.prev)&&own.prev!==own.price?`<p class="meta ${own.price>own.prev?'up':'down'}">${own.price>own.prev?'▲':'▼'} ${money(Math.abs(own.price-own.prev))} since last update</p>`:''}</div></div>
   ${keys.length?`<table class="pick"><thead><tr><th>Version</th><th>Low</th><th>Market</th></tr></thead><tbody>${keys.map(k=>{const r=prices[k]||{};return `<tr data-v="${esc(k)}" class="${k===v?'sel':''}"><td>${k===v?'● ':''}${esc(vName(k))}</td><td>${money(r.low)}</td><td>${money(r.market)}</td></tr>`}).join('')}</tbody></table><p class="meta">Tap a version to pick yours.</p>`:(c._enriched?'<p class="meta">No price database lists this card yet. Check eBay sold listings below.</p>':'<p class="meta">Getting the price…</p>')}
   ${hist.length>1?`<svg class="hspark" id="hsp" viewBox="0 0 300 60" preserveAspectRatio="none" aria-label="Price history"></svg><p class="meta">Price over the last ${hist.length} updates</p>`:''}
@@ -1005,7 +1033,9 @@ function openCard(c,variant){
   </div>
   ${own?`<div class="row" style="margin-top:10px"><button class="danger" id="rmOwn">Remove from collection</button></div>`:''}`);
   const sh=document.querySelector('.sheet');sh.dataset.card=c.id;holoTilt($('holo'));
-  if(!c._liveTried){c._liveTried=1;livePrice(c).then(rec=>{const ch=applyLive(c,rec);if(rec&&document.querySelector('.sheet')?.dataset.card===c.id){if(ch)renderAll();openCard(c,variant)}}).catch(()=>{})}setTimeout(()=>{if(document.querySelector('.sheet')?.dataset.card===c.id)sheetExtras(c)},0);
+  if(lastAltsFor===c.id&&lastAlts.length){sh.insertAdjacentHTML('beforeend',`<div class="sec" id="altSec"><b>Wrong card? Tap the right one</b><div class="hrow" style="margin-top:8px">${lastAlts.map(m=>tile(m.card)).join('')}</div></div>`);
+    sh.querySelectorAll('#altSec .tile[data-id]').forEach((b,i)=>{const m=lastAlts[i];if(!m)return;cache.set(m.card.id,m.card);b.onclick=()=>{memRemember(m.card,m.key);lastAltsFor='';if(typeof logScan==='function')logScan(m.card);openCard(m.card);toast('Got it, the scanner will remember this card.')}})}
+  if(!c._liveTried){c._liveTried=1;livePrice(c).then(rec=>{c._liveDone=1;const ch=applyLive(c,rec);if(document.querySelector('.sheet')?.dataset.card===c.id){if(ch)renderAll();openCard(c,variant)}}).catch(()=>{c._liveDone=1})}setTimeout(()=>{if(document.querySelector('.sheet')?.dataset.card===c.id)sheetExtras(c)},0);
   if(hist.length>1){const pts=hist.map(h=>h[1]),lo=Math.min(...pts),hi=Math.max(...pts),rg=hi-lo||1,X=i=>i*300/(pts.length-1),Y=v=>5+(1-(v-lo)/rg)*50;const d=pts.map((v,i)=>`${i?'L':'M'}${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join('');const up=pts[pts.length-1]>=pts[0];$('hsp').innerHTML=`<path d="${d}" fill="none" stroke="${up?'#1d7a3c':'#e5383b'}" stroke-width="2.5" vector-effect="non-scaling-stroke"/>`}
   sh.querySelectorAll('tr[data-v]').forEach(tr=>tr.onclick=()=>{const nv=tr.dataset.v;if(own){own.v=nv;own.price=priceFor(c,nv);save();renderAll()}openCard(c,nv)});
   $('again').onclick=()=>{closeSheet();openScanner()};
@@ -1054,7 +1084,7 @@ function renderAll(){
   $('count').innerHTML=`${n} card${n===1?'':'s'}${ch}`;
   const paidItems=col.filter(x=>num(x.paid));
   if(paidItems.length){const cost=paidItems.reduce((a,x)=>a+x.paid*x.qty,0),now=paidItems.reduce((a,x)=>a+itemVal(x),0),g=now-cost;$('gainLine').hidden=false;$('gainLine').innerHTML=`Paid ${money(cost)} · <span style="color:${g>=0?'#6fdc95':'#ff7b7d'}">${g>=0?'+':'−'}${money(Math.abs(g))}</span> on cards with a price paid`}else $('gainLine').hidden=true;
-  if(tcgIdx?.updated)$('upd').textContent='Prices updated '+tcgIdx.updated;
+  if(tcgIdx?.updated)$('upd').textContent=nightlyAgeH()>30?'TCGplayer data is late · using live prices':'Prices updated '+(tcgIdx.source||tcgIdx.updated).slice(0,10);
   // home rows
   $('onboard').hidden=col.length>0;
   const top=col.filter(x=>num(x.price)).sort((a,b)=>b.price-a.price);
@@ -1402,11 +1432,11 @@ function sheetExtras(c){
   const g=groupForCard(c),others=otherVersions(c);
   let html='';
   if(g)html+=`<div class="row" style="margin-top:10px"><button class="ghost" id="viewSet">See the ${esc(String(g).replace(/^[A-Za-z0-9.]+:\s*/,''))} set</button></div>`;
-  if(others.length){others.forEach(o=>cache.set(o.id,o));html+=`<div class="sec"><b>Other versions of ${esc(c.name.replace(/\s*\(.*$/,''))}</b><div class="hrow" style="margin-top:10px">${others.map(o=>tile(o)).join('')}</div></div>`}
+  if(others.length){others.forEach(o=>cache.set(o.id,o));html+=`<div class="sec" id="otherSec"><b>Other versions of ${esc(c.name.replace(/\s*\(.*$/,''))}</b><div class="hrow" style="margin-top:10px">${others.map(o=>tile(o)).join('')}</div></div>`}
   if(!html)return;
   sh.insertAdjacentHTML('beforeend',html);
   if(g)$('viewSet').onclick=()=>{closeSheet();curSet=g;setFilter='all';go('sets');setTimeout(()=>renderSetDetail(g),0)};
-  sh.querySelectorAll('.hrow .tile[data-id]').forEach(b=>b.onclick=()=>{const x=cache.get(b.dataset.id);if(x){openCard(x);document.querySelector('.sheet')?.scrollTo(0,0)}});
+  sh.querySelectorAll('#otherSec .tile[data-id]').forEach(b=>b.onclick=()=>{const x=cache.get(b.dataset.id);if(x){openCard(x);document.querySelector('.sheet')?.scrollTo(0,0)}});
 }
 
 /* ---------- celebrations ---------- */
@@ -1640,11 +1670,13 @@ async function refreshLive(list,onProgress){
   const worker=async()=>{while(q.length){const x=q.shift();try{const c=await cardForItem(x);if(c){const rec=await livePrice(c,60);if(applyLive(c,rec))changed++}}catch(e){}done++;onProgress?.(done,list.length)}};
   await Promise.all([worker(),worker(),worker(),worker()]);return changed;
 }
+function nightlyAgeH(){const src=tcgIdx?.source;if(!src)return 0;const t=Date.parse(src.replace(/\+0000$/,'Z'));return isFinite(t)?(Date.now()-t)/3600e3:0}
 async function autoLive(){
   const last=LS.get('hvl-lastlive',0);if(Date.now()-last<3*3600e3||!col.length)return;
   LS.set('hvl-lastlive',Date.now());
-  const top=[...col].filter(x=>num(x.price)).sort((a,b)=>itemVal(b)-itemVal(a)).slice(0,20);
-  const ch=await refreshLive(top);if(ch){renderAll();toast(`Live prices: ${ch} of your top cards moved.`)}
+  const stale=nightlyAgeH()>30; // TCGplayer's daily feed is late: go live for everything
+  const list=[...col].filter(x=>num(x.price)&&!x.sealed&&!x.jp&&!isSealedId(x.id)&&!isJPid(x.id)).sort((a,b)=>itemVal(b)-itemVal(a)).slice(0,stale?150:20);
+  const ch=await refreshLive(list);if(ch){renderAll();toast(`Live prices: ${ch} of your cards moved.`)}
 }
 
 /* ---------- since your last visit ---------- */
