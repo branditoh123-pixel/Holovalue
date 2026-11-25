@@ -354,7 +354,7 @@ input[type=search]{width:100%}
     <div class="chips" id="typeChips" role="group" aria-label="Show"><button class="chip" data-ty="all" aria-pressed="true">Everything</button><button class="chip" data-ty="cards" aria-pressed="false">Cards</button><button class="chip" data-ty="sealed" aria-pressed="false">Sealed</button><button class="chip" data-ty="jp" aria-pressed="false">Japanese</button><button class="chip" data-ty="graded" aria-pressed="false">Graded</button></div>
     <div class="grid" id="col"></div>
     <div class="binderv" id="binderView" hidden></div>
-    <p class="empty" id="colEmpty">Nothing here yet. Tap the yellow scan button to add cards.</p>
+    <p class="empty" id="colEmpty">Nothing here yet. Tap the yellow scan button to add cards, or <a href="#" id="impLink">import a CSV from another app</a>.</p>
     <div class="row" id="colActs" style="margin-top:16px">
       <button class="ghost" id="refresh">Refresh prices</button>
       <button class="ghost" id="exportBtn">Export CSV</button>
@@ -436,7 +436,7 @@ input[type=search]{width:100%}
 
 <div class="scanner" id="scanner" hidden>
   <video id="video" playsinline muted autoplay></video>
-  <div class="sbar"><button id="closeScan" aria-label="Close scanner">✕</button><div class="row"><button id="rapidBtn" aria-pressed="false">Rapid: Off</button><button id="torch" hidden>Flash</button></div></div>
+  <div class="sbar"><button id="closeScan" aria-label="Close scanner">✕</button><div class="row"><button id="scanLang">EN</button><button id="rapidBtn" aria-pressed="false">Rapid: Off</button><button id="torch" hidden>Flash</button></div></div>
   <div class="found" id="found" hidden role="status"></div>
   <button class="sess" id="sess" hidden></button>
   <div class="guide" id="guide"><span class="lineA">Fit the whole card in the frame</span><div class="beam"></div><div class="nb l"></div><div class="nb r"></div><span class="lineB">Card number goes in the yellow box</span></div>
@@ -773,8 +773,10 @@ function loadVis(){
       ort.InferenceSession.create('vis/model.onnx'+bust,{executionProviders:['wasm'],graphOptimizationLevel:'all'}),
       fetch((v2?'vis/proj.bin':'vis/pca.bin')+bust).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()}),fetch('vis/emb.bin'+bust).then(r=>{if(!r.ok)throw 0;return r.arrayBuffer()})]);
     const F=meta.f||576,D=meta.d,pf=new Float32Array(pca);
-    await tcgIndex();const pidMap=new Map();if(tcgIdx)for(const [k,rows] of Object.entries(tcgIdx.cards))for(const r of rows)pidMap.set(+r[2],[k,r]);
-    vis={meta,sess,F,D,mean:pf.subarray(0,F),comps:pf.subarray(F,F+F*D),emb:new Int8Array(emb),pidMap,cv:Object.assign(document.createElement('canvas'),{width:meta.size||224,height:meta.size||224})};
+    await tcgIndex();const pidMap=new Map();if(tcgIdx)for(const [k,rows] of Object.entries(tcgIdx.cards))for(const r of rows)pidMap.set(+r[2],[k,r,false]);
+    const jpSet=new Uint8Array(meta.n);(meta.jp||[]).forEach(i=>jpSet[i]=1);
+    if((meta.jp||[]).length){await jpIndex();if(jpIdx)for(const [k,rows] of Object.entries(jpIdx.cards))for(const r of rows)if(!pidMap.has(+r[2]))pidMap.set(+r[2],[k,r,true])}
+    vis={meta,sess,F,D,jpSet,mean:pf.subarray(0,F),comps:pf.subarray(F,F+F*D),emb:new Int8Array(emb),pidMap,cv:Object.assign(document.createElement('canvas'),{width:meta.size||224,height:meta.size||224})};
     return vis;
   })().catch(e=>{console.warn('picture recognition unavailable',e);visFail=true;visP=null;return null});
   return visP;
@@ -793,10 +795,10 @@ async function visEmbed(src,rect){
   return e;
 }
 function visSearch(e,k=5){
-  const {emb,D,meta}=vis,n=meta.n,best=[];
-  for(let i=0;i<n;i++){let s=0;const o=i*D;for(let j=0;j<D;j++)s+=e[j]*emb[o+j];s/=127;
+  const {emb,D,meta,jpSet}=vis,n=meta.n,best=[],lang=LS.get('hvl-scanlang','en');
+  for(let i=0;i<n;i++){if(lang!=='both'&&(jpSet[i]===1)!==(lang==='jp'))continue;let s=0;const o=i*D;for(let j=0;j<D;j++)s+=e[j]*emb[o+j];s/=127;
     if(best.length<k||s>best[best.length-1][1]){best.push([i,s]);best.sort((a,b)=>b[1]-a[1]);if(best.length>k)best.pop()}}
-  return best.map(([i,s])=>{const pid=meta.pids[i],hit=vis.pidMap.get(+pid);if(!hit)return null;const [key,r]=hit,[nn,tt]=key.split('/');return{pid,score:s,key,card:cardFromRow(r,nn,tt)}}).filter(Boolean);
+  return best.map(([i,s])=>{const pid=meta.pids[i],hit=vis.pidMap.get(+pid);if(!hit)return null;const [key,r,jp]=hit,[nn,tt]=key.split('/');return{pid,score:s,key,card:cardFromRow(r,nn,tt,jp)}}).filter(Boolean);
 }
 function showSuggestions(top){
   const el=$('vsugg');if(!top.length){el.hidden=true;return}
@@ -1336,6 +1338,8 @@ async function shareCollection(){
 function openSettings(){
   const n=col.reduce((a,x)=>a+x.qty,0);
   sheet(`<h3 style="margin:0 0 4px">Settings & backup</h3><p class="meta">Your collection is saved on this phone only. Back it up so you never lose it if you clear Chrome or change phones.</p>
+  <div class="sec"><b>Import from another app</b><p class="meta">Bring over a collection exported as CSV from TCGplayer, Collectr, Dex or a spreadsheet. You’ll see what matched before anything is added.</p>
+  <div class="row" style="margin-top:8px"><label class="btn" style="position:relative;overflow:hidden">Choose CSV file<input type="file" id="csvIn" accept=".csv,text/csv,text/plain" style="position:absolute;inset:0;opacity:0"></label></div></div>
   <div class="sec"><b>Price alerts</b><p class="meta">Get a notification when a wishlist card hits your target price, or one of your cards jumps or drops 15% or more.</p>
   <div class="row" style="margin-top:8px"><button id="alertBtn">${LS.get('hvl-alerts',false)?'Turn alerts off':'Turn on price alerts'}</button></div>${LS.get('hvl-alerts',false)?`<p class="meta">${LS.get('hvl-bgalerts',false)?'On, including while the app is closed.':'On while you use the app. Install the app (⋮ → Install app) to get them while it’s closed.'}</p>`:''}</div>
   <div class="sec"><b>Background theme</b><p class="meta">Pick your favorite type.</p>${typePickerHTML()}</div>
@@ -1344,6 +1348,7 @@ function openSettings(){
   <div class="sec"><b>Prices</b><p class="meta">TCGplayer market prices update every night. Last update: ${esc(tcgIdx?.updated||'loading…')}.</p></div>
   <div class="sec"><button class="danger" id="wipe">Delete all my data on this phone</button></div>`);
   bindTypePicker(document.querySelector('.sheet'));
+  $('csvIn').onchange=e=>{const f=e.target.files?.[0];e.target.value='';if(f)importCSV(f).catch(()=>toast('Couldn’t read that file.'))};
   $('alertBtn').onclick=async()=>{await enableAlerts(!LS.get('hvl-alerts',false));openSettings()};
   $('bkSave').onclick=()=>{const data={app:'HoloValue',v:1,saved:new Date().toISOString(),col,wish,binders,packs,trade,hist:LS.get('hvl-hist',{})};const blob=new Blob([JSON.stringify(data)],{type:'application/json'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=`holovalue-backup-${new Date().toISOString().slice(0,10)}.json`;document.body.appendChild(a);a.click();setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove()},1000);toast('Backup saved to your downloads.');stats.backup=1;LS.set('hvl-stats',stats);checkAch()};
   $('bkLoad').onchange=async e=>{const f=e.target.files?.[0];if(!f)return;try{const d=JSON.parse(await f.text());if(d.app!=='HoloValue'||!Array.isArray(d.col))throw 0;if(!confirm(`Replace what’s on this phone with the backup from ${String(d.saved||'').slice(0,10)} (${d.col.length} cards)?`))return;
@@ -1736,6 +1741,80 @@ function alertNow(){ // checks when the app opens, using the price file already 
   if(!msgs.length)return;LS.set('hvl-alerted',seen);
   navigator.serviceWorker?.ready.then(reg=>reg.showNotification('HoloValue price alert',{body:msgs.slice(0,4).join('\n')+(msgs.length>4?`\n+${msgs.length-4} more`:''),icon:'icon-192.png',badge:'icon-192.png',tag:'price-alert',data:{url:location.href.split('#')[0]+'#wish'}})).catch(()=>{});
 }
+
+/* ---------- scanner language (English and Japanese prints often share artwork) ---------- */
+const SCANLANG={en:'EN',jp:'JP',both:'EN+JP'};
+function renderScanLang(){$('scanLang').textContent=SCANLANG[LS.get('hvl-scanlang','en')]||'EN'}
+$('scanLang').onclick=()=>{const order=['en','jp','both'],cur=LS.get('hvl-scanlang','en'),nx=order[(order.indexOf(cur)+1)%3];LS.set('hvl-scanlang',nx);renderScanLang();visAgree=[];
+  chip(nx==='jp'?'Scanning Japanese cards'+((vis?.meta?.jp||[]).length?'':' (Japanese picture matching arrives with the next index update)'):nx==='both'?'Scanning English and Japanese cards':'Scanning English cards')};
+renderScanLang();
+
+/* ---------- import a collection from another app (CSV) ---------- */
+function parseCSV(text){
+  const rows=[];let row=[],f='',q=false;
+  for(let i=0;i<text.length;i++){const ch=text[i];
+    if(q){if(ch==='"'){if(text[i+1]==='"'){f+='"';i++}else q=false}else f+=ch}
+    else if(ch==='"')q=true;else if(ch===','||ch===';'||ch==='\t'){row.push(f);f=''}else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&text[i+1]==='\n')i++;row.push(f);rows.push(row);row=[];f=''}else f+=ch}
+  if(f||row.length){row.push(f);rows.push(row)}
+  return rows.filter(r=>r.some(c=>c.trim()));
+}
+function importMatch(rec,pidEN,pidJP){
+  const jpWanted=/japan|jp|日本/i.test(rec.lang||'');
+  if(rec.pid){const h=(jpWanted?pidJP:pidEN).get(rec.pid)||pidEN.get(rec.pid)||pidJP.get(rec.pid);if(h)return cardFromRow(h[1],...h[0].split('/'),h[2])}
+  const nm=(rec.name||'').replace(/\s*[-–]\s*\d+\s*\/\s*\d+.*$/,'').trim();if(!nm)return null;
+  const numM=(rec.number||rec.name||'').match(/(\d{1,3})\s*\/\s*(\d{1,3})/);
+  const idx=jpWanted?jpIdx:tcgIdx;if(!idx)return null;
+  let cands=[];
+  if(numM){const key=(+numM[1])+'/'+(+numM[2]);cands=(idx.cards[key]||[]).map(r=>[r,numM[1],numM[2]])}
+  else if(rec.number&&/^\d+$/.test(rec.number.trim())){for(const [k,rows] of Object.entries(idx.cards)){const [n,t]=k.split('/');if(+n===+rec.number)for(const r of rows)cands.push([r,n,t])}}
+  if(!cands.length){const lw=nm.toLowerCase();for(const [k,rows] of Object.entries(idx.cards)){const [n,t]=k.split('/');for(const r of rows)if(r[0].toLowerCase()===lw)cands.push([r,n,t])}}
+  if(!cands.length)return null;
+  const score=([r])=>sim(r[0].toLowerCase(),nm.toLowerCase())*2+(rec.set?sim(String(r[1]).toLowerCase(),rec.set.toLowerCase()):0);
+  cands.sort((a,b)=>score(b)-score(a));
+  const best=cands[0];if(sim(best[0][0].toLowerCase(),nm.toLowerCase())<.5)return null;
+  if(cands.length>1&&!rec.set&&!numM&&Math.abs(score(cands[0])-score(cands[1]))<.01)return null; // too ambiguous without a set
+  return cardFromRow(best[0],best[1],best[2],jpWanted);
+}
+async function importCSV(file){
+  const text=await file.text();const rows=parseCSV(text);if(rows.length<2){toast('That file has no rows to import.');return}
+  const H=rows[0].map(h=>h.trim().toLowerCase());
+  const col_=re=>H.findIndex(h=>re.test(h));
+  const ci={qty:col_(/^(qty|quantity|count|amount|total quantity|add to quantity)$/),name:col_(/^(simple name|product name|card name|name|card)$/),set:col_(/^(set|set name|expansion|edition|group|series)$/),
+    number:col_(/^(card number|number|collector number|no\.?|#)$/),pid:col_(/^(product ?id|tcgplayer ?id|tcgplayer product id)$/),cond:col_(/^condition$/),
+    paid:col_(/(purchase|paid|cost|buy|acquired).*(price|cost)|^price paid$|^average cost$|^cost$/),print:col_(/^(printing|variant|finish|foil)$/),lang:col_(/^language$/)};
+  if(ci.name<0&&ci.pid<0){toast('Couldn’t find a card name or product ID column in that file.');return}
+  await tcgIndex();await jpIndex();
+  const pidEN=new Map(),pidJP=new Map();
+  if(tcgIdx)for(const [k,rs] of Object.entries(tcgIdx.cards))for(const r of rs)pidEN.set(+r[2],[k,r,false]);
+  if(jpIdx)for(const [k,rs] of Object.entries(jpIdx.cards))for(const r of rs)pidJP.set(+r[2],[k,r,true]);
+  const get=(r,i)=>i>=0?String(r[i]??'').trim():'';
+  const out=[],miss=[];
+  for(const r of rows.slice(1)){
+    const rec={name:get(r,ci.name),set:get(r,ci.set),number:get(r,ci.number),pid:+get(r,ci.pid)||0,lang:get(r,ci.lang),cond:get(r,ci.cond),print:get(r,ci.print)};
+    const qty=Math.max(1,parseInt(get(r,ci.qty))||1),paid=parseFloat(get(r,ci.paid).replace(/[^0-9.]/g,''));
+    const c=importMatch(rec,pidEN,pidJP);
+    if(c)out.push({c,qty,paid:isFinite(paid)&&paid>0?paid:null,cond:rec.cond,print:rec.print});else miss.push(rec.name||('Product '+rec.pid));
+  }
+  const total=out.reduce((a,x)=>a+(priceFor(x.c,bestVariant(x.c))||0)*x.qty,0);
+  sheet(`<h3 style="margin:0 0 4px">Import preview</h3><p class="meta">${esc(file.name)}</p>
+  <div class="shero" style="margin-top:10px"><div class="big">${out.length} of ${out.length+miss.length} matched</div><p class="meta">${out.reduce((a,x)=>a+x.qty,0)} cards worth about ${money(total)} at today’s prices</p></div>
+  ${miss.length&&ci.set<0&&ci.number<0&&ci.pid<0?`<p class="meta" style="color:var(--red)">This file only has card names. Many cards share a name (there are dozens of Pikachus), so add a Set or Card Number column to match them exactly.</p>`:''}
+  ${miss.length?`<details><summary>${miss.length} couldn’t be matched</summary><p class="meta">${miss.slice(0,60).map(esc).join(', ')}${miss.length>60?'…':''}</p><p class="meta">Add these with search or the scanner.</p></details>`:''}
+  <div class="cands" style="margin-top:12px">${out.slice(0,12).map(x=>tile(x.c)).join('')}</div>${out.length>12?`<p class="meta">+${out.length-12} more</p>`:''}
+  <div class="row" style="margin-top:14px"><button id="impGo" ${out.length?'':'disabled'}>Add ${out.length} to my collection</button><button class="ghost" id="impNo">Cancel</button></div>`);
+  $('impNo').onclick=closeSheet;
+  $('impGo').onclick=()=>{
+    const COND_MAP=[[/near|nm|mint/i,'Near Mint'],[/light|lp|excellent/i,'Lightly Played'],[/moderate|mp|good/i,'Moderately Played'],[/heav|hp|played/i,'Heavily Played'],[/damag|poor/i,'Damaged']];
+    for(const x of out){
+      let v=bestVariant(x.c);if(/reverse/i.test(x.print||'')&&x.c.tcgplayer?.prices?.reverseHolofoil)v='reverseHolofoil';else if(/holo|foil/i.test(x.print||'')&&x.c.tcgplayer?.prices?.holofoil)v='holofoil';else if(/normal|non/i.test(x.print||'')&&x.c.tcgplayer?.prices?.normal)v='normal';
+      cache.set(x.c.id,x.c);let it=col.find(i=>i.id===x.c.id);
+      if(it)it.qty+=x.qty;else{it={...itemFromCard(x.c,v),qty:x.qty,binder:curBinder!=='All'?curBinder:'Main'};col.push(it)}
+      if(x.paid&&!num(it.paid))it.paid=x.paid;
+      const cm=COND_MAP.find(([re])=>re.test(x.cond||''));if(cm&&!it.cond)it.cond=cm[1];
+    }
+    save();closeSheet();renderAll();confetti();toast(`Imported ${out.length} cards.`);
+  };
+}
 /* ---------- navigation ---------- */
 let view='home';
 function route(){
@@ -1763,6 +1842,7 @@ $('hitAlert').onclick=()=>go('wish');
 document.querySelector('.port').style.cursor='pointer';document.querySelector('.port').onclick=()=>go('insights');
 $('colQ').oninput=renderAll;$('sortBy').onchange=renderAll;
 $('shareBinderBtn').onclick=shareBinder;
+$('impLink').onclick=e=>{e.preventDefault();openSettings()};
 document.querySelectorAll('#typeChips [data-ty]').forEach(b=>b.onclick=()=>{colType=b.dataset.ty;renderAll()});
 document.querySelectorAll('[data-lang]').forEach(b=>b.onclick=()=>{setLang(b.dataset.lang);if($('q').value.trim())search($('q').value)});setLang(searchLang);
 if(col.some(x=>x.jp||isJPid(x.id))||wish.some(x=>x.jp||isJPid(x.id)))jpIndex().then(j=>{if(j){updatePrices();renderAll()}});
