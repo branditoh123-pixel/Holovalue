@@ -201,6 +201,12 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .tile .own{position:absolute;top:12px;right:12px;background:#1d7a3c;color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .hit{position:absolute;top:12px;right:12px;background:#e5383b;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .mv{display:block;font-size:13px;font-weight:700}
+.cenwrap{margin-top:12px;background:#111;border-radius:16px;padding:8px;touch-action:none}
+.cenwrap canvas{display:block;width:100%;height:auto;border-radius:10px}
+.cenres{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.cenres .dcard b{display:block;font-size:30px;font-weight:800}
+.ev .kv b{font-size:16px}
+.mic{min-height:48px;width:48px;padding:0;flex:none}
 .dealbox{margin-top:12px;display:grid;gap:12px}
 .dcard{background:var(--paper);border-radius:20px;padding:14px 16px}
 .dcard h2{margin:0 0 6px;font-size:18px}
@@ -319,12 +325,14 @@ input[type=search]{width:100%}
         <button class="act" id="searchJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Search<small>50,000+ cards, EN + JP</small></button>
         <button class="act" id="packJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 3h12l-1 4H7zM7 7h10v14H7z"/><path d="M10 12h4"/></svg>Rip a pack<small>Was it worth it?</small></button>
         <button class="act" id="dealJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M20 12 12 20 4 12V4h8z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>Deal check<small>Card shows & buying</small></button>
+        <button class="act" id="centerJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><rect x="8" y="6" width="8" height="12" rx="1"/></svg>Centering<small>Grade pre-check</small></button>
         <button class="act" id="tradeJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg>Trade check<small>Is it fair?</small></button>
       </div>
     </div>
     <div class="langs" role="group" aria-label="Card language"><button class="chip" data-lang="en" aria-pressed="true">🇺🇸 English</button><button class="chip" data-lang="jp" aria-pressed="false">🇯🇵 Japanese</button></div>
     <form class="search" id="searchForm" style="margin-top:8px">
       <input type="search" id="q" placeholder="Charizard, Umbreon VMAX, 199/165…" aria-label="Search cards" autocomplete="off">
+      <button type="button" class="ghost mic" id="micBtn" aria-label="Search by voice" hidden>🎤</button>
       <button type="submit">Search</button>
     </form>
     <p class="msg" id="homeMsg" aria-live="polite"></p>
@@ -363,7 +371,8 @@ input[type=search]{width:100%}
       <select id="sortBy" aria-label="Sort collection" style="font:inherit;font-size:16px;min-height:48px;border-radius:14px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:0 10px"><option value="value">Highest value</option><option value="gain">Biggest gain</option><option value="new">Newest</option><option value="name">Name</option><option value="set">Set</option></select>
     </div>
     <div class="row" style="margin-bottom:10px"><button class="ghost" id="selBtn">Select</button><a class="btn ghost" href="#insights">📊 Insights</a><button class="ghost" id="shareBinderBtn">🔗 Share binder</button></div>
-    <div class="chips" id="typeChips" role="group" aria-label="Show"><button class="chip" data-ty="all" aria-pressed="true">Everything</button><button class="chip" data-ty="cards" aria-pressed="false">Cards</button><button class="chip" data-ty="sealed" aria-pressed="false">Sealed</button><button class="chip" data-ty="jp" aria-pressed="false">Japanese</button><button class="chip" data-ty="graded" aria-pressed="false">Graded</button></div>
+    <div class="chips" id="typeChips" role="group" aria-label="Show"><button class="chip" data-ty="all" aria-pressed="true">Everything</button><button class="chip" data-ty="cards" aria-pressed="false">Cards</button><button class="chip" data-ty="sealed" aria-pressed="false">Sealed</button><button class="chip" data-ty="jp" aria-pressed="false">Japanese</button><button class="chip" data-ty="graded" aria-pressed="false">Graded</button><button class="chip" data-ty="dupes" aria-pressed="false">Duplicates</button></div>
+    <div class="row" id="dupeBar" hidden style="margin-bottom:10px"><button id="dupeTrade">Send extras to Trade check</button></div>
     <div class="grid" id="col"></div>
     <div class="binderv" id="binderView" hidden></div>
     <p class="empty" id="colEmpty">Nothing here yet. Tap the yellow scan button to add cards, or <a href="#" id="impLink">import a CSV from another app</a>.</p>
@@ -430,6 +439,16 @@ input[type=search]{width:100%}
     <input type="search" id="dealQ" placeholder="Or add a card by name…" aria-label="Add a card to the deal" autocomplete="off" style="margin-top:10px"><ul class="drop" id="dealDrop" hidden></ul>
     <ul class="tlist" id="dealList" style="background:var(--paper);border-radius:16px;padding:0 12px;margin-top:10px"></ul>
     <div class="dealbox" id="dealBox"></div>
+  </section>
+
+  <section class="view" id="v-center" hidden>
+    <h1 class="vt">Centering checker</h1>
+    <p class="vsub">Photograph a card straight on, on a dark surface. HoloValue finds the borders. Drag any line to fine-tune it, and you’ll see the centering and the best PSA grade it allows.</p>
+    <div class="row"><label class="btn" style="position:relative;overflow:hidden;flex:1 1 160px">📷 Take photo<input type="file" id="cenCam" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0"></label>
+    <label class="btn ghost" style="position:relative;overflow:hidden;flex:1 1 160px">Choose photo<input type="file" id="cenPick" accept="image/*" style="position:absolute;inset:0;opacity:0"></label></div>
+    <div class="seg" role="group" aria-label="Side" style="margin-top:12px"><button id="cenFront" aria-pressed="true">Front</button><button id="cenBack" aria-pressed="false">Back</button></div>
+    <div class="cenwrap" id="cenWrap" hidden><canvas id="cenCv"></canvas></div>
+    <div id="cenRes"></div>
   </section>
 
   <section class="view" id="v-trade" hidden>
@@ -1130,10 +1149,11 @@ function renderAll(){
   $('binders').innerHTML=bset.map(b=>`<button class="chip" data-b="${esc(b)}" aria-pressed="${b===curBinder}">${esc(b)}${b==='All'?'':' · '+col.filter(x=>(x.binder||'Main')===b).reduce((a,x)=>a+x.qty,0)}</button>`).join('')+`<button class="chip" data-b="__new">+ New binder</button>`;
   $('binders').querySelectorAll('.chip').forEach(bt=>bt.onclick=()=>{const b=bt.dataset.b;if(b==='__new'){const nb=(prompt('Name your new binder (for example: Trade binder)')||'').trim().slice(0,30);if(nb&&!binders.includes(nb)){binders.push(nb);LS.set('hvl-binders',binders)}if(nb)curBinder=nb}else curBinder=b;renderAll()});
   const so=$('sortBy').value,qf=$('colQ').value.toLowerCase();
-  const tyOk=x=>colType==='all'||(colType==='sealed'?(x.sealed||isSealedId(x.id)):colType==='jp'?(x.jp||isJPid(x.id)):colType==='graded'?isGraded(x):!(x.sealed||isSealedId(x.id)));
+  const tyOk=x=>colType==='all'||(colType==='dupes'?x.qty>1:colType==='sealed'?(x.sealed||isSealedId(x.id)):colType==='jp'?(x.jp||isJPid(x.id)):colType==='graded'?isGraded(x):!(x.sealed||isSealedId(x.id)));
   const inB=col.filter(x=>(curBinder==='All'||(x.binder||'Main')===curBinder)&&tyOk(x));
   document.querySelectorAll('#typeChips [data-ty]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.ty===colType));
-  $('typeChips').hidden=!col.some(x=>x.sealed||x.jp||isGraded(x)||isSealedId(x.id)||isJPid(x.id));
+  $('typeChips').hidden=!col.some(x=>x.sealed||x.jp||isGraded(x)||isSealedId(x.id)||isJPid(x.id)||x.qty>1);
+  $('dupeBar').hidden=colType!=='dupes'||!col.some(x=>x.qty>1);
   const rows=inB.filter(x=>!qf||(x.name+' '+x.set).toLowerCase().includes(qf)).sort(so==='new'?(a,b)=>b.t-a.t:so==='name'?(a,b)=>a.name.localeCompare(b.name):so==='set'?(a,b)=>a.set.localeCompare(b.set)||parseInt(a.num)-parseInt(b.num):so==='gain'?(a,b)=>((num(b.paid)?itemVal(b)-b.paid*b.qty:delta(b)*b.qty)-(num(a.paid)?itemVal(a)-a.paid*a.qty:delta(a)*a.qty)):(a,b)=>itemVal(b)-itemVal(a));
   $('col').innerHTML=rows.map(ownedTile).join('');
   renderBinderPages(rows);applyColMode();if(typeof updateSelbar==='function'&&selecting)updateSelbar();if(view==='insights'&&typeof renderInsights==='function')renderInsights();
@@ -1269,6 +1289,7 @@ function renderSetDetail(name){
   <div class="shero"><h1 class="vt" style="margin:0">${esc(s.short)}</h1><p class="meta">${s.date?'Released '+esc(s.date)+' · ':''}${s.rows.length} cards</p>
   <div class="big" style="margin-top:8px">${own.length}/${s.rows.length} <small style="font-size:16px;font-weight:500;color:var(--soft)">${own.length&&pc<1?'under 1':pc}% complete</small></div><div class="bar"><i style="width:${Math.max(own.length?3:0,pc)}%"></i></div>
   <div class="kv"><div><b>${money(ownVal)}</b><span>you own</span></div><div><b>${money(missVal)}</b><span>to complete</span></div><div><b>${miss.length}</b><span>missing</span></div></div></div>
+  ${evHTML(s)}
   <div class="chips">${[['all','All '+s.rows.length],['miss','Missing '+miss.length],['own','Owned '+own.length]].map(([k,l])=>`<button class="chip" data-f="${k}" aria-pressed="${setFilter===k}">${l}</button>`).join('')}</div>
   <div class="grid">${cards.map(([c,o])=>tile(c,o?'<span class="own">✓</span>':'').replace('class="tile"',`class="tile${o?'':' missing'}"`)).join('')}</div>`;
   $('setBack').onclick=()=>{curSet=null;$('setDetail').hidden=true;$('setHome').hidden=false;renderSets()};
@@ -1921,11 +1942,101 @@ function renderDeal(){
 },150)}}
 $('dealScan').onclick=()=>{dealMode=true;openScanner()};
 $('dealJump').onclick=()=>go('deal');
+
+/* ---------- open it or keep it sealed? (expected value of packs) ---------- */
+// approximate per-pack odds for modern English sets; these vary by set, so results are estimates
+const PULL={SIR:1/86,HYR:1/137,MHR:1/137,BWR:1/100,IR:1/13,UR:1/15,DR:1/5.6,ACE:1/20,SUR:1/65,SHR:1/12,SR:1/72};
+const PACKS=[[/booster box/i,36],[/elite trainer box/i,9],[/booster bundle/i,6],[/3-pack|blister/i,3],[/sleeved booster|booster pack/i,1]];
+function packEV(set){
+  const by={},rev=[];
+  for(const [r] of set.rows){const k=r[4]||'';const m=rowMarket(r);if(m)(by[k]=by[k]||[]).push(m);const rh=r[3]?.['Reverse Holofoil'];if(rh&&rh[1]!=null&&/^(C|U|R)$/.test(k))rev.push(rh[1])}
+  if(!(by.DR||by.IR||by.SIR))return null;
+  const avg=a=>a&&a.length?a.reduce((x,y)=>x+y,0)/a.length:0;
+  let hit=0,pHit=0,parts=[];for(const [k,p] of Object.entries(PULL))if(by[k]){const v=p*avg(by[k]);hit+=v;pHit+=p;parts.push([k,p,avg(by[k])])}
+  const perPack=hit+Math.max(0,1-pHit)*avg(by.R)+4*avg(by.C)+3*avg(by.U)+2*avg(rev);
+  return{perPack,parts:parts.sort((a,b)=>b[1]*b[2]-a[1]*a[2])};
+}
+const RNAME={SIR:'Special Illustration Rare',HYR:'Hyper Rare',MHR:'Mega Hyper Rare',BWR:'Black White Rare',IR:'Illustration Rare',UR:'Ultra Rare',DR:'Double Rare',ACE:'ACE SPEC',SUR:'Shiny Ultra Rare',SHR:'Shiny Rare',SR:'Secret Rare'};
+function evHTML(set){
+  const ev=packEV(set);if(!ev)return'';
+  const prods=(tcgIdx?.sealed||[]).filter(r=>r[1]===set.name&&!/case|display|code/i.test(r[0])).map(r=>{const pk=PACKS.find(([re])=>re.test(r[0]));return pk?[r,pk[1]]:null}).filter(Boolean).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  const rows=prods.map(([r,n])=>{const open=ev.perPack*n,d=open-r[3];return `<tr><td>${esc(r[0].replace(set.short,'').trim()||r[0])}<small>${n} pack${n>1?'s':''} · sealed ${money(r[3])}</small></td><td class="${d>=0?'up':'down'}">${money(open)}<small>${d>=0?'open it':'keep sealed'}</small></td></tr>`}).join('');
+  return `<div class="dcard ev" style="margin-bottom:12px"><h2>📦 Open it or keep it sealed?</h2>
+  <p class="meta">An average pack from this set pulls about <b>${money(ev.perPack)}</b> in cards at today’s prices.</p>
+  ${rows?`<table class="sellt"><tr><td><b>Product</b></td><td><b>Avg. value if opened</b></td></tr>${rows}</table>`:''}
+  <details style="margin-top:8px"><summary class="meta">Where the value comes from</summary><table class="sellt">${ev.parts.slice(0,6).map(([k,p,a])=>`<tr><td>${esc(RNAME[k]||k)}<small>about 1 in ${Math.round(1/p)} packs</small></td><td>${money(a)}<small>average card</small></td></tr>`).join('')}</table></details>
+  <p class="meta" style="font-size:12px">Estimate using typical pull rates for modern sets. Real odds vary by set and your luck varies a lot. Sealed products usually hold value better over time.</p></div>`;
+}
+
+/* ---------- centering checker ---------- */
+let cen={img:null,side:'front',L:{oL:.03,oR:.97,oT:.03,oB:.97,iL:.08,iR:.92,iT:.06,iB:.94}};
+function cenDetect(img){
+  const W=300,H=Math.round(img.height*W/img.width),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(img,0,0,W,H);
+  const d=x.getImageData(0,0,W,H).data,g=new Float32Array(W*H);for(let i=0,j=0;i<d.length;i+=4,j++)g[j]=.299*d[i]+.587*d[i+1]+.114*d[i+2];
+  const col=new Float32Array(W),row=new Float32Array(H);
+  for(let y=Math.floor(H*.25);y<H*.75;y++)for(let xx=1;xx<W;xx++)col[xx]+=Math.abs(g[y*W+xx]-g[y*W+xx-1]);
+  for(let y=1;y<H;y++)for(let xx=Math.floor(W*.25);xx<W*.75;xx++)row[y]+=Math.abs(g[y*W+xx]-g[(y-1)*W+xx]);
+  const peaks=(p,from,to,dir,minGap)=>{const n=p.length,sm=new Float32Array(n);for(let i=1;i<n-1;i++)sm[i]=(p[i-1]+p[i]*2+p[i+1])/4;
+    const seg=[];for(let i=Math.floor(from*n);i<to*n;i++)seg.push(sm[i]);const mean=seg.reduce((a,b)=>a+b,0)/seg.length,sd=Math.sqrt(seg.reduce((a,b)=>a+(b-mean)**2,0)/seg.length)||1;
+    const idx=[];const st=dir>0?Math.floor(from*n):Math.floor(to*n)-1;for(let i=st;dir>0?i<to*n:i>=from*n;i+=dir){if(sm[i]>mean+1.6*sd&&sm[i]>=sm[i-1]&&sm[i]>=sm[i+1]){if(!idx.length||Math.abs(i-idx[idx.length-1])>=minGap*n)idx.push(i);if(idx.length===2)break}}
+    return idx.map(i=>i/n)};
+  const l=peaks(col,.0,.35,1,.015),r=peaks(col,.65,1,-1,.015),t=peaks(row,0,.3,1,.012),b=peaks(row,.7,1,-1,.012);
+  const L={...cen.L};if(l.length===2){L.oL=l[0];L.iL=l[1]}if(r.length===2){L.oR=r[0];L.iR=r[1]}if(t.length===2){L.oT=t[0];L.iT=t[1]}if(b.length===2){L.oB=b[0];L.iB=b[1]}
+  return L;
+}
+function cenGrade(worst,side){
+  const T=side==='back'?[[75,'PSA 10'],[90,'PSA 7, 8 or 9']]:[[55,'PSA 10'],[60,'PSA 9'],[65,'PSA 8'],[75,'PSA 7'],[80,'PSA 6'],[85,'PSA 5']];
+  for(const [lim,g] of T)if(worst<=lim)return g;return side==='back'?'PSA 6 or lower':'PSA 4 or lower';
+}
+function cenDraw(){
+  const cv=$('cenCv'),img=cen.img;if(!img)return;const W=Math.min(1000,img.width),H=Math.round(img.height*W/img.width);cv.width=W;cv.height=H;
+  const x=cv.getContext('2d');x.drawImage(img,0,0,W,H);const L=cen.L;
+  const line=(k,vert,color)=>{const v=L[k];x.strokeStyle=color;x.lineWidth=Math.max(2,W/250);x.setLineDash(k[0]==='i'?[W/60,W/90]:[]);x.beginPath();if(vert){x.moveTo(v*W,0);x.lineTo(v*W,H)}else{x.moveTo(0,v*H);x.lineTo(W,v*H)}x.stroke();x.setLineDash([]);
+    x.fillStyle=color;x.beginPath();if(vert)x.arc(v*W,H/2+(k[0]==='i'?W/14:-W/14),W/45,0,7);else x.arc(W/2+(k[0]==='i'?W/14:-W/14),v*H,W/45,0,7);x.fill()};
+  ['oL','oR'].forEach(k=>line(k,1,'#5ec8ff'));['oT','oB'].forEach(k=>line(k,0,'#5ec8ff'));['iL','iR'].forEach(k=>line(k,1,'#ff6b9d'));['iT','iB'].forEach(k=>line(k,0,'#ff6b9d'));
+  const lw=L.iL-L.oL,rw=L.oR-L.iR,tw=L.iT-L.oT,bw=L.oB-L.iB;
+  if(lw<=0||rw<=0||tw<=0||bw<=0){$('cenRes').innerHTML='<p class="err">Drag the blue lines to the card edges and the pink dashed lines to the inner border.</p>';return}
+  const lr=Math.max(lw,rw)/(lw+rw)*100,tb=Math.max(tw,bw)/(tw+bw)*100,worst=Math.round(Math.max(lr,tb)),g=cenGrade(worst,cen.side);
+  const fmt=(a,b)=>`${Math.round(a/(a+b)*100)}/${Math.round(b/(a+b)*100)}`;
+  $('cenRes').innerHTML=`<div class="cenres"><div class="dcard"><span class="meta">Left / Right</span><b>${fmt(lw,rw)}</b></div><div class="dcard"><span class="meta">Top / Bottom</span><b>${fmt(tw,bw)}</b></div></div>
+  <div class="dverdict ${/10/.test(g)?'dv-great':/9/.test(g)?'dv-good':/8|7/.test(g)?'dv-fair':'dv-bad'}">Centering allows up to ${g}<small>${cen.side==='back'?'Back':'Front'} centering ${Math.round(worst)}/${Math.round(100-worst)} at its worst. Corners, edges and surface also count.</small></div>
+  <p class="meta">PSA 10 needs about 55/45 or better on the front and 75/25 on the back. PSA 9 allows about 60/40 and PSA 8 about 65/35 on the front.</p>`;
+}
+function cenLoad(file){
+  if(!file)return;const u=URL.createObjectURL(file),img=new Image();
+  img.onload=()=>{cen.img=img;try{cen.L=cenDetect(img)}catch(e){}$('cenWrap').hidden=false;cenDraw();URL.revokeObjectURL(u)};
+  img.onerror=()=>toast('Couldn’t open that photo.');img.src=u;
+}
+{const cv=$('cenCv');let drag=null;
+  const pos=e=>{const r=cv.getBoundingClientRect(),t=e.touches?e.touches[0]:e;return{x:(t.clientX-r.left)/r.width,y:(t.clientY-r.top)/r.height,r}};
+  const down=e=>{if(!cen.img)return;const p=pos(e),tol=24/p.r.width;let best=null,bd=1;
+    for(const k of ['oL','oR','iL','iR']){const d=Math.abs(p.x-cen.L[k]);if(d<bd){bd=d;best=k}}
+    for(const k of ['oT','oB','iT','iB']){const d=Math.abs(p.y-cen.L[k])*p.r.height/p.r.width;if(d<bd){bd=d;best=k}}
+    if(bd<tol){drag=best;e.preventDefault()}};
+  const move=e=>{if(!drag)return;const p=pos(e);cen.L[drag]=Math.min(.999,Math.max(.001,/[LR]$/.test(drag)?p.x:p.y));cenDraw();e.preventDefault()};
+  const up=()=>{drag=null};
+  cv.addEventListener('pointerdown',down);cv.addEventListener('pointermove',move);window.addEventListener('pointerup',up);
+  cv.addEventListener('touchstart',down,{passive:false});cv.addEventListener('touchmove',move,{passive:false});window.addEventListener('touchend',up);
+}
+$('cenCam').onchange=e=>{cenLoad(e.target.files?.[0]);e.target.value=''};$('cenPick').onchange=e=>{cenLoad(e.target.files?.[0]);e.target.value=''};
+$('cenFront').onclick=()=>{cen.side='front';$('cenFront').setAttribute('aria-pressed','true');$('cenBack').setAttribute('aria-pressed','false');cenDraw()};
+$('cenBack').onclick=()=>{cen.side='back';$('cenBack').setAttribute('aria-pressed','true');$('cenFront').setAttribute('aria-pressed','false');cenDraw()};
+$('centerJump').onclick=()=>go('center');
+
+/* ---------- voice search ---------- */
+{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(SR){$('micBtn').hidden=false;$('micBtn').onclick=()=>{
+  const r=new SR();r.lang='en-US';r.interimResults=false;r.maxAlternatives=1;$('micBtn').textContent='…';$('homeMsg').textContent='Listening… say a card name, like “Charizard ex 151”.';
+  r.onresult=e=>{const t=e.results[0][0].transcript.replace(/\bslash\b/gi,'/').replace(/\s*\/\s*/g,'/');$('q').value=t;search(t)};
+  r.onerror=e=>{$('homeMsg').textContent=e.error==='not-allowed'?'Microphone access was blocked. Allow it in Chrome settings.':'Didn’t catch that. Try again.'};
+  r.onend=()=>{$('micBtn').textContent='🎤'};try{r.start()}catch(e){$('micBtn').textContent='🎤'}}}}
+
+/* ---------- duplicates → trade ---------- */
+$('dupeTrade').onclick=()=>{let n=0;col.filter(x=>x.qty>1).forEach(x=>{for(let i=1;i<x.qty;i++){trade.give.push({id:x.id,name:x.name,set:x.set,num:x.num,img:x.img,price:num(x.price)?unitVal(x):x.price});n++}});saveTrade();toast(`Added ${n} extra card${n===1?'':'s'} to Trade check.`);go('trade')};
 /* ---------- navigation ---------- */
 let view='home';
 function route(){
   if(location.hash.startsWith('#s=')){if(!$('sharedView')&&!window._shOpen){window._shOpen=1;showShared(location.hash.slice(3)).finally(()=>{window._shOpen=0})}return}
-  const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack','insights','game','deal'].includes(h)?h:'home';view=v;
+  const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack','insights','game','deal','center'].includes(h)?h:'home';view=v;
   document.querySelectorAll('.view').forEach(s=>s.hidden=s.id!=='v-'+v);
   document.querySelectorAll('.tabbar a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   if(v==='sets'){if(curSet)renderSetDetail(curSet);else renderSets()}
