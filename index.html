@@ -201,6 +201,17 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .tile .own{position:absolute;top:12px;right:12px;background:#1d7a3c;color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .hit{position:absolute;top:12px;right:12px;background:#e5383b;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .mv{display:block;font-size:13px;font-weight:700}
+.dealbox{margin-top:12px;display:grid;gap:12px}
+.dcard{background:var(--paper);border-radius:20px;padding:14px 16px}
+.dcard h2{margin:0 0 6px;font-size:18px}
+.dverdict{border-radius:16px;padding:14px;text-align:center;font-weight:800;font-size:22px;margin-top:10px;color:#fff}
+.dverdict small{display:block;font-size:14px;font-weight:500;opacity:.9}
+.dv-great{background:#1d7a3c}.dv-good{background:#3f9c5a}.dv-fair{background:#8a7a1a}.dv-high{background:#c0612b}.dv-bad{background:#e5383b}
+.dmoney{display:flex;gap:8px;align-items:center}.dmoney input{flex:1;font:inherit;font-size:22px;font-weight:700;min-height:54px;border-radius:14px;border:2px solid var(--line);background:var(--paper);color:var(--ink);padding:0 14px}
+input[type=range]{width:100%;accent-color:#e5383b;height:32px}
+.coach{position:absolute;inset:0;z-index:6;background:#000c;color:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:30px;gap:14px}
+.coach ol{text-align:left;max-width:320px;margin:0;padding-left:22px;font-size:16px;line-height:1.5}.coach li{margin:8px 0}
+.coach h2{margin:0;font-size:26px}
 .jp{position:absolute;bottom:76px;right:12px;background:#fff;color:#bc002d;border:2px solid #bc002d;font-size:11px;font-weight:800;border-radius:6px;padding:0 5px}
 .langs{display:flex;gap:8px;margin-top:14px}.langs .chip{flex:1;justify-content:center}
 .slab{position:absolute;top:12px;right:12px;background:#c8102e;color:#fff;font-size:11px;font-weight:800;border-radius:6px;padding:2px 6px;letter-spacing:.02em;box-shadow:0 2px 6px #0004}
@@ -307,6 +318,7 @@ input[type=search]{width:100%}
         <button class="act" id="rapidHome"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M13 2 4 14h7l-1 8 9-12h-7z"/></svg>Rapid scan<small>Add a stack fast</small></button>
         <button class="act" id="searchJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Search<small>50,000+ cards, EN + JP</small></button>
         <button class="act" id="packJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 3h12l-1 4H7zM7 7h10v14H7z"/><path d="M10 12h4"/></svg>Rip a pack<small>Was it worth it?</small></button>
+        <button class="act" id="dealJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M20 12 12 20 4 12V4h8z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>Deal check<small>Card shows & buying</small></button>
         <button class="act" id="tradeJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg>Trade check<small>Is it fair?</small></button>
       </div>
     </div>
@@ -409,6 +421,15 @@ input[type=search]{width:100%}
     <p class="vsub">Is the second card worth more or less than the first? Real TCGplayer market prices.</p>
     <div class="gscore"><div><b id="gStreak">0</b><span>streak</span></div><div><b id="gBest">0</b><span>best</span></div></div>
     <div class="gboard" id="gBoard"><p class="empty">Loading cards…</p></div>
+  </section>
+
+  <section class="view" id="v-deal" hidden>
+    <h1 class="vt">Deal check</h1>
+    <p class="vsub">Scan or add a seller’s cards, then see if the price is right. Nothing here goes into your collection until you say you bought it.</p>
+    <div class="row"><button class="scanbtn" id="dealScan" style="min-height:58px;font-size:18px;flex:1 1 200px">Scan cards into this deal</button></div>
+    <input type="search" id="dealQ" placeholder="Or add a card by name…" aria-label="Add a card to the deal" autocomplete="off" style="margin-top:10px"><ul class="drop" id="dealDrop" hidden></ul>
+    <ul class="tlist" id="dealList" style="background:var(--paper);border-radius:16px;padding:0 12px;margin-top:10px"></ul>
+    <div class="dealbox" id="dealBox"></div>
   </section>
 
   <section class="view" id="v-trade" hidden>
@@ -702,7 +723,8 @@ setTimeout(()=>getWorker().catch(()=>{}),600); // warm up the reader while you b
 let stream=null,track=null,loopOn=false,reading=false,torchOn=false;
 const chip=t=>{$('schip').textContent=t};
 async function openScanner(){
-  $('scanner').hidden=false;document.body.style.overflow='hidden';chip('Starting camera…');
+  $('scanner').hidden=false;document.body.style.overflow='hidden';chip(dealMode?'Deal mode: cards go into the deal, not your collection':'Starting camera…');
+  if(!LS.get('hvl-coach',false)){const c=document.createElement('div');c.className='coach';c.innerHTML='<h2>Quick tips</h2><ol><li><b>Fill the white frame</b> with the whole card.</li><li><b>Avoid glare.</b> Tilt the card a little if the light reflects.</li><li><b>Hold still</b> for a second. It locks on by itself, or shows its best guesses to tap.</li><li>Wrong card? Tap the right one and it <b>learns</b>.</li></ol><button id="coachOk" style="background:#ffd23f!important;color:#16141a!important;border:0;min-height:52px;padding:0 28px;font-size:17px">Got it</button>';$('scanner').appendChild(c);$('coachOk').onclick=()=>{LS.set('hvl-coach',true);c.remove()}}
   visAgree=[];visRecent=null;$('vsugg').hidden=true;if(!vis&&!visFail)loadVis().then(x=>{if(x)dbg('Picture recognition ready')});
   getWorker().catch(e=>chip(e.message));
   if(!navigator.mediaDevices?.getUserMedia){chip('This browser can’t open the live camera. Tap Photo to take a picture instead.');return}
@@ -721,7 +743,8 @@ async function openScanner(){
   }
 }
 function closeScanner(){
-  if(session.length&&rapid)toast(`Added ${session.length} card${session.length===1?'':'s'} to your collection.`);session=[];$('found').hidden=true;
+  if(session.length&&(rapid||dealMode))toast(dealMode?`${session.length} card${session.length===1?'':'s'} added to the deal.`:`Added ${session.length} card${session.length===1?'':'s'} to your collection.`);session=[];$('found').hidden=true;
+  if(dealMode){dealMode=false;if(view==='deal')renderDeal()}
   loopOn=false;stream?.getTracks().forEach(t=>t.stop());stream=null;track=null;torchOn=false;$('torch').hidden=true;
   $('scanner').hidden=true;$('scanner').classList.remove('found');document.body.style.overflow='';
 }
@@ -736,6 +759,10 @@ const known=(n,tot)=>!!tcgIdx?.cards?.[(+n)+'/'+(+tot)];
 let rapid=LS.get('hvl-rapid',false),lastAddedKey='',lastAddedAt=0,session=[],emptyFrames=0;
 function rapidAdd(c,key){
   if(!hasPrice(c))tcgFill(c);
+  if(dealMode){const v=bestVariant(c);deal.items.push(dealItem(c));saveDeal();lastAddedKey=key;lastAddedAt=Date.now();session.push({id:c.id,price:priceFor(c,v)});
+    $('found').innerHTML=`${okUrl(c.images?.small)?`<img src="${esc(c.images.small)}" alt="">`:''}<div><b></b><span></span></div><button id="undoAdd">Undo</button>`;
+    $('found').querySelector('b').textContent=c.name;$('found').querySelector('span').textContent=`${money(priceFor(c,v))} · added to deal`;$('found').hidden=false;
+    $('undoAdd').onclick=()=>{deal.items.pop();session.pop();saveDeal();renderSession();$('found').hidden=true};renderSession();chip('In the deal! Next card…');return}
   const v=bestVariant(c),it=addCard(c,v);lastAddedKey=key;lastAddedAt=Date.now();session.push({id:c.id,price:priceFor(c,v)});
   const p=priceFor(c,v);
   $('found').innerHTML=`${okUrl(c.images?.small)?`<img src="${esc(c.images.small)}" alt="">`:''}<div><b></b><span></span></div><button id="undoAdd">Undo</button>`;
@@ -746,16 +773,16 @@ function rapidAdd(c,key){
 }
 function renderSession(){
   const t=session.reduce((a,x)=>a+(num(x.price)?x.price:0),0);
-  $('sess').hidden=!rapid||!session.length;$('sess').textContent=`${session.length} scanned · ${money(t)} · Done`;
+  $('sess').hidden=!(rapid||dealMode)||!session.length;$('sess').textContent=`${session.length} scanned · ${money(t)} · ${dealMode?'Back to deal':'Done'}`;
 }
 function setRapid(on){rapid=on;LS.set('hvl-rapid',on);$('rapidBtn').textContent=on?'Rapid: On':'Rapid: Off';$('rapidBtn').setAttribute('aria-pressed',on);renderSession()}
 let lastAlts=[];
 function handleFound(cards,key,manual){
-  if(!manual&&rapid&&key===lastAddedKey)return;
+  if(!manual&&(rapid||dealMode)&&key===lastAddedKey)return;
   lastAlts=(visRecent&&Date.now()-visRecent.t<3000?visRecent.top:[]).filter(m=>!cards.some(c=>c.id===m.card.id)).slice(0,6);lastAltsFor=cards[0]?.id||'';
   $('scanner').classList.add('found');navigator.vibrate?.(60);
   if(cards.length===1&&typeof logScan==='function')logScan(cards[0]);
-  if(rapid&&cards.length===1){rapidAdd(cards[0],key);visAgree=[];setTimeout(()=>$('scanner').classList.remove('found'),600);return}
+  if((rapid||dealMode)&&cards.length===1){rapidAdd(cards[0],key);visAgree=[];setTimeout(()=>$('scanner').classList.remove('found'),600);return}
   closeScanner();
   if(cards.length===1)openCard(cards[0]);else showChoices(cards,`Which card is ${key}?`);
 }
@@ -850,7 +877,7 @@ async function visOnce(){
     // and the same card won at least 2 of the last 3 looks. Otherwise the user taps a suggestion.
     const acc=vis.meta.v===2?vis.meta.accept:null;
     if((top[0].mem&&top[0].score>=.93&&visAgree.slice(-2).every(p=>p===top[0].pid))||(acc&&acc.precision&&top[0].score>=acc.score&&margin>=acc.margin&&visAgree.slice(-3).filter(p=>p===top[0].pid).length>=2)){
-      if(rapid&&top[0].key===lastAddedKey){chip('Got it! Swap in the next card…');return}
+      if((rapid||dealMode)&&top[0].key===lastAddedKey){chip('Got it! Swap in the next card…');return}
       const dup=top.filter(m=>m.card.name===top[0].card.name&&m.key===top[0].key);
       handleFound(dup.length>1?dup.map(m=>m.card):[top[0].card],top[0].key,false);
     }else if(same<=1&&visAgree.length>=4){emptyFrames++;if(emptyFrames>=3)lastAddedKey=''}
@@ -888,7 +915,7 @@ async function scanOnce(manual){
     }else if(tcgIdx&&!known(number.n,number.tot)){if(manual)chip(`${+number.n}/${+number.tot} isn’t a real card number. Hold steadier and try again.`);return} // misread: keep scanning
     emptyFrames=0;const key=(+number.n)+'/'+(+number.tot);lastNumKey=key;lastNumAt=Date.now();
     if(key!==lastAddedKey&&lastAddedKey&&!manual)lastAddedKey='';
-    if(!manual&&rapid&&key===lastAddedKey){chip('Got it! Swap in the next card…');return} // same card still in view
+    if(!manual&&(rapid||dealMode)&&key===lastAddedKey){chip('Got it! Swap in the next card…');return} // same card still in view
     chip(`Read ${key} · checking…`);
     // if the picture recogniser recently saw a card with this number, trust that match
     if(visRecent&&Date.now()-visRecent.t<2500){const hit=visRecent.top.find(m=>m.key===key);if(hit){handleFound([hit.card],key,manual);return}}
@@ -1847,11 +1874,58 @@ async function importCSV(file){
     save();closeSheet();renderAll();confetti();toast(`Imported ${out.length} cards.`);
   };
 }
+
+/* ---------- deal check ---------- */
+let deal=LS.get('hvl-deal',{items:[],ask:null,pct:70}),dealMode=false;
+const saveDeal=()=>LS.set('hvl-deal',deal);
+function dealItem(c){const v=bestVariant(c);return{id:c.id,name:c.name,set:c.set?.name||'',num:c._sealed?'':`${c.number}/${c.set?.printedTotal||''}`,img:c.images?.small||'',price:priceFor(c,v),v,jp:!!c._jp,sealed:!!c._sealed}}
+function verdict(pct){
+  if(pct<=70)return['dv-great','🔥 Great deal','well under market'];
+  if(pct<=85)return['dv-good','👍 Good deal','below market'];
+  if(pct<=100)return['dv-fair','🤝 Fair price','about market value'];
+  if(pct<=115)return['dv-high','😬 A bit high','over market'];
+  return['dv-bad','🚫 Overpriced','well over market'];
+}
+function renderDeal(){
+  const its=deal.items,mkt=its.reduce((a,x)=>a+(num(x.price)?x.price:0),0);
+  $('dealList').innerHTML=its.map((x,i)=>`<li>${imgTag(x.img)}<div class="nm">${esc(x.name)}<small>${esc(x.set)}${x.num?' · '+esc(x.num):''}</small></div><b>${money(x.price)}</b><button data-i="${i}" aria-label="Remove ${esc(x.name)}">×</button></li>`).join('')||'<li class="empty" style="padding:14px 0">No cards yet. Scan the seller’s cards or add them by name.</li>';
+  $('dealList').querySelectorAll('button').forEach(b=>b.onclick=()=>{deal.items.splice(+b.dataset.i,1);saveDeal();renderDeal()});
+  if(!its.length){$('dealBox').innerHTML='';return}
+  const ask=num(deal.ask)?deal.ask:null,pct=ask!==null&&mkt?ask/mkt*100:null,[vc,vt,vs]=pct!==null?verdict(pct):['','',''];
+  const offer=mkt*deal.pct/100;
+  $('dealBox').innerHTML=`<div class="dcard"><h2>Market value</h2><div class="big" style="font-size:32px;font-weight:800">${money(mkt)}</div><p class="meta">${its.length} card${its.length===1?'':'s'} at today’s TCGplayer market prices</p></div>
+  <div class="dcard"><h2>Buying? Enter the asking price</h2><div class="dmoney"><span style="font-size:22px;font-weight:800">$</span><input id="dealAsk" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00" value="${ask??''}"></div>
+  ${pct!==null?`<div class="dverdict ${vc}">${vt}<small>Asking ${money(ask)} is ${Math.round(pct)}% of market (${vs})${ask<mkt?` · you’d save ${money(mkt-ask)}`:` · ${money(ask-mkt)} over`}</small></div>
+  <div class="row" style="margin-top:10px"><button id="dealBought">I bought it: add to my collection</button></div>`:'<p class="meta">Most sellers at shows ask 80–100% of market for singles.</p>'}</div>
+  <div class="dcard"><h2>Selling to a vendor, or buying a collection?</h2><p class="meta">Offer at <b id="pctLab">${deal.pct}%</b> of market</p><input type="range" id="dealPct" min="40" max="100" step="5" value="${deal.pct}" aria-label="Offer percentage">
+  <div class="big" style="font-size:28px;font-weight:800" id="dealOffer">${money(offer)}</div><p class="meta">Shops usually pay 60–75% cash or 70–85% store credit.</p></div>
+  <div class="row"><button class="ghost" id="dealClear">Clear deal</button></div>`;
+  $('dealAsk').onchange=e=>{const n=parseFloat(e.target.value);deal.ask=isFinite(n)&&n>=0?n:null;saveDeal();renderDeal()};
+  $('dealPct').oninput=e=>{deal.pct=+e.target.value;saveDeal();$('pctLab').textContent=deal.pct+'%';$('dealOffer').textContent=money(mkt*deal.pct/100)};
+  $('dealClear').onclick=()=>{const old=deal;deal={items:[],ask:null,pct:old.pct};saveDeal();renderDeal();toast('Deal cleared.',()=>{deal=old;saveDeal();renderDeal()})};
+  const bb=$('dealBought');if(bb)bb.onclick=async()=>{
+    // split what you paid across the cards by their market value, so profit tracking is right from day one
+    let n=0;for(const x of its){const share=mkt?(num(x.price)?x.price:0)/mkt:1/its.length,paidEach=Math.round(ask*share*100)/100;
+      const c=await cardForItem({...x,id:x.id});if(!c)continue;cache.set(c.id,c);let it=col.find(i=>i.id===c.id);
+      if(it){it.qty++}else{it={...itemFromCard(c,x.v),qty:1,binder:curBinder!=='All'?curBinder:'Main'};col.unshift(it)}
+      if(!num(it.paid))it.paid=paidEach;n++}
+    save();const saved=mkt-ask;deal={items:[],ask:null,pct:deal.pct};saveDeal();renderAll();renderDeal();if(saved>=20)confetti();toast(`Added ${n} cards with what you paid. ${saved>=0?`You got ${money(saved)} of value for free!`:''}`);
+  };
+}
+{let tm;$('dealQ').oninput=()=>{clearTimeout(tm);tm=setTimeout(async()=>{
+  const t=$('dealQ').value.trim();if(t.length<2){$('dealDrop').hidden=true;return}
+  await tcgIndex();const res=[...localSearch(t,8),...sealedSearch(t,false).slice(0,3)];
+  $('dealDrop').innerHTML=res.map((c,i)=>`<li><button data-i="${i}"><span>${esc(c.name)} <small style="color:var(--soft)">${esc(c.set?.name||'')} ${c._sealed?'· Sealed':esc(c.number+'/'+(c.set?.printedTotal||''))}</small></span><b>${money(priceFor(c,bestVariant(c)))}</b></button></li>`).join('')||'<li style="padding:10px" class="empty">No matches</li>';
+  $('dealDrop').hidden=false;
+  $('dealDrop').querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=res[+b.dataset.i];cache.set(c.id,c);deal.items.push(dealItem(c));saveDeal();$('dealQ').value='';$('dealDrop').hidden=true;renderDeal()});
+},150)}}
+$('dealScan').onclick=()=>{dealMode=true;openScanner()};
+$('dealJump').onclick=()=>go('deal');
 /* ---------- navigation ---------- */
 let view='home';
 function route(){
   if(location.hash.startsWith('#s=')){if(!$('sharedView')&&!window._shOpen){window._shOpen=1;showShared(location.hash.slice(3)).finally(()=>{window._shOpen=0})}return}
-  const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack','insights','game'].includes(h)?h:'home';view=v;
+  const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack','insights','game','deal'].includes(h)?h:'home';view=v;
   document.querySelectorAll('.view').forEach(s=>s.hidden=s.id!=='v-'+v);
   document.querySelectorAll('.tabbar a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   if(v==='sets'){if(curSet)renderSetDetail(curSet);else renderSets()}
@@ -1859,6 +1933,7 @@ function route(){
   if(v==='pack')renderPack();
   if(v==='insights')renderInsights();
   if(v==='game')renderGame();
+  if(v==='deal')renderDeal();
   if(v!=='col'&&typeof setSelecting==='function'&&selecting)setSelecting(false);
   window.scrollTo(0,0);
 }
@@ -1882,7 +1957,7 @@ $('video').addEventListener('click',e=>{if(!track)return;const r=$('video').getB
   track.applyConstraints({advanced:[{pointsOfInterest:[pt],focusMode:'single-shot'}]}).then(()=>setTimeout(()=>track?.applyConstraints({advanced:[{focusMode:'continuous'}]}).catch(()=>{}),1500)).catch(()=>{});chip('Focusing…')});
 $('closeScan').onclick=closeScanner;
 $('rapidBtn').onclick=()=>{setRapid(!rapid);chip(rapid?'Rapid scan on: each card is added automatically':'Rapid scan off')};
-$('sess').onclick=()=>{closeScanner();go(activePack()?'pack':'col')};
+$('sess').onclick=()=>{const dm=dealMode;closeScanner();go(dm?'deal':activePack()?'pack':'col')};
 setRapid(rapid);
 $('shutter').onclick=()=>scanOnce(true);
 $('typeIt').onclick=()=>{closeScanner();go('home');setTimeout(()=>$('q').focus(),100)};
