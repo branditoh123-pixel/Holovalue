@@ -369,7 +369,7 @@ input[type=search]{width:100%}
         <button class="act" id="searchJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>Search<small>50,000+ cards, EN + JP</small></button>
         <button class="act" id="packJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 3h12l-1 4H7zM7 7h10v14H7z"/><path d="M10 12h4"/></svg>Rip a pack<small>Was it worth it?</small></button>
         <button class="act" id="dealJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M20 12 12 20 4 12V4h8z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>Deal check<small>Card shows & buying</small></button>
-        <button class="act" id="centerJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><rect x="8" y="6" width="8" height="12" rx="1"/></svg>Centering<small>Grade pre-check</small></button>
+        <button class="act" id="centerJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><rect x="8" y="6" width="8" height="12" rx="1"/></svg>Card grader<small>Estimate the grade</small></button>
         <button class="act" id="pageJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="5" height="7" rx="1"/><rect x="9.5" y="3" width="5" height="7" rx="1"/><rect x="16" y="3" width="5" height="7" rx="1"/><rect x="3" y="14" width="5" height="7" rx="1"/><rect x="9.5" y="14" width="5" height="7" rx="1"/><rect x="16" y="14" width="5" height="7" rx="1"/></svg>Binder page scan<small>9 cards, one photo</small></button>
         <button class="act" id="trendJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Trending<small>Biggest movers</small></button>
         <button class="act" id="fakeJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Real or fake?<small>Check before you buy</small></button>
@@ -492,13 +492,15 @@ input[type=search]{width:100%}
   </section>
 
   <section class="view" id="v-center" hidden>
-    <h1 class="vt">Centering checker</h1>
-    <p class="vsub">Photograph a card straight on, on a dark surface. HoloValue finds the borders. Drag any line to fine-tune it, and you’ll see the centering and the best PSA grade it allows.</p>
+    <h1 class="vt">Card grader</h1>
+    <p class="vsub">Estimate a PSA grade before you pay to submit. Photograph the front and the back straight from above, on a plain dark surface, with no glare. HoloValue checks centering and looks for whitening on corners and edges. Drag any line to fine-tune it.</p>
     <div class="row"><label class="btn" style="position:relative;overflow:hidden;flex:1 1 160px">📷 Take photo<input type="file" id="cenCam" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0"></label>
     <label class="btn ghost" style="position:relative;overflow:hidden;flex:1 1 160px">Choose photo<input type="file" id="cenPick" accept="image/*" style="position:absolute;inset:0;opacity:0"></label></div>
     <div class="seg" role="group" aria-label="Side" style="margin-top:12px"><button id="cenFront" aria-pressed="true">Front</button><button id="cenBack" aria-pressed="false">Back</button></div>
     <div class="cenwrap" id="cenWrap" hidden><canvas id="cenCv"></canvas></div>
     <div id="cenRes"></div>
+    <div id="gradeQ"></div>
+    <div id="gradeOut"></div>
   </section>
 
   <section class="view" id="v-page" hidden>
@@ -2080,7 +2082,7 @@ function evHTML(set){
 }
 
 /* ---------- centering checker ---------- */
-let cen={img:null,side:'front',L:{oL:.03,oR:.97,oT:.03,oB:.97,iL:.08,iR:.92,iT:.06,iB:.94}};
+let cen={img:null,side:'front',L:{oL:.03,oR:.97,oT:.03,oB:.97,iL:.08,iR:.92,iT:.06,iB:.94},ph:{front:null,back:null},surf:{}};
 function cenDetect(img,base){
   const W=300,H=Math.round(img.height*W/img.width),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(img,0,0,W,H);
   const d=x.getImageData(0,0,W,H).data,g=new Float32Array(W*H);for(let i=0,j=0;i<d.length;i+=4,j++)g[j]=.299*d[i]+.587*d[i+1]+.114*d[i+2];
@@ -2105,17 +2107,20 @@ function cenDraw(){
   const line=(k,vert,color)=>{const v=L[k];x.strokeStyle=color;x.lineWidth=Math.max(2,W/250);x.setLineDash(k[0]==='i'?[W/60,W/90]:[]);x.beginPath();if(vert){x.moveTo(v*W,0);x.lineTo(v*W,H)}else{x.moveTo(0,v*H);x.lineTo(W,v*H)}x.stroke();x.setLineDash([]);
     x.fillStyle=color;x.beginPath();if(vert)x.arc(v*W,H/2+(k[0]==='i'?W/14:-W/14),W/45,0,7);else x.arc(W/2+(k[0]==='i'?W/14:-W/14),v*H,W/45,0,7);x.fill()};
   ['oL','oR'].forEach(k=>line(k,1,'#5ec8ff'));['oT','oB'].forEach(k=>line(k,0,'#5ec8ff'));['iL','iR'].forEach(k=>line(k,1,'#ff6b9d'));['iT','iB'].forEach(k=>line(k,0,'#ff6b9d'));
+  const ph=cen.ph[cen.side];if(ph?.wear?.pts){x.fillStyle='#ff2d2d';const r=Math.max(2,W/220);for(const [px,py] of ph.wear.pts){x.beginPath();x.arc(px*W,py*H,r,0,7);x.fill()}}
   const lw=L.iL-L.oL,rw=L.oR-L.iR,tw=L.iT-L.oT,bw=L.oB-L.iB;
-  if(lw<=0||rw<=0||tw<=0||bw<=0){$('cenRes').innerHTML='<p class="err">Drag the blue lines to the card edges and the pink dashed lines to the inner border.</p>';return}
+  if(lw<=0||rw<=0||tw<=0||bw<=0){$('cenRes').innerHTML='<p class="err">Drag the blue lines to the card edges and the pink dashed lines to the inner border.</p>';if(ph)ph.cent=null;gradeSummary();return}
   const lr=Math.max(lw,rw)/(lw+rw)*100,tb=Math.max(tw,bw)/(tw+bw)*100,worst=Math.round(Math.max(lr,tb)),g=cenGrade(worst,cen.side);
+  if(ph)ph.cent=worst;
   const fmt=(a,b)=>`${Math.round(a/(a+b)*100)}/${Math.round(b/(a+b)*100)}`;
   $('cenRes').innerHTML=`<div class="cenres"><div class="dcard"><span class="meta">Left / Right</span><b>${fmt(lw,rw)}</b></div><div class="dcard"><span class="meta">Top / Bottom</span><b>${fmt(tw,bw)}</b></div></div>
   <div class="dverdict ${/10/.test(g)?'dv-great':/9/.test(g)?'dv-good':/8|7/.test(g)?'dv-fair':'dv-bad'}">Centering allows up to ${g}<small>${cen.side==='back'?'Back':'Front'} centering ${Math.round(worst)}/${Math.round(100-worst)} at its worst. Corners, edges and surface also count.</small></div>
   <p class="meta">PSA 10 needs about 55/45 or better on the front and 75/25 on the back. PSA 9 allows about 60/40 and PSA 8 about 65/35 on the front.</p>`;
+  gradeSummary();
 }
 function cenLoad(file){
   if(!file)return;const u=URL.createObjectURL(file),img=new Image();
-  img.onload=()=>{cen.img=img;try{cen.L=cenDetect(img)}catch(e){}$('cenWrap').hidden=false;cenDraw();URL.revokeObjectURL(u)};
+  img.onload=()=>{cen.img=img;try{cen.L=cenDetect(img)}catch(e){}cen.ph[cen.side]={img,L:cen.L,wear:null,cent:null};wearUpdate();$('cenWrap').hidden=false;cenDraw();URL.revokeObjectURL(u)};
   img.onerror=()=>toast('Couldn’t open that photo.');img.src=u;
 }
 {const cv=$('cenCv');let drag=null;
@@ -2125,13 +2130,71 @@ function cenLoad(file){
     for(const k of ['oT','oB','iT','iB']){const d=Math.abs(p.y-cen.L[k])*p.r.height/p.r.width;if(d<bd){bd=d;best=k}}
     if(bd<tol){drag=best;e.preventDefault()}};
   const move=e=>{if(!drag)return;const p=pos(e);cen.L[drag]=Math.min(.999,Math.max(.001,/[LR]$/.test(drag)?p.x:p.y));cenDraw();e.preventDefault()};
-  const up=()=>{drag=null};
+  const up=()=>{if(drag){drag=null;wearUpdate();cenDraw()}};
   cv.addEventListener('pointerdown',down);cv.addEventListener('pointermove',move);window.addEventListener('pointerup',up);
   cv.addEventListener('touchstart',down,{passive:false});cv.addEventListener('touchmove',move,{passive:false});window.addEventListener('touchend',up);
 }
+
+/* ---------- card grader: corner & edge whitening + overall estimate ---------- */
+// Looks along a thin band just inside the card's outer edge. Whitening shows as pixels much lighter and less colorful than the border around them.
+function wearAnalyze(img,L,side){
+  const ox=L.oL*img.width,oy=L.oT*img.height,ow=(L.oR-L.oL)*img.width,oh=(L.oB-L.oT)*img.height;if(ow<50||oh<50)return null;
+  const W=700,H=Math.round(W*oh/ow),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(img,ox,oy,ow,oh,0,0,W,H);
+  const d=x.getImageData(0,0,W,H).data,b0=Math.round(W*.006),b1=Math.round(W*.03),cs=Math.round(W*.075);
+  const inBand=(px,py)=>{const m=Math.min(px,py,W-1-px,H-1-py);return m>=b0&&m<b1};
+  const lum=[],chr=[];for(let py=0;py<H;py+=2)for(let px=0;px<W;px+=2){if(!inBand(px,py))continue;const i=(py*W+px)*4,r=d[i],g=d[i+1],bb=d[i+2];lum.push(.299*r+.587*g+.114*bb);chr.push(Math.max(r,g,bb)-Math.min(r,g,bb))}
+  const med=a=>{const s=a.slice().sort((p,q)=>p-q);return s[s.length>>1]||0};const Lr=med(lum),Cr=med(chr);
+  if(side==='front'&&Cr<45)return{unsupported:1};
+  const isW=(r,g,bb)=>{const l=.299*r+.587*g+.114*bb,ch=Math.max(r,g,bb)-Math.min(r,g,bb);return side==='back'?(l>Lr+70&&ch<Cr*.6+15):(l>Math.max(170,Lr-10)&&ch<Cr*.45)};
+  const zones={tl:[0,0],tr:[0,0],bl:[0,0],br:[0,0],t:[0,0],b:[0,0],l:[0,0],r:[0,0]},pts=[];
+  for(let py=0;py<H;py++)for(let px=0;px<W;px++){
+    if(!inBand(px,py))continue;const i=(py*W+px)*4,w=isW(d[i],d[i+1],d[i+2]);
+    const L1=px<cs,R1=px>=W-cs,T1=py<cs,B1=py>=H-cs;
+    const z=T1&&L1?'tl':T1&&R1?'tr':B1&&L1?'bl':B1&&R1?'br':Math.min(py,H-1-py)<=Math.min(px,W-1-px)?(py<H/2?'t':'b'):(px<W/2?'l':'r');
+    zones[z][1]++;if(w){zones[z][0]++;if(pts.length<1500&&Math.random()<.5)pts.push([(ox+px/W*ow)/img.width,(oy+py/H*oh)/img.height])}}
+  const f=k=>zones[k][1]?zones[k][0]/zones[k][1]:0;
+  const corners={tl:f('tl'),tr:f('tr'),bl:f('bl'),br:f('br')},edges={t:f('t'),b:f('b'),l:f('l'),r:f('r')};
+  const glare=Math.max(...Object.values(edges))>.25||Math.max(...Object.values(corners))>.45;
+  return{corners,edges,pts,glare};
+}
+function wearUpdate(){const ph=cen.ph[cen.side];if(!ph)return;ph.L=cen.L;try{ph.wear=wearAnalyze(ph.img,cen.L,cen.side)}catch(e){ph.wear=null}}
+const subC=f=>f<.004?10:f<.012?9:f<.03?8:f<.06?7:f<.1?6:5,subE=f=>f<.003?10:f<.01?9:f<.025?8:f<.05?7:f<.09?6:5;
+const centF=w=>w<=55?10:w<=60?9:w<=65?8:w<=75?7:w<=80?6:w<=85?5:4,centB=w=>w<=75?10:w<=90?9:6;
+const SURF=[['crease','Any creases, bends or folds?',5],['dent','Any dents or indents?',7],['scratch','Scratches or scuffs on the front (tilt it under a light)?',8],['print','Print lines, stains or ink spots?',9]];
+const CN={tl:'top-left',tr:'top-right',bl:'bottom-left',br:'bottom-right'},EN={t:'top',b:'bottom',l:'left',r:'right'};
+function gradeSummary(){
+  const F=cen.ph.front,B=cen.ph.back;
+  $('gradeQ').innerHTML=(F||B)?`<h2 style="margin-top:16px">Surface check</h2><p class="meta">Photos can’t reliably spot these, so check by eye.</p><ul class="chk">${SURF.map(([k,q])=>`<li><div><b>${q}</b></div><div class="yn"><button class="ghost bad" data-s="${k}" data-a="yes" aria-pressed="${cen.surf[k]==='yes'}">Yes</button><button class="ghost ok" data-s="${k}" data-a="no" aria-pressed="${cen.surf[k]==='no'}">No</button></div></li>`).join('')}</ul>`:'';
+  $('gradeQ').querySelectorAll('[data-s]').forEach(b=>b.onclick=()=>{const k=b.dataset.s;cen.surf[k]=cen.surf[k]===b.dataset.a?undefined:b.dataset.a;gradeSummary()});
+  if(!F&&!B){$('gradeOut').innerHTML='';return}
+  const sub={},why=[],unk=[];
+  // centering
+  const cf=F?.cent!=null?centF(F.cent):null,cb=B?.cent!=null?centB(B.cent):null;
+  sub.Centering=Math.min(cf??10,cb??10);if(cf==null)unk.push('front centering');if(cb==null)unk.push('back centering');
+  if(cf!=null&&cf<10)why.push(`front centering is ${F.cent}/${100-F.cent}`);if(cb!=null&&cb<10)why.push(`back centering is ${B.cent}/${100-B.cent}`);
+  // corners & edges, worst of both sides
+  let cw=0,cwk='',ew=0,ewk='',glare=false,checked=0;
+  for(const [sd,ph] of [['front',F],['back',B]]){const w=ph?.wear;if(!w||w.unsupported)continue;checked++;glare=glare||w.glare;
+    for(const [k,v] of Object.entries(w.corners))if(v>cw){cw=v;cwk=`${CN[k]} corner (${sd})`}
+    for(const [k,v] of Object.entries(w.edges))if(v>ew){ew=v;ewk=`${EN[k]} edge (${sd})`}}
+  if(checked){sub.Corners=subC(cw);sub.Edges=subE(ew);if(sub.Corners<10)why.push(`whitening on the ${cwk}`);if(sub.Edges<10)why.push(`wear along the ${ewk}`)}else unk.push('corners and edges');
+  if(!B)unk.push('the back, where whitening shows best');
+  // surface
+  let surf=10;for(const [k,,cap] of SURF){if(cen.surf[k]==='yes'){surf=Math.min(surf,cap);why.push(SURF.find(z=>z[0]===k)[1].replace(/^Any |\?.*$/g,'').replace(/ \(.*$/,'').toLowerCase())}else if(cen.surf[k]!=='no')unk.push({scratch:'scratches',print:'print lines',crease:'creases',dent:'dents'}[k])}
+  sub.Surface=surf;
+  const g=Math.min(...Object.values(sub)),hi=unk.length?Math.min(10,g):g,lo=Math.max(1,g-(unk.length?1:0)-(glare?1:0));
+  const label=lo===hi?`PSA ${g}`:`PSA ${lo}–${hi}`;
+  $('gradeOut').innerHTML=`<h2 style="margin-top:16px">Estimated grade</h2>
+  <div class="dverdict ${g>=10?'dv-great':g>=9?'dv-good':g>=7?'dv-fair':'dv-bad'}" style="font-size:22px">${label}<small>${why.length?'Held back by: '+why.slice(0,4).join('; ')+'.':'No problems found.'}${unk.length?` Not checked yet: ${unk.join(', ')}.`:''}</small></div>
+  <div class="cenres" style="grid-template-columns:repeat(4,1fr)">${Object.entries(sub).map(([k,v])=>`<div class="dcard" style="text-align:center;padding:10px 4px"><span class="meta" style="font-size:12px">${k}</span><b style="font-size:26px">${v}</b></div>`).join('')}</div>
+  ${glare?'<p class="err" style="margin-top:8px">Some bright areas look like glare, which can look like whitening. Retake with softer light to be sure.</p>':''}
+  ${F?.wear?.unsupported?'<p class="meta">This card’s front border is silver or white, so front whitening can’t be checked. The back still works.</p>':''}
+  <p class="meta" style="font-size:12px">Red dots on the photo show possible whitening. This is an estimate from photos. Real graders look under magnification and judge surface, so treat it as a guide. Use “Should I grade it?” on the card to see if grading pays off.</p>`;
+}
 $('cenCam').onchange=e=>{cenLoad(e.target.files?.[0]);e.target.value=''};$('cenPick').onchange=e=>{cenLoad(e.target.files?.[0]);e.target.value=''};
-$('cenFront').onclick=()=>{cen.side='front';$('cenFront').setAttribute('aria-pressed','true');$('cenBack').setAttribute('aria-pressed','false');cenDraw()};
-$('cenBack').onclick=()=>{cen.side='back';$('cenBack').setAttribute('aria-pressed','true');$('cenFront').setAttribute('aria-pressed','false');cenDraw()};
+function cenSide(sd){cen.side=sd;$('cenFront').setAttribute('aria-pressed',sd==='front');$('cenBack').setAttribute('aria-pressed',sd==='back');
+  const ph=cen.ph[sd];if(ph){cen.img=ph.img;cen.L=ph.L;$('cenWrap').hidden=false;cenDraw()}else{cen.img=null;$('cenWrap').hidden=true;$('cenRes').innerHTML=`<p class="meta" style="margin-top:12px">Now take a photo of the <b>${sd}</b> of the card.</p>`;gradeSummary()}}
+$('cenFront').onclick=()=>cenSide('front');$('cenBack').onclick=()=>cenSide('back');
 $('centerJump').onclick=()=>go('center');
 
 /* ---------- voice search ---------- */
