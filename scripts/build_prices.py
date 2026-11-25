@@ -102,11 +102,12 @@ def movers(old_cards, new_cards, limit=40):
     for key, rows in new_cards.items():
         for r in rows:
             m, o = market(r), old.get(r[2])
-            if m and o and m >= 3 and abs(m - o) >= 0.5:
+            # skip cheap cards and overnight jumps of more than 2x: those are almost always one odd sale, not a real move
+            if m and o and m >= 5 and o >= 5 and 0.5 <= m / o <= 2 and abs(m - o) >= 0.5 and abs(m - o) / o >= 0.03:
                 out.append([r[0], r[1], r[2], key, round(o, 2), round(m, 2)])
-    pct = lambda x: (x[5] - x[4]) / x[4]
-    up = sorted([x for x in out if x[5] > x[4]], key=pct, reverse=True)[:limit]
-    down = sorted([x for x in out if x[5] < x[4]], key=pct)[:limit]
+    gain = lambda x: x[5] - x[4]
+    up = sorted([x for x in out if x[5] > x[4]], key=gain, reverse=True)[:limit]
+    down = sorted([x for x in out if x[5] < x[4]], key=gain)[:limit]
     return up, down
 
 

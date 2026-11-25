@@ -1130,16 +1130,21 @@ async function openItem(id,list){const x=(list||col).find(i=>i.id===id)||wish.fi
 function updatePrices(){
   if(!tcgIdx)return 0;const stamp=tcgIdx.updated;let changed=0;
   [...col,...wish].forEach(x=>{
-    if(x.sealed||isSealedId(x.id)){const r=sealedRow(x);if(!r||!num(r[3]))return;const p=r[3];if(p!==x.price){if(num(x.price))x.prev=x.price;x.price=p;changed++}
-      x.hist=x.hist||[];const last=x.hist[x.hist.length-1];if(!last||last[0]!==stamp){x.hist.push([stamp,p]);if(x.hist.length>90)x.hist.shift()}else last[1]=p;return}
+    if(x.sealed||isSealedId(x.id)){const r=sealedRow(x);if(!r||!num(r[3]))return;const p=r[3];if(p!==x.price){x.price=p;changed++}
+      x.hist=x.hist||[];const last=x.hist[x.hist.length-1];if(!last||last[0]!==stamp){x.hist.push([stamp,p]);if(x.hist.length>90)x.hist.shift()}else last[1]=p;
+      x.prev=x.hist.length>=2?x.hist[x.hist.length-2][1]:null;return}
     const row=rowForItem(x);if(!row)return;
     if(!x.pid){x.pid=+row[2];x.group=row[1]}
     if(!okUrl(x.img))x.img=`https://tcgplayer-cdn.tcgplayer.com/product/${row[2]}_200w.jpg`;
     const pr=rowPrices(row),v=x.v&&pr[x.v]?x.v:Object.keys(pr).find(k=>num(pr[k].market))||Object.keys(pr)[0];
     const p=v?(num(pr[v].market)?pr[v].market:pr[v].low):null;if(!num(p))return;
-    if(p!==x.price){if(num(x.price))x.prev=x.price;x.price=p;x.v=v;changed++}
+    // a different version (normal vs holo) has its own price, so its old price isn't a price move
+    if(x.v&&v!==x.v)x.hist=[];
+    if(p!==x.price){x.price=p;changed++}x.v=v;
     x.hist=x.hist||[];const last=x.hist[x.hist.length-1];
     if(!last||last[0]!==stamp){x.hist.push([stamp,p]);if(x.hist.length>90)x.hist.shift()}else last[1]=p;
+    // change = since the previous nightly price update, never since the last screen refresh
+    x.prev=x.hist.length>=2?x.hist[x.hist.length-2][1]:null;
   });
   save();saveWish();return changed;
 }
@@ -1228,13 +1233,19 @@ function ownedTile(x){
   return `<button class="tile" data-cid="${esc(x.id)}">${imgTag(x.img)}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}${gradeLabel(x)?`<span class="slab">${esc(gradeLabel(x))}</span>`:''}${x.jp||isJPid(x.id)?'<span class="jp">JP</span>':''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${x.sealed||isSealedId(x.id)?'Sealed':esc(x.num)}</span><span class="tp">${money(num(x.price)?itemVal(x):null)}</span>${d?`<span class="mv ${d>0?'up':'down'}">${d>0?'▲':'▼'} ${money(Math.abs(d))}</span>`:trendTag(x)}</button>`;
 }
 function renderCol(){renderAll()}
+const pctTxt=p=>(p>=0?'+':'−')+(Math.abs(p)<10?Math.abs(p).toFixed(1):Math.round(Math.abs(p)).toLocaleString())+'%';
 function renderAll(){
   const tot=col.reduce((a,x)=>a+itemVal(x),0),n=col.reduce((a,x)=>a+x.qty,0);
   countUp(tot);
   const hist=LS.get('hvl-hist',{}),today=new Date().toISOString().slice(0,10);
   if(col.length&&hist[today]!==Math.round(tot*100)/100){hist[today]=Math.round(tot*100)/100;const ks=Object.keys(hist).sort();while(ks.length>180)delete hist[ks.shift()];LS.set('hvl-hist',hist)}
-  const prevDay=Object.keys(hist).filter(k=>k<today).sort().pop();
-  let ch='';if(prevDay&&col.length){const d=tot-hist[prevDay];if(Math.abs(d)>=.01)ch=` · <span style="color:${d>0?'#6fdc95':'#ff7b7d'}">${d>0?'▲':'▼'} ${money(Math.abs(d))}</span>`}
+  // price-only change: compare each card's value per copy with the last day before today, so adding or removing cards doesn't count
+  const snaps=LS.get('hvl-snaps',{}),now={};for(const x of col){const u=unitVal(x);if(num(u))now[x.id]=Math.round(u*100)/100}
+  if(col.length&&JSON.stringify(snaps[today])!==JSON.stringify(now)){snaps[today]=now;const ks=Object.keys(snaps).sort();while(ks.length>8)delete snaps[ks.shift()];LS.set('hvl-snaps',snaps)}
+  const prevDay=Object.keys(snaps).filter(k=>k<today).sort().pop();
+  let ch='';if(prevDay&&col.length){const old=snaps[prevDay];let d=0,base=0;for(const x of col){const o=old[x.id],u=now[x.id];if(num(o)&&num(u)){d+=(u-o)*x.qty;base+=o*x.qty}}
+    if(base>0&&Math.abs(d)>=.01){const when=(new Date(today)-new Date(prevDay))/864e5<=1.5?'since yesterday':'since '+new Date(prevDay+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+      ch=` · <span style="color:${d>0?'#6fdc95':'#ff7b7d'}">${d>0?'▲':'▼'} ${money(Math.abs(d))} (${pctTxt(d/base*100)})</span> <span style="opacity:.7">${when}</span>`}}
   $('count').innerHTML=`${n} card${n===1?'':'s'}${ch}`;
   const paidItems=col.filter(x=>num(x.paid));
   if(paidItems.length){const cost=paidItems.reduce((a,x)=>a+x.paid*x.qty,0),now=paidItems.reduce((a,x)=>a+itemVal(x),0),g=now-cost;$('gainLine').hidden=false;$('gainLine').innerHTML=`Paid ${money(cost)} · <span style="color:${g>=0?'#6fdc95':'#ff7b7d'}">${g>=0?'+':'−'}${money(Math.abs(g))}</span> on cards with a price paid`}else $('gainLine').hidden=true;
@@ -1573,11 +1584,12 @@ function renderMarket(){
     const cs=chaseCards();$('mktNote').textContent='most valuable cards from the 3 newest sets';
     html=cs.map(([r,n,t])=>{const c=cardFromRow(r,n,t);cache.set(c.id,c);return tile(c)}).join('');
   }else{
-    const list=movers?.[mktTab]||[];
+    const okM=m=>m[4]>=5&&m[5]>=5&&m[5]/m[4]<=2&&m[5]/m[4]>=.5&&Math.abs(m[5]-m[4])/m[4]>=.03;
+    const list=(movers?.[mktTab]||[]).filter(okM).sort((a,b)=>mktTab==='up'?(b[5]-b[4])-(a[5]-a[4]):(a[5]-a[4])-(b[5]-b[4]));
     $('mktNote').textContent=movers?`since ${movers.from}`:'';
-    html=list.slice(0,20).map(m=>{const [n,t]=m[3].split('/');const r=rowByPid(m[3],m[2]);if(!r)return'';const c=cardFromRow(r,n,t);cache.set(c.id,c);const pc=Math.round((m[5]-m[4])/m[4]*100);return tile(c,`<span class="pct ${pc>=0?'up':'down'}">${pc>=0?'+':''}${pc}%</span>`)}).join('');
+    if(list.length<6){html=''}else html=list.slice(0,20).map(m=>{const [n,t]=m[3].split('/');const r=rowByPid(m[3],m[2]);if(!r)return'';const c=cardFromRow(r,n,t);cache.set(c.id,c);const pc=(m[5]-m[4])/m[4]*100;return tile(c,`<span class="pct ${pc>=0?'up':'down'}">${pctTxt(pc)}</span>`)}).join('');
     if(!html&&trendsCache){const rows=(trendsCache['7']||{})[mktTab==='up'?'up':'down']||[];$('mktNote').textContent='biggest moves this week';
-      html=rows.slice(0,20).map(r=>{const c=trendCard(r);if(!c)return'';cache.set(c.id,c);const pc=Math.round(r[8]);return tile(c,`<span class="pct ${pc>=0?'up':'down'}">${pc>=0?'+':''}${pc}%</span>`)}).join('')}
+      html=rows.slice(0,20).map(r=>{const c=trendCard(r);if(!c)return'';cache.set(c.id,c);const pc=r[8];return tile(c,`<span class="pct ${pc>=0?'up':'down'}">${pctTxt(pc)}</span>`)}).join('')}
     else if(!html&&!trendsCache)loadTrends().then(t=>{if(t){trendsCache=t;renderMarket()}});
     if(!html)html=`<p class="empty">Loading this week’s movers…</p>`;
   }
