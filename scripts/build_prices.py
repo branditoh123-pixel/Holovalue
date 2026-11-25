@@ -46,6 +46,13 @@ def r2(x):
     return round(x, 2) if isinstance(x, (int, float)) else None
 
 
+SCHEMA = 2  # rows: [name, set, productId, prices, rarity]
+# short rarity codes keep the file small
+RARITY = {"Common": "C", "Uncommon": "U", "Rare": "R", "Holo Rare": "HR", "Double Rare": "DR", "Ultra Rare": "UR",
+          "Illustration Rare": "IR", "Special Illustration Rare": "SIR", "Hyper Rare": "HYR", "Secret Rare": "SR",
+          "ACE SPEC Rare": "ACE", "Shiny Rare": "SHR", "Shiny Ultra Rare": "SUR", "Promo": "P", "Mega Hyper Rare": "MHR",
+          "Black White Rare": "BWR", "Code Card": "CC"}
+
 SEALED = re.compile(r"booster box|elite trainer box|booster bundle|booster pack|sleeved booster|blister|build & battle|collection|premium|tin|mini tin|booster display|ultra-premium|upc", re.I)
 
 
@@ -75,7 +82,7 @@ def build(groups, fetch_products, fetch_prices):
                 continue
             name = re.split(r"\s+-\s+", prod.get("name") or "")[0].strip()
             pid = prod.get("productId")
-            cards.setdefault(key, []).append([name, gname, pid, by_pid.get(pid, {})])
+            cards.setdefault(key, []).append([name, gname, pid, by_pid.get(pid, {}), RARITY.get(ext.get("Rarity") or "", ext.get("Rarity") or "")])
     return cards, sealed
 
 
@@ -135,7 +142,7 @@ def build_japanese(stamp, today):
     sets = {g.get("name", ""): [g.get("groupId"), (g.get("publishedOn") or "")[:10], g.get("abbreviation") or ""] for g in groups}
     sealed.sort(key=lambda x: x[3], reverse=True)
     with open("prices_jp.json", "w", encoding="utf-8") as f:
-        json.dump({"updated": today, "source": stamp, "category": jp["categoryId"], "sets": sets, "sealed": sealed[:3000], "cards": cards},
+        json.dump({"updated": today, "source": stamp, "schema": SCHEMA, "category": jp["categoryId"], "sets": sets, "sealed": sealed[:3000], "cards": cards},
                   f, separators=(",", ":"), ensure_ascii=False)
     print(f"wrote {total} japanese cards across {len(groups)} sets (category {jp['categoryId']})")
 
@@ -160,7 +167,7 @@ def main(out_path):
             jp_prev = json.load(f)
     except Exception:  # noqa: BLE001
         pass
-    if stamp and previous and previous.get("source") == stamp and jp_prev and jp_prev.get("source") == stamp:
+    if stamp and previous and previous.get("source") == stamp and previous.get("schema") == SCHEMA and jp_prev and jp_prev.get("source") == stamp and jp_prev.get("schema") == SCHEMA:
         print(f"tcgcsv data unchanged since {stamp}; nothing to do")
         return
     try:
@@ -177,7 +184,7 @@ def main(out_path):
         sys.exit(1)
     sets = {g.get("name", ""): [g.get("groupId"), (g.get("publishedOn") or "")[:10], g.get("abbreviation") or ""] for g in groups}
     sealed.sort(key=lambda x: x[3], reverse=True)
-    out = {"updated": today, "source": stamp, "sets": sets, "sealed": sealed[:4000], "cards": cards}
+    out = {"updated": today, "source": stamp, "schema": SCHEMA, "sets": sets, "sealed": sealed[:4000], "cards": cards}
     with open(out_path, "w", encoding="utf-8") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
     print(f"wrote {total} cards and {len(sealed)} sealed products across {len(groups)} sets to {out_path}")
