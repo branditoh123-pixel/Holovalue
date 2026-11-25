@@ -140,6 +140,59 @@ def archive_points(d, tg):
     return pts
 
 
+def names():
+    out = {}
+    for f, jp in (("prices.json", 0), ("prices_jp.json", 1)):
+        if not os.path.exists(f):
+            continue
+        d = json.load(open(f))
+        for k, rows in d.get("cards", {}).items():
+            for r in rows:
+                out[int(r[2])] = [r[0], r[1], k, jp, 0]
+        for r in d.get("sealed", []):
+            out[int(r[2])] = [r[0], r[1], "", jp, 1]
+    return out
+
+
+def write_trends(series, t):
+    """Biggest movers across the whole market for 7 / 30 / 365 days."""
+    nm = names()
+    out = {"today": t}
+    for label, days, floor in (("7", 7, 5.0), ("30", 30, 5.0), ("365", 365, 5.0)):
+        rows = []
+        win = 2 if days <= 7 else 7
+        for pid, s in series.items():
+            pts = [p for p in s[1:] if p[1] is not None]
+            if len(pts) < 3 or pid not in nm:
+                continue
+            last_d, last = pts[-1]
+            prev = pts[-2][1]
+            if last < floor or t - last_d > 4:
+                continue
+            cut = last_d - days
+            near = sorted(p for d, p in pts if abs(d - cut) <= win)
+            if not near:
+                continue
+            base = near[len(near) // 2]
+            if base < floor:
+                continue
+            pct = (last - base) / base * 100
+            if abs(pct) < 10:
+                continue
+            pct2 = (prev - base) / base * 100
+            # the move must already show in the point before, so one odd sale doesn't make the list
+            if pct * pct2 <= 0 or abs(pct2) < abs(pct) * 0.4:
+                continue
+            n = nm[pid]
+            rows.append([pid, n[0], n[1], n[2], n[3], n[4], round(last, 2), round(base, 2), round(pct, 1)])
+        # rank by dollars gained or lost: big % jumps on $5 cards that barely sell are mostly noise
+        rows.sort(key=lambda r: r[6] - r[7])
+        cheap = sorted((r for r in rows if r[6] <= 100 and r[7] <= 100), key=lambda r: r[8])
+        out[label] = {"up": rows[::-1][:30], "down": rows[:30], "upCheap": cheap[::-1][:30], "downCheap": cheap[:30]}
+    with open("history/trends.json", "w") as f:
+        json.dump(out, f, separators=(",", ":"))
+
+
 def main():
     os.makedirs(CACHE, exist_ok=True)
     os.makedirs("history", exist_ok=True)
@@ -147,7 +200,7 @@ def main():
     stamp = src.get("source") or src.get("updated")
     today = dt.date.fromisoformat(str(stamp)[:10])
     meta = json.load(open("history/meta.json")) if os.path.exists("history/meta.json") else {"dates": []}
-    if meta.get("latest") == stamp and not os.environ.get("FORCE"):
+    if meta.get("latest") == stamp and not os.environ.get("FORCE") and os.path.exists("history/trends.json"):
         print("history already has", stamp)
         return
     tg = targets()
@@ -192,6 +245,7 @@ def main():
     for i, sh in enumerate(shards):
         with open(f"history/h{i}.json", "w") as f:
             json.dump(sh, f, separators=(",", ":"))
+    write_trends(series, t)
     meta = {"epoch": EPOCH.isoformat(), "latest": stamp, "today": t, "dates": dates, "cards": sum(len(s) for s in shards)}
     json.dump(meta, open("history/meta.json", "w"), separators=(",", ":"))
     print("history:", meta["cards"], "items,", len(dates), "dates")
