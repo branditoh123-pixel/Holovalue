@@ -330,9 +330,18 @@ input[type=range]{width:100%;accent-color:#e5383b;height:32px}
 .sheet .sec{margin-top:16px;padding-top:12px;border-top:1px solid var(--line)}
 .danger{color:var(--red)!important;border-color:transparent!important;background:transparent!important}
 input[type=search]{width:100%}
+#printArea{display:none}
+@media print{body>*:not(#printArea){display:none!important}body::before,body::after{display:none!important}body{background:#fff!important;color:#000!important}
+#printArea{display:block!important;font:12px/1.35 system-ui,sans-serif;color:#000}#printArea h1{font-size:20px;margin:0 0 4px}#printArea table{width:100%;border-collapse:collapse}
+#printArea th,#printArea td{border-bottom:1px solid #ccc;padding:4px 6px;text-align:left;vertical-align:middle}#printArea td.r,#printArea th.r{text-align:right}
+#printArea .box{display:inline-block;width:13px;height:13px;border:1.5px solid #000;border-radius:2px;text-align:center;line-height:12px;font-size:11px}
+#printArea img{width:32px;height:45px;object-fit:contain}#printArea tr{break-inside:avoid}}
+.gcalc label{display:block;font-size:14px;font-weight:700;margin-top:10px}.gcalc .two{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.gcalc input[type=number]{width:100%;min-height:44px;padding:0 10px;font:inherit;border-radius:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink)}
 </style>
 </head>
 <body>
+<div id="printArea" aria-hidden="true"></div>
 <div class="wrap">
   <div class="top">
     <div class="logo" aria-hidden="true"></div>
@@ -419,6 +428,7 @@ input[type=search]{width:100%}
       <button class="ghost" id="refresh">Refresh prices</button>
       <button class="ghost" id="exportBtn">Export CSV</button>
       <button class="ghost" id="copyBtn">Copy list</button>
+      <button class="ghost" id="reportBtn">🖨️ Collection report (PDF)</button>
     </div>
   </section>
 
@@ -1371,7 +1381,7 @@ function renderSetDetail(name){
   <div class="big" style="margin-top:8px">${own.length}/${s.rows.length} <small style="font-size:16px;font-weight:500;color:var(--soft)">${own.length&&pc<1?'under 1':pc}% complete</small></div><div class="bar"><i style="width:${Math.max(own.length?3:0,pc)}%"></i></div>
   <div class="kv"><div><b>${money(ownVal)}</b><span>you own</span></div><div><b>${money(missVal)}</b><span>to complete</span></div><div><b>${miss.length}</b><span>missing</span></div></div></div>
   ${miss.length?`<div class="row" style="margin-bottom:12px"><button id="shopBtn">🛒 Shopping list to finish this set · ${money(missVal)}</button></div>`:''}
-  ${packEV(s)?`<div class="row" style="margin-bottom:12px"><button class="ghost" id="simBtn">🎁 Open virtual packs</button></div>`:''}
+  <div class="row" style="margin-bottom:12px">${packEV(s)?`<button class="ghost" id="simBtn">🎁 Open virtual packs</button>`:''}<button class="ghost" id="printSet">🖨️ Printable checklist</button></div>
   ${evHTML(s)}
   <div class="dcard" id="boxHist" hidden style="margin-bottom:12px"></div>
   <div class="chips">${[['all','All '+s.rows.length],['miss','Missing '+miss.length],['own','Owned '+own.length]].map(([k,l])=>`<button class="chip" data-f="${k}" aria-pressed="${setFilter===k}">${l}</button>`).join('')}</div>
@@ -1381,6 +1391,7 @@ function renderSetDetail(name){
   bindTiles($('setDetail'));
   if($('shopBtn'))$('shopBtn').onclick=()=>shopList(s,miss);
   if($('simBtn'))$('simBtn').onclick=()=>packSim(s);
+  $('printSet').onclick=()=>printChecklist(s);
   const bx=(tcgIdx?.sealed||[]).filter(r=>r[1]===s.name&&/booster box|elite trainer box/i.test(r[0])&&!/case|display|pokemon center/i.test(r[0])).sort((a,b)=>(/booster box/i.test(b[0])?1:0)-(/booster box/i.test(a[0])?1:0))[0];
   if(bx)histFor(+bx[2]).then(h=>{const el=$('boxHist');if(h&&el&&curSet===name){el.hidden=false;histChart(el,h,'📦 '+esc(bx[0].replace(s.short,'').trim())+' price',bx[0])}});
 }
@@ -1572,9 +1583,11 @@ function sheetExtras(c){
   html+='<div class="sec" id="histSec" hidden></div>';
   html+=infoHTML(c);
   html+=oddsHTML(c,g);
+  if(!c._sealed&&num(priceFor(c,bestVariant(c)))&&priceFor(c,bestVariant(c))>=5)html+=`<div class="row" style="margin-top:10px"><button class="ghost" id="gradeBtn">💎 Should I grade it?</button></div>`;
   html+=`<div class="row" style="margin-top:10px"><button class="ghost" id="fakeFromCard">🛡️ Real or fake? Compare with the real card</button></div>`;
   sh.insertAdjacentHTML('beforeend',html);
   histFill(c);
+  if($('gradeBtn'))$('gradeBtn').onclick=()=>gradeCalc(c);
   $('fakeFromCard').onclick=()=>{closeSheet();fakeCard=c;fakeAns={};fakeAuto=null;fakeImg=null;fakePhoto='';go('fake')};
   if(g)$('viewSet').onclick=()=>{closeSheet();curSet=g;setFilter='all';go('sets');setTimeout(()=>renderSetDetail(g),0)};
   sh.querySelectorAll('#otherSec .tile[data-id]').forEach(b=>b.onclick=()=>{const x=cache.get(b.dataset.id);if(x){openCard(x);document.querySelector('.sheet')?.scrollTo(0,0)}});
@@ -2244,6 +2257,54 @@ async function artistCards(name){
   $('artGrid').querySelectorAll('.tile').forEach(b=>b.onclick=async()=>{b.disabled=true;try{const c=await tdxById(b.dataset.id);if(c){tcgFill(c);cache.set(c.id,c);closeSheet();openCard(c)}}catch(e){toast(e.message)}b.disabled=false});
 }
 document.addEventListener('click',e=>{const b=e.target.closest('#artistBtn');if(b)artistCards(b.dataset.a)});
+
+/* ---------- should I grade it? ---------- */
+// PSA fees as of late 2026 (Standard $59.99 up to $1,000, Express $199 up to $2,500, Super Express $349 up to $5,000, Premier $599 up to $10,000). Editable, since PSA changes them often.
+const PSA_TIERS=[[1000,59.99,'Standard'],[2500,199,'Express'],[5000,349,'Super Express'],[10000,599,'Premier']];
+const GPRESETS={mint:[45,45,10,'Pack fresh, great centering'],good:[20,50,30,'Looks clean, so-so centering'],worn:[3,20,77,'Small whitening or scratches']};
+let gradeIn=LS.get('hvl-grade',{});
+function gradeCalc(c){
+  const raw=priceFor(c,bestVariant(c))||0,g=gradeIn[c.id]||{p10:'',p9:'',pre:'good',ship:8,fee:''};
+  const ebay=q=>`https://www.ebay.com/sch/i.html?_nkw=${encodeURIComponent(`${c.name.replace(/\s*\(.*$/,'')} ${c.number||''} ${q}`)}&LH_Sold=1&LH_Complete=1`;
+  const sh=sheet(`<h2>💎 Should I grade it?</h2><p class="meta">${esc(c.name)} · raw ${money(raw)}. Enter what graded copies sell for. Tap the links to see recent eBay sales.</p>
+  <div class="gcalc"><div class="two"><div><label for="gP10">PSA 10 sells for <a href="${ebay('PSA 10')}" target="_blank" rel="noopener" style="font-weight:400">eBay ↗</a></label><input type="number" inputmode="decimal" id="gP10" placeholder="$" value="${g.p10}"></div>
+  <div><label for="gP9">PSA 9 sells for <a href="${ebay('PSA 9')}" target="_blank" rel="noopener" style="font-weight:400">eBay ↗</a></label><input type="number" inputmode="decimal" id="gP9" placeholder="$" value="${g.p9}"></div></div>
+  <label>How does your card look?</label><div class="chips" id="gPre">${Object.entries(GPRESETS).map(([k,v])=>`<button class="chip" data-k="${k}" aria-pressed="${g.pre===k}">${v[3]}</button>`).join('')}</div>
+  <p class="meta" style="font-size:13px;margin:4px 0 0">Tip: use the Centering checker first. Off-center cards can’t get a 10.</p>
+  <div class="two"><div><label for="gFee">Grading fee</label><input type="number" inputmode="decimal" id="gFee" value="${g.fee}" placeholder="auto"></div><div><label for="gShip">Shipping & insurance</label><input type="number" inputmode="decimal" id="gShip" value="${g.ship}"></div></div>
+  <div id="gOut"></div></div>`);
+  const upd=()=>{
+    const p10=+$('gP10').value||0,p9=+$('gP9').value||0,ship=+$('gShip').value||0,pre=GPRESETS[g.pre];
+    gradeIn[c.id]={p10:$('gP10').value,p9:$('gP9').value,pre:g.pre,ship,fee:$('gFee').value};LS.set('hvl-grade',gradeIn);
+    if(!p10){$('gOut').innerHTML='<p class="meta" style="margin-top:12px">Enter at least the PSA 10 price.</p>';return}
+    const tier=PSA_TIERS.find(t=>p10<=t[0])||PSA_TIERS[PSA_TIERS.length-1],fee=+$('gFee').value||tier[1],cost=fee+ship;
+    const low=raw*.85,v9=p9||raw*1.4,ev=pre[0]/100*p10+pre[1]/100*v9+pre[2]/100*low,gain=ev-cost-raw;
+    const be=p10-low>0?Math.max(0,Math.min(100,((raw+cost)-(pre[1]/100*v9+(1-pre[1]/100)*low))/(p10-low)*100)):null;
+    $('gOut').innerHTML=`<div class="dverdict ${gain>raw*.15?'dv-great':gain>0?'dv-good':'dv-bad'}" style="margin-top:12px">${gain>raw*.15?'Worth grading':gain>0?'Small profit, so probably worth it':'Not worth grading'}<small>Graded, it should be worth about ${money(ev)} on average. After ${money(cost)} in fees and shipping, that’s ${gain>=0?'a gain':'a loss'} of ${money(Math.abs(gain))} compared with selling it raw for ${money(raw)}.</small></div>
+    <table class="sellt"><tr><td>Chance of PSA 10</td><td>${pre[0]}% × ${money(p10)}</td></tr><tr><td>Chance of PSA 9</td><td>${pre[1]}% × ${money(v9)}${p9?'':' (estimated)'}</td></tr><tr><td>8 or lower</td><td>${pre[2]}% × ${money(low)}</td></tr>
+    <tr><td>PSA tier</td><td>${tier[2]} · ${money(fee)}</td></tr>${be!=null?`<tr><td>Break-even</td><td>needs about a ${Math.round(be)}% chance of a 10</td></tr>`:''}</table>
+    <p class="meta" style="font-size:12px">PSA prices as of late 2026: Standard $59.99 (cards up to $1,000), Express $199, Super Express $349, Premier $599. Check psacard.com before you send. Grade chances are rough guides.</p>`};
+  ['gP10','gP9','gFee','gShip'].forEach(id=>$(id).oninput=upd);
+  $('gPre').querySelectorAll('[data-k]').forEach(b=>b.onclick=()=>{g.pre=b.dataset.k;$('gPre').querySelectorAll('[data-k]').forEach(x=>x.setAttribute('aria-pressed',x===b));upd()});
+  upd();
+}
+
+/* ---------- printable checklist + collection report ---------- */
+function doPrint(html,title){const el=$('printArea');el.innerHTML=html;const t=document.title;document.title=title;setTimeout(()=>{window.print();setTimeout(()=>{document.title=t;el.innerHTML=''},500)},120)}
+function printChecklist(set){
+  const own=new Set(col.map(x=>x.id)),ownKey=new Set(col.map(x=>x.name+'|'+String(x.num||'').split('/')[0]));
+  const rows=set.rows.slice().sort((a,b)=>(+a[1]||0)-(+b[1]||0)||String(a[1]).localeCompare(String(b[1])));
+  const have=rows.filter(([r,n])=>own.has('tcg:'+r[2])||ownKey.has(r[0]+'|'+(+n))).length;
+  doPrint(`<h1>${esc(set.name.replace(/^[A-Za-z0-9.]+:\s*/,''))} checklist</h1><p>${rows.length} cards · you have ${have} · printed ${new Date().toLocaleDateString()} from HoloValue · prices: TCGplayer market</p>
+  <table><tr><th></th><th>#</th><th>Card</th><th>Rarity</th><th class="r">Price</th></tr>${rows.map(([r,n,t])=>{const got=own.has('tcg:'+r[2])||ownKey.has(r[0]+'|'+(+n)),p=rowMarket(r);return `<tr><td><span class="box">${got?'✓':''}</span></td><td>${esc(n)}/${esc(t)}</td><td>${esc(r[0])}</td><td>${esc(RNAME[r[4]]||({C:'Common',U:'Uncommon',R:'Rare',HR:'Holo Rare',P:'Promo'})[r[4]]||'')}</td><td class="r">${num(p)?money(p):''}</td></tr>`}).join('')}</table>`,`${set.short} checklist`);
+}
+$('reportBtn').onclick=()=>{
+  if(!col.length){toast('Your collection is empty.');return}
+  const items=col.slice().sort((a,b)=>itemVal(b)-itemVal(a)),tot=items.reduce((a,x)=>a+itemVal(x),0),n=items.reduce((a,x)=>a+x.qty,0),paid=items.reduce((a,x)=>a+(num(x.paid)?x.paid*x.qty:0),0);
+  doPrint(`<h1>Pokémon collection report</h1><p>${new Date().toLocaleDateString(undefined,{year:'numeric',month:'long',day:'numeric'})} · ${n.toLocaleString()} items · total market value <b>${money(tot)}</b>${paid?` · paid ${money(paid)}`:''}<br>Values are TCGplayer market prices${tcgIdx?.source?' as of '+esc(String(tcgIdx.source).slice(0,10)):''}, adjusted for condition and grade where recorded.</p>
+  <table><tr><th></th><th>Card</th><th>Set · #</th><th>Version / condition</th><th class="r">Qty</th><th class="r">Each</th><th class="r">Total</th></tr>${items.map(x=>`<tr><td>${okUrl(x.img)?`<img src="${esc(x.img)}" alt="">`:''}</td><td>${esc(x.name)}</td><td>${esc(x.set||'')}${x.num?' · '+esc(x.num):''}</td><td>${isGraded(x)?esc(gradeLabel(x)):esc([x.v?vName(x.v):'',x.cond||''].filter(Boolean).join(' · '))}</td><td class="r">${x.qty}</td><td class="r">${money(unitVal(x))}</td><td class="r">${money(itemVal(x))}</td></tr>`).join('')}
+  <tr><td></td><td colspan="5"><b>Total</b></td><td class="r"><b>${money(tot)}</b></td></tr></table>`,'HoloValue collection report');
+};
 /* ---------- chase it or buy it? (pull odds) ---------- */
 function oddsHTML(c,g){
   if(!g||c._sealed||c._jp)return'';const set=buildSets()?.find(x=>x.name===g);if(!set)return'';
