@@ -202,6 +202,10 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .tile .hit{position:absolute;top:12px;right:12px;background:#e5383b;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .mv{display:block;font-size:13px;font-weight:700}
 .mvl{list-style:none;padding:0;margin:6px 0 0}
+.pgrid{display:grid;gap:6px;margin-top:12px}.pcell{display:block!important;white-space:normal!important;min-height:0!important;width:100%;position:relative;background:var(--paper)!important;color:var(--ink)!important;border-radius:12px!important;padding:5px!important;border:0!important;font:inherit;color:var(--ink);text-align:left;cursor:pointer;min-width:0}
+.pcell img,.pcell .ph,.pcell canvas{width:100%;aspect-ratio:63/88;object-fit:contain;border-radius:6px;display:block;background:#0001}
+.pcell .pn{display:block;font-size:12px;font-weight:700;line-height:1.2;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pcell .pp{display:block;font-size:13px;font-weight:800}
+.pcell .pst{position:absolute;top:8px;right:8px;font-size:12px;font-weight:800;border-radius:999px;padding:1px 7px;background:#1f9d55;color:#fff}.pcell .pst.q{background:#e08a00}.pcell.empty{opacity:.45}.pcell.off{opacity:.35}
 .trow{gap:10px}.trow img,.trow .ph{width:44px;height:61px;object-fit:contain;border-radius:4px;flex:none}.trow>span{flex:1}
 .jpb{font-size:11px;background:var(--ink);color:var(--paper);border-radius:6px;padding:0 5px}
 .shopl{padding-left:22px;margin:10px 0;max-height:46vh;overflow:auto}.shopl li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line);opacity:.55}
@@ -346,6 +350,7 @@ input[type=search]{width:100%}
         <button class="act" id="packJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 3h12l-1 4H7zM7 7h10v14H7z"/><path d="M10 12h4"/></svg>Rip a pack<small>Was it worth it?</small></button>
         <button class="act" id="dealJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M20 12 12 20 4 12V4h8z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>Deal check<small>Card shows & buying</small></button>
         <button class="act" id="centerJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><rect x="8" y="6" width="8" height="12" rx="1"/></svg>Centering<small>Grade pre-check</small></button>
+        <button class="act" id="pageJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="5" height="7" rx="1"/><rect x="9.5" y="3" width="5" height="7" rx="1"/><rect x="16" y="3" width="5" height="7" rx="1"/><rect x="3" y="14" width="5" height="7" rx="1"/><rect x="9.5" y="14" width="5" height="7" rx="1"/><rect x="16" y="14" width="5" height="7" rx="1"/></svg>Binder page scan<small>9 cards, one photo</small></button>
         <button class="act" id="trendJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Trending<small>Biggest movers</small></button>
         <button class="act" id="fakeJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Real or fake?<small>Check before you buy</small></button>
         <button class="act" id="bulkJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="4" width="16" height="6" rx="1"/><rect x="4" y="14" width="16" height="6" rx="1"/></svg>Bulk value<small>What's the pile worth?</small></button>
@@ -473,6 +478,16 @@ input[type=search]{width:100%}
     <div class="seg" role="group" aria-label="Side" style="margin-top:12px"><button id="cenFront" aria-pressed="true">Front</button><button id="cenBack" aria-pressed="false">Back</button></div>
     <div class="cenwrap" id="cenWrap" hidden><canvas id="cenCv"></canvas></div>
     <div id="cenRes"></div>
+  </section>
+
+  <section class="view" id="v-page" hidden>
+    <h1 class="vt">Binder page scan</h1>
+    <p class="vsub">Take one photo of a whole binder page or a row of cards laid out on a table. HoloValue finds every card and its price.</p>
+    <div class="chips" id="pageGrid" role="group" aria-label="Layout"><button class="chip" data-g="3x3" aria-pressed="true">3 × 3 page</button><button class="chip" data-g="4x3" aria-pressed="false">4 × 3 page</button><button class="chip" data-g="2x2" aria-pressed="false">2 × 2 page</button><button class="chip" data-g="3x1" aria-pressed="false">3 in a row</button></div>
+    <div class="row"><label class="btn" style="position:relative;overflow:hidden;flex:1 1 160px">📷 Take photo<input type="file" id="pageCam" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0"></label>
+    <label class="btn ghost" style="position:relative;overflow:hidden;flex:1 1 160px">Choose photo<input type="file" id="pagePick" accept="image/*" style="position:absolute;inset:0;opacity:0"></label></div>
+    <p class="meta" style="font-size:13px">Tip: fill the photo with the page, hold the phone flat above it, and tilt the binder to avoid glare.</p>
+    <div id="pageBody"></div>
   </section>
 
   <section class="view" id="v-trend" hidden>
@@ -2391,6 +2406,70 @@ function shopList(set,miss){
   $('shopWish').onclick=()=>{let n=0;for(const x of (inB.length?inB:items)){const c=cardFromRow(x.r,x.n,x.t);if(wish.some(w=>w.id===c.id))continue;cache.set(c.id,c);wish.push(itemFromCard(c,bestVariant(c)));n++}saveWish();renderAll();toast(`Added ${n} card${n===1?'':'s'} to your wishlist.`)};
 }
 
+
+/* ---------- binder page scan ---------- */
+let pageG=LS.get('hvl-pageg','3x3'),pageRes=[],pageImg=null,pageRun=0;
+function cellStats(src,r){const c=document.createElement('canvas');c.width=48;c.height=64;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(src,r.x,r.y,r.w,r.h,0,0,48,64);const d=x.getImageData(0,0,48,64).data;let s=0,s2=0,n=d.length/4;for(let i=0;i<d.length;i+=4){const g=.299*d[i]+.587*d[i+1]+.114*d[i+2];s+=g;s2+=g*g}return Math.sqrt(Math.max(0,s2/n-(s/n)**2))}
+function cellCanvas(src,r,w=300){const c=document.createElement('canvas');c.width=w;c.height=Math.round(w*r.h/r.w);c.getContext('2d').drawImage(src,r.x,r.y,r.w,r.h,0,0,c.width,c.height);return c}
+async function pageScan(img){
+  const run=++pageRun;pageImg=img;pageRes=[];const [cols,rows]=pageG.split('x').map(Number),W=img.width,H=img.height,cw=W/cols,ch=H/rows;
+  const body=$('pageBody');body.innerHTML='<p class="meta">⏳ Loading picture recognition…</p>';
+  const v=await loadVis();if(run!==pageRun)return;if(!v){body.innerHTML='<p class="err">Picture recognition couldn’t load. Check your connection and try again.</p>';return}
+  for(let r=0;r<rows;r++)for(let c=0;c<cols;c++)pageRes.push({cell:{x:c*cw,y:r*ch,w:cw,h:ch},st:'wait'});
+  renderPage();
+  const acc=v.meta.accept||{score:.5,margin:.04};
+  for(const p of pageRes){
+    if(run!==pageRun)return;
+    // tighten to the card inside the pocket when its edges can be found
+    let rect={x:p.cell.x+p.cell.w*.04,y:p.cell.y+p.cell.h*.03,w:p.cell.w*.92,h:p.cell.h*.94};
+    try{const cv=cellCanvas(img,p.cell,360),NA={oL:NaN,oR:NaN,oT:NaN,oB:NaN,iL:NaN,iR:NaN,iT:NaN,iB:NaN},L=cenDetect(cv,NA);
+      if([L.oL,L.oR,L.oT,L.oB].every(x=>!isNaN(x))){const rw=(L.oR-L.oL),rh=(L.oB-L.oT),asp=rw*p.cell.w/(rh*p.cell.h);if(rw>.55&&rh>.55&&asp>.6&&asp<.85)rect={x:p.cell.x+L.oL*p.cell.w,y:p.cell.y+L.oT*p.cell.h,w:rw*p.cell.w,h:rh*p.cell.h}}}catch(e){}
+    p.rect=rect;
+    if(cellStats(img,rect)<14){p.st='empty';renderPage();continue}
+    try{
+      const e1=await visEmbed(img,rect),e2=await visEmbed(img,{x:rect.x+rect.w*.05,y:rect.y+rect.h*.04,w:rect.w*.9,h:rect.h*.92});
+      const e=normVec(e1.map((x,i)=>x+e2[i])),top=memBoost(e,visSearch(e,8));if(run!==pageRun)return;
+      p.top=top;p.pick=top[0]||null;
+      const sure=top[0]&&top[0].score>=acc.score&&top[0].score-(top[1]?.score??0)>=acc.margin;
+      p.st=top.length?(sure?'ok':'check'):'none';
+      // unsure: read the card number and prefer the match that has it
+      if(p.st==='check'&&typeof readNumber==='function'){try{for(const side of ['L','R']){const nr=await readNumber(img,rect,side);if(!nr)continue;const keys=nr.exact?[(+nr.n)+'/'+(+nr.tot)]:nr.fuzzy.map(f=>(+f.n)+'/'+(+f.tot));const hit=top.find(m=>keys.includes(m.key));if(hit){p.pick=hit;p.st='ok';p.byNum=1}break}}catch(e){}}
+      if(p.pick){cache.set(p.pick.card.id,p.pick.card);if(!hasPrice(p.pick.card))tcgFill(p.pick.card)}
+    }catch(e){console.warn(e);p.st='none'}
+    renderPage();
+  }
+}
+function renderPage(){
+  const body=$('pageBody');if(!pageRes.length){body.innerHTML='';return}
+  const [cols]=pageG.split('x').map(Number),live=pageRes.filter(p=>p.pick&&p.st!=='off');
+  const tot=live.reduce((a,p)=>a+(priceFor(p.pick.card,bestVariant(p.pick.card))||0),0),done=pageRes.every(p=>p.st!=='wait'),nCheck=pageRes.filter(p=>p.st==='check').length;
+  body.innerHTML=`<div class="dcard" style="margin-top:12px"><div style="font-size:30px;font-weight:800">${money(tot)}</div><p class="meta" style="margin:0">${live.length} card${live.length===1?'':'s'} found${done?'':' so far…'}${nCheck?` · ${nCheck} to double-check (orange)`:''}</p></div>
+  <div class="pgrid" style="grid-template-columns:repeat(${cols},1fr)">${pageRes.map((p,i)=>{const c=p.pick?.card;
+    if(p.st==='wait')return `<div class="pcell"><span class="ph"></span><span class="pn">Looking…</span></div>`;
+    if(p.st==='empty')return `<div class="pcell empty"><span class="ph"></span><span class="pn">Empty pocket</span></div>`;
+    if(!c)return `<button class="pcell" data-i="${i}"><span class="ph"></span><span class="pn">Not found</span><span class="pp">Tap to pick</span></button>`;
+    return `<button class="pcell${p.st==='off'?' off':''}" data-i="${i}">${imgTag(c.images?.small)}<span class="pst${p.st==='check'?' q':''}">${p.st==='check'?'?':p.st==='off'?'✕':'✓'}</span><span class="pn">${esc(c.name)}</span><span class="pp">${money(priceFor(c,bestVariant(c)))}</span></button>`}).join('')}</div>
+  ${done&&live.length?`<div class="row" style="margin-top:12px"><button id="pageAdd">Add ${live.length} to collection</button><button class="ghost" id="pageDeal">Add to Deal check</button></div>`:''}`;
+  body.querySelectorAll('.pcell[data-i]').forEach(b=>b.onclick=()=>pageFix(+b.dataset.i));
+  if($('pageAdd'))$('pageAdd').onclick=()=>{live.forEach(p=>addCard(p.pick.card,bestVariant(p.pick.card)));toast(`Added ${live.length} card${live.length===1?'':'s'} to your collection.`);pageRes=[];renderPage()};
+  if($('pageDeal'))$('pageDeal').onclick=()=>{live.forEach(p=>deal.items.push(dealItem(p.pick.card)));saveDeal();go('deal')};
+}
+function pageFix(i){
+  const p=pageRes[i];const opts=(p.top||[]).slice(0,6);
+  const sh=sheet(`<h2>Which card is it?</h2>${p.rect&&pageImg?`<div style="max-width:160px;margin:0 auto 10px">${'<span id="pfImg"></span>'}</div>`:''}
+  <div class="grid">${opts.map((m,j)=>tile(m.card).replace('class="tile"',`class="tile" data-j="${j}"`)).join('')}</div>
+  <input type="search" id="pfQ" placeholder="Not here? Search by name or number" style="margin-top:10px" autocomplete="off"><ul class="drop" id="pfDrop" hidden></ul>
+  <div class="row" style="margin-top:10px"><button class="ghost" id="pfSkip">${p.st==='off'?'Include this card':'Leave this one out'}</button></div>`);
+  if($('pfImg')){const cv=cellCanvas(pageImg,p.rect,320);cv.style.cssText='width:100%;border-radius:8px';$('pfImg').replaceWith(cv)}
+  sh.querySelectorAll('.tile[data-j]').forEach(b=>b.onclick=()=>{const m=opts[+b.dataset.j];p.pick=m;p.st='ok';cache.set(m.card.id,m.card);memRemember(m.card,m.key);closeSheet();renderPage()});
+  $('pfSkip').onclick=()=>{p.st=p.st==='off'?'ok':'off';closeSheet();renderPage()};
+  let tm;$('pfQ').oninput=()=>{clearTimeout(tm);tm=setTimeout(async()=>{const t=$('pfQ').value.trim();if(t.length<2){$('pfDrop').hidden=true;return}await tcgIndex();const res=localSearch(t,8);
+    $('pfDrop').innerHTML=res.map((c,j)=>`<li><button data-j="${j}"><span>${esc(c.name)} <small style="color:var(--soft)">${esc(c.set?.name||'')} ${esc(c.number+'/'+(c.set?.printedTotal||''))}</small></span><b>${money(priceFor(c,bestVariant(c)))}</b></button></li>`).join('')||'<li style="padding:10px" class="empty">No matches</li>';$('pfDrop').hidden=false;
+    $('pfDrop').querySelectorAll('button').forEach(b=>b.onclick=()=>{const c=res[+b.dataset.j];cache.set(c.id,c);p.pick={card:c,key:c.number+'/'+c.set?.printedTotal,score:1};p.st='ok';closeSheet();renderPage()})},150)};
+}
+document.querySelectorAll('#pageGrid [data-g]').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.g===pageG);b.onclick=()=>{pageG=b.dataset.g;LS.set('hvl-pageg',pageG);document.querySelectorAll('#pageGrid [data-g]').forEach(x=>x.setAttribute('aria-pressed',x===b));if(pageImg)pageScan(pageImg)}});
+{const onP=e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;const u=URL.createObjectURL(f),im=new Image();im.onload=()=>pageScan(im);im.onerror=()=>toast('Couldn’t open that photo.');im.src=u};$('pageCam').onchange=onP;$('pagePick').onchange=onP}
+$('pageJump').onclick=()=>go('page');
 /* ---------- trending (whole market) ---------- */
 let trendW=LS.get('hvl-trendw','30'),trendCheap=LS.get('hvl-trendcheap',false),trendDir='up',trendsP=null;
 function loadTrends(){if(!trendsP)trendsP=fetch('history/trends.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null).then(t=>{if(!t)trendsP=null;return t});return trendsP}
@@ -2419,7 +2498,7 @@ $('trendJump').onclick=()=>go('trend');
 let view='home';
 function route(){
   if(location.hash.startsWith('#s=')){if(!$('sharedView')&&!window._shOpen){window._shOpen=1;showShared(location.hash.slice(3)).finally(()=>{window._shOpen=0})}return}
-  const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack','insights','game','deal','center','fake','bulk','trend'].includes(h)?h:'home';view=v;
+  const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack','insights','game','deal','center','fake','bulk','trend','page'].includes(h)?h:'home';view=v;
   document.querySelectorAll('.view').forEach(s=>s.hidden=s.id!=='v-'+v);
   document.querySelectorAll('.tabbar a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   if(v==='sets'){if(curSet)renderSetDetail(curSet);else renderSets()}
