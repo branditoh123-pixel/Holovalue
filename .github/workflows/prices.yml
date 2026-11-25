@@ -2,8 +2,8 @@ name: Update card prices
 
 on:
   schedule:
-    - cron: "17 20 * * *" # right after tcgcsv.com refreshes (~20:00 UTC)
-    - cron: "47 23 * * *" # backup run in case the first one was late
+    - cron: "17 20 * * *" # right after tcgcsv.com usually refreshes (~20:00 UTC)
+    - cron: "47 */3 * * *" # every 3 hours: picks up late refreshes (exits in seconds when nothing changed)
   workflow_dispatch: {}
   push:
     branches: [main]

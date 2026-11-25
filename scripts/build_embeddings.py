@@ -30,7 +30,7 @@ from PIL import Image, ImageEnhance, ImageFilter
 D = 128
 SIZE = 224
 F = 3840
-VIEWS = int(os.environ.get("VIEWS", "4"))
+VIEWS = int(os.environ.get("VIEWS", "3"))
 MEAN = np.array([0.485, 0.456, 0.406], dtype=np.float32)
 STD = np.array([0.229, 0.224, 0.225], dtype=np.float32)
 CACHE = os.environ.get("IMG_CACHE", "img-cache")
@@ -160,6 +160,11 @@ def main():
     with open("prices.json", encoding="utf-8") as f:
         prices = json.load(f)
     pids = card_pids(prices)
+    jp_pids = set()
+    if os.path.exists("prices_jp.json") and os.environ.get("JAPANESE", "1") == "1":
+        with open("prices_jp.json", encoding="utf-8") as f:
+            jp_pids = set(card_pids(json.load(f))) - set(pids)
+        pids = sorted(set(pids) | jp_pids)
     limit = int(os.environ.get("LIMIT", "0"))
     if limit:
         pids = pids[:limit]
@@ -170,6 +175,8 @@ def main():
         got = dict(ex.map(fetch, pids))
     have = [p for p in pids if got.get(p)]
     N = len(have)
+    is_jp = np.array([p in jp_pids for p in have])
+    print(f"  {int(is_jp.sum())} japanese, {int((~is_jp).sum())} english", flush=True)
     print(f"images: {N} of {len(pids)} in {time.time() - t0:.0f}s", flush=True)
     if N < 1000 and not limit:
         print("too few images downloaded; keeping the existing index", file=sys.stderr)
@@ -245,6 +252,9 @@ def main():
         imgs = [augment(load(got[have[i]]), trng, strength) for i in idx]
         e = l2((l2(embed(model, imgs)) - mean) @ Wm)
         sims = e @ qf.T
+        # the app searches one language at a time (English and Japanese prints often share artwork)
+        for k, i in enumerate(idx):
+            sims[k, is_jp != is_jp[i]] = -9
         order = np.argsort(-sims, axis=1)[:, :5]
         return [(bool(order[k, 0] == i), bool(i in order[k]), float(sims[k, order[k, 0]]), float(sims[k, order[k, 0]] - sims[k, order[k, 1]]))
                 for k, i in enumerate(idx)]
@@ -284,7 +294,7 @@ def main():
         print(f"onnx check skipped: {e}", flush=True)
     if os.path.exists("vis/pca.bin"):
         os.remove("vis/pca.bin")
-    meta = {"v": 2, "f": F, "d": D, "n": N, "pids": have, "eval": ev, "accept": accept, "onnx_diff": check,
+    meta = {"v": 2, "f": F, "d": D, "n": N, "pids": have, "jp": [int(i) for i in np.nonzero(is_jp)[0]], "eval": ev, "accept": accept, "onnx_diff": check,
             "built": datetime.now(timezone.utc).strftime("%Y-%m-%d"), "size": SIZE, "mean": MEAN.tolist(), "std": STD.tolist()}
     with open("vis/meta.json", "w", encoding="utf-8") as f:
         json.dump(meta, f, separators=(",", ":"))
