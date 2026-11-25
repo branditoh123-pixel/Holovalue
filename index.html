@@ -201,6 +201,15 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .tile .own{position:absolute;top:12px;right:12px;background:#1d7a3c;color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .hit{position:absolute;top:12px;right:12px;background:#e5383b;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .mv{display:block;font-size:13px;font-weight:700}
+.fakecmp{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.fakecmp figure{margin:0;text-align:center}.fakecmp img,.fakecmp .ph{width:100%;aspect-ratio:63/88;object-fit:contain;border-radius:10px;background:#0002;display:block}
+.fakecmp figcaption{font-size:13px;font-weight:700;margin-top:4px}
+.chk{list-style:none;padding:0;margin:12px 0 0}.chk li{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-top:1px solid #0001}
+.chk li>div{flex:1}.chk small{display:block;color:var(--soft);font-size:13px}
+.chk .yn{display:flex;gap:6px}.chk .yn button{min-height:40px;padding:0 12px}
+.chk .yn button[aria-pressed=true].ok{background:#1f9d55!important;color:#fff!important;border-color:#1f9d55!important}.chk .yn button[aria-pressed=true].bad{background:#d63b3b!important;color:#fff!important;border-color:#d63b3b!important}
+.bulkg{display:grid;grid-template-columns:1fr 84px 84px;gap:8px;align-items:center}.bulkg input{min-height:44px;padding:0 8px}
+.odds .big2{font-size:22px;font-weight:800}
 .cenwrap{margin-top:12px;background:#111;border-radius:16px;padding:8px;touch-action:none}
 .cenwrap canvas{display:block;width:100%;height:auto;border-radius:10px}
 .cenres{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
@@ -326,6 +335,8 @@ input[type=search]{width:100%}
         <button class="act" id="packJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M6 3h12l-1 4H7zM7 7h10v14H7z"/><path d="M10 12h4"/></svg>Rip a pack<small>Was it worth it?</small></button>
         <button class="act" id="dealJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M20 12 12 20 4 12V4h8z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>Deal check<small>Card shows & buying</small></button>
         <button class="act" id="centerJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><rect x="8" y="6" width="8" height="12" rx="1"/></svg>Centering<small>Grade pre-check</small></button>
+        <button class="act" id="fakeJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Real or fake?<small>Check before you buy</small></button>
+        <button class="act" id="bulkJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="4" width="16" height="6" rx="1"/><rect x="4" y="14" width="16" height="6" rx="1"/></svg>Bulk value<small>What's the pile worth?</small></button>
         <button class="act" id="tradeJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M7 7h13l-4-4M17 17H4l4 4"/></svg>Trade check<small>Is it fair?</small></button>
       </div>
     </div>
@@ -372,7 +383,7 @@ input[type=search]{width:100%}
     </div>
     <div class="row" style="margin-bottom:10px"><button class="ghost" id="selBtn">Select</button><a class="btn ghost" href="#insights">📊 Insights</a><button class="ghost" id="shareBinderBtn">🔗 Share binder</button></div>
     <div class="chips" id="typeChips" role="group" aria-label="Show"><button class="chip" data-ty="all" aria-pressed="true">Everything</button><button class="chip" data-ty="cards" aria-pressed="false">Cards</button><button class="chip" data-ty="sealed" aria-pressed="false">Sealed</button><button class="chip" data-ty="jp" aria-pressed="false">Japanese</button><button class="chip" data-ty="graded" aria-pressed="false">Graded</button><button class="chip" data-ty="dupes" aria-pressed="false">Duplicates</button></div>
-    <div class="row" id="dupeBar" hidden style="margin-bottom:10px"><button id="dupeTrade">Send extras to Trade check</button></div>
+    <div class="row" id="dupeBar" hidden style="margin-bottom:10px"><button id="dupeTrade">Send extras to Trade check</button><button class="ghost" id="dupeSell">Sell list of extras</button></div>
     <div class="grid" id="col"></div>
     <div class="binderv" id="binderView" hidden></div>
     <p class="empty" id="colEmpty">Nothing here yet. Tap the yellow scan button to add cards, or <a href="#" id="impLink">import a CSV from another app</a>.</p>
@@ -451,6 +462,20 @@ input[type=search]{width:100%}
     <div id="cenRes"></div>
   </section>
 
+  <section class="view" id="v-fake" hidden>
+    <h1 class="vt">Real or fake?</h1>
+    <p class="vsub">Pick the card, take a photo of yours, and compare it with the real one side by side. Then go through the checks.</p>
+    <input type="search" id="fakeQ" placeholder="Which card? Type a name or number…" aria-label="Card to check" autocomplete="off"><ul class="drop" id="fakeDrop" hidden></ul>
+    <div id="fakeBody"></div>
+  </section>
+
+  <section class="view" id="v-bulk" hidden>
+    <h1 class="vt">Bulk value</h1>
+    <p class="vsub">Count your pile and see what stores and buylists typically pay. Change any rate to match your local shop.</p>
+    <div class="dcard" id="bulkCalc"></div>
+    <div class="dcard" id="bulkMine" style="margin-top:12px"></div>
+  </section>
+
   <section class="view" id="v-trade" hidden>
     <h1 class="vt">Trade check</h1>
     <p class="vsub">Add the cards on each side to see if a trade is fair, using today’s market prices.</p>
@@ -465,7 +490,7 @@ input[type=search]{width:100%}
   <p class="fine">Prices are TCGplayer market prices, refreshed nightly from TCGplayer data (via tcgcsv.com), with pokemontcg.io and TCGdex as backups. Card reading happens on your phone. Not affiliated with Nintendo, The Pokémon Company or TCGplayer.</p>
 </div>
 
-<div class="selbar" id="selbar" hidden><span id="selCount">0 selected</span><select id="selMove" aria-label="Move selected to binder"><option value="">Move to…</option></select><button id="selTrade">Trade</button><button class="danger" id="selDel">Delete</button><button class="ghost" id="selDone">Done</button></div>
+<div class="selbar" id="selbar" hidden><span id="selCount">0 selected</span><select id="selMove" aria-label="Move selected to binder"><option value="">Move to…</option></select><button id="selTrade">Trade</button><button id="selSell">Sell list</button><button class="danger" id="selDel">Delete</button><button class="ghost" id="selDone">Done</button></div>
 <nav class="tabbar" aria-label="Main">
   <a href="#home" data-v="home"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M3 11 12 4l9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/></svg>Home</a>
   <a href="#col" data-v="col"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><rect x="3" y="4" width="7" height="9" rx="1.5"/><rect x="14" y="4" width="7" height="9" rx="1.5"/><rect x="3" y="15" width="7" height="5" rx="1.5"/><rect x="14" y="15" width="7" height="5" rx="1.5"/></svg>Collection</a>
@@ -1476,13 +1501,15 @@ function otherVersions(c){
   return out.sort((a,b)=>rowMarket(b[1])-rowMarket(a[1])).slice(0,12).map(e=>cardFromRow(e[1],e[2],e[3]));
 }
 function sheetExtras(c){
-  const sh=document.querySelector('.sheet');if(!sh||!tcgIdx)return;
+  const sh=document.querySelector('.sheet');if(!sh||!tcgIdx||sh.querySelector('#fakeFromCard'))return;
   const g=groupForCard(c),others=otherVersions(c);
   let html='';
   if(g)html+=`<div class="row" style="margin-top:10px"><button class="ghost" id="viewSet">See the ${esc(String(g).replace(/^[A-Za-z0-9.]+:\s*/,''))} set</button></div>`;
   if(others.length){others.forEach(o=>cache.set(o.id,o));html+=`<div class="sec" id="otherSec"><b>Other versions of ${esc(c.name.replace(/\s*\(.*$/,''))}</b><div class="hrow" style="margin-top:10px">${others.map(o=>tile(o)).join('')}</div></div>`}
-  if(!html)return;
+  html+=oddsHTML(c,g);
+  html+=`<div class="row" style="margin-top:10px"><button class="ghost" id="fakeFromCard">🛡️ Real or fake? Compare with the real card</button></div>`;
   sh.insertAdjacentHTML('beforeend',html);
+  $('fakeFromCard').onclick=()=>{closeSheet();fakeCard=c;go('fake')};
   if(g)$('viewSet').onclick=()=>{closeSheet();curSet=g;setFilter='all';go('sets');setTimeout(()=>renderSetDetail(g),0)};
   sh.querySelectorAll('#otherSec .tile[data-id]').forEach(b=>b.onclick=()=>{const x=cache.get(b.dataset.id);if(x){openCard(x);document.querySelector('.sheet')?.scrollTo(0,0)}});
 }
@@ -1946,7 +1973,7 @@ $('dealJump').onclick=()=>go('deal');
 /* ---------- open it or keep it sealed? (expected value of packs) ---------- */
 // approximate per-pack odds for modern English sets; these vary by set, so results are estimates
 const PULL={SIR:1/86,HYR:1/137,MHR:1/137,BWR:1/100,IR:1/13,UR:1/15,DR:1/5.6,ACE:1/20,SUR:1/65,SHR:1/12,SR:1/72};
-const PACKS=[[/booster box/i,36],[/elite trainer box/i,9],[/booster bundle/i,6],[/3-pack|blister/i,3],[/sleeved booster|booster pack/i,1]];
+const PACKS=[[/checklane|build & battle/i,0],[/set of 4/i,4],[/booster box/i,36],[/elite trainer box/i,9],[/booster bundle/i,6],[/3[ -]pack/i,3],[/single pack blister|sleeved booster pack|booster pack$/i,1]];
 function packEV(set){
   const by={},rev=[];
   for(const [r] of set.rows){const k=r[4]||'';const m=rowMarket(r);if(m)(by[k]=by[k]||[]).push(m);const rh=r[3]?.['Reverse Holofoil'];if(rh&&rh[1]!=null&&/^(C|U|R)$/.test(k))rev.push(rh[1])}
@@ -1959,7 +1986,7 @@ function packEV(set){
 const RNAME={SIR:'Special Illustration Rare',HYR:'Hyper Rare',MHR:'Mega Hyper Rare',BWR:'Black White Rare',IR:'Illustration Rare',UR:'Ultra Rare',DR:'Double Rare',ACE:'ACE SPEC',SUR:'Shiny Ultra Rare',SHR:'Shiny Rare',SR:'Secret Rare'};
 function evHTML(set){
   const ev=packEV(set);if(!ev)return'';
-  const prods=(tcgIdx?.sealed||[]).filter(r=>r[1]===set.name&&!/case|display|code/i.test(r[0])).map(r=>{const pk=PACKS.find(([re])=>re.test(r[0]));return pk?[r,pk[1]]:null}).filter(Boolean).sort((a,b)=>b[1]-a[1]).slice(0,4);
+  const prods=(tcgIdx?.sealed||[]).filter(r=>r[1]===set.name&&!/case|display|code/i.test(r[0])).map(r=>{const pk=PACKS.find(([re])=>re.test(r[0]));return pk&&pk[1]?[r,pk[1]]:null}).filter(Boolean).sort((a,b)=>b[1]-a[1]).slice(0,4);
   const rows=prods.map(([r,n])=>{const open=ev.perPack*n,d=open-r[3];return `<tr><td>${esc(r[0].replace(set.short,'').trim()||r[0])}<small>${n} pack${n>1?'s':''} · sealed ${money(r[3])}</small></td><td class="${d>=0?'up':'down'}">${money(open)}<small>${d>=0?'open it':'keep sealed'}</small></td></tr>`}).join('');
   return `<div class="dcard ev" style="margin-bottom:12px"><h2>📦 Open it or keep it sealed?</h2>
   <p class="meta">An average pack from this set pulls about <b>${money(ev.perPack)}</b> in cards at today’s prices.</p>
@@ -2032,11 +2059,98 @@ $('centerJump').onclick=()=>go('center');
 
 /* ---------- duplicates → trade ---------- */
 $('dupeTrade').onclick=()=>{let n=0;col.filter(x=>x.qty>1).forEach(x=>{for(let i=1;i<x.qty;i++){trade.give.push({id:x.id,name:x.name,set:x.set,num:x.num,img:x.img,price:num(x.price)?unitVal(x):x.price});n++}});saveTrade();toast(`Added ${n} extra card${n===1?'':'s'} to Trade check.`);go('trade')};
+
+/* ---------- chase it or buy it? (pull odds) ---------- */
+function oddsHTML(c,g){
+  if(!g||c._sealed||c._jp)return'';const set=buildSets()?.find(x=>x.name===g);if(!set)return'';
+  const pid=pidOf(c.id);const row=(pid&&set.rows.find(([r])=>+r[2]===pid))||set.rows.find(([r,n])=>+n===+c.number&&r[0]===c.name);if(!row)return'';
+  const k=row[0][4];if(!PULL[k])return'';
+  const same=set.rows.filter(([r])=>r[4]===k).length||1,p=PULL[k]/same;
+  const packs50=Math.ceil(Math.log(.5)/Math.log(1-p)),box=1-Math.pow(1-p,36);
+  const sealed=(tcgIdx?.sealed||[]).filter(r=>r[1]===g);const bx=sealed.find(r=>/booster box/i.test(r[0])&&!/case/i.test(r[0])),pk=sealed.find(r=>/sleeved booster|booster pack/i.test(r[0])&&!/box|case|bundle/i.test(r[0]));
+  const packPrice=bx?bx[3]/36:pk?pk[3]:null,single=rowMarket(row[0]);
+  const avgCost=packPrice?packPrice/p:null;
+  const fmtN=n=>n>=1000?Math.round(n/100)/10+'k':String(Math.round(n));
+  return `<div class="sec odds"><b>🎲 Chase it or buy it?</b>
+  <p class="meta" style="margin:6px 0">It's ${esc(RNAME[k]||k)}. About 1 in <b>${fmtN(1/p)}</b> packs has this exact card. You'd need about <b>${fmtN(packs50)}</b> packs for a 50/50 shot, and a booster box gives you about a <b>${box<.01?'under 1':Math.round(box*100)}%</b> chance.</p>
+  ${avgCost&&num(single)?`<div class="dverdict ${avgCost>single?'dv-great':'dv-fair'}">${avgCost>single?'Buy the single':'Ripping packs could pay off'}<small>Pulling it costs about ${money(avgCost)} in packs on average. The card sells for ${money(single)}.</small></div>`:''}
+  <p class="meta" style="font-size:12px">Estimate from typical pull rates for modern sets.</p></div>`;
+}
+
+/* ---------- real or fake? ---------- */
+let fakeCard=null,fakePhoto='',fakeAns={};
+const FAKE=[
+ ['Text and font','Words, HP and attack damage use the same font, size and spacing as the real card. Fakes often have thin, blurry or wrongly spaced letters, and spelling mistakes.'],
+ ['Colors','Colors match the real card. Fakes are often washed out or too dark and oversaturated, especially the yellow border and the blue back.'],
+ ['Holo or texture','The shine matches the real card. Modern full arts and ex cards have a fingerprint-like texture you can feel. Fakes are often flat, glossy all over, or have a rainbow sheen on the whole card.'],
+ ['Light test','Shine a phone flashlight through it. Real cards let only a little dim light through because of a dark layer inside. Very bright light coming through is a warning sign.'],
+ ['Feel and thickness','It feels as stiff and thick as your real cards. Fakes are often thinner, floppier or plastic-smooth.'],
+ ['Back of the card','The swirl on the back is crisp and the blues match a real card. A blurry or purple-tinted back is common on fakes.'],
+ ['Set symbol and number','The set symbol and card number are there and match this card. Fakes sometimes have a wrong number or a number bigger than the set.'],
+ ['Price','The price is close to the market price. A deal that seems too good to be true usually is.']];
+function renderFake(){
+  const b=$('fakeBody');if(!fakeCard){b.innerHTML='<p class="empty" style="margin-top:14px">Type a card above, or open any card and tap “Real or fake?”.</p>';return}
+  const c=fakeCard,v=bestVariant(c),p=priceFor(c,v);
+  const ok=Object.values(fakeAns).filter(x=>x==='ok').length,bad=Object.values(fakeAns).filter(x=>x==='bad').length;
+  const verdict=bad>=2?['dv-bad','⚠️ Very likely fake',`${bad} checks failed. Don't buy it, or ask for more photos.`]:bad===1?['dv-fair','🤔 Be careful','One check failed. Look closer, or compare with a card you know is real.']:ok>=6?['dv-great','✅ Looks real',`Passed ${ok} checks. No photo check is 100%. For expensive cards, buy graded or from trusted sellers.`]:null;
+  b.innerHTML=`<div class="fakecmp"><figure>${imgTag(c.images?.large||c.images?.small)}<figcaption>Real card</figcaption></figure>
+  <figure>${fakePhoto?`<img src="${fakePhoto}" alt="Your card">`:'<label class="ph" style="display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;font-weight:700">📷 Add photo<input type="file" id="fakeCam" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0"></label>'}<figcaption>Yours</figcaption></figure></div>
+  <p class="meta" style="margin-top:8px"><b>${esc(c.name)}</b> · ${esc(c.set?.name||'')} ${esc(c.number||'')}${c.set?.printedTotal?'/'+esc(c.set.printedTotal):''} · market ${money(p)}${fakePhoto?' · <button class="ghost" id="fakeRe" style="min-height:32px;padding:0 10px">Retake</button>':''}</p>
+  ${verdict?`<div class="dverdict ${verdict[0]}">${verdict[1]}<small>${verdict[2]}</small></div>`:''}
+  <ul class="chk">${FAKE.map(([t,d],i)=>`<li><div><b>${t}</b><small>${d}</small></div><div class="yn"><button class="ghost ok" data-i="${i}" data-a="ok" aria-pressed="${fakeAns[i]==='ok'}">✓</button><button class="ghost bad" data-i="${i}" data-a="bad" aria-pressed="${fakeAns[i]==='bad'}">✗</button></div></li>`).join('')}</ul>`;
+  b.querySelectorAll('.yn button').forEach(x=>x.onclick=()=>{const i=x.dataset.i;fakeAns[i]=fakeAns[i]===x.dataset.a?undefined:x.dataset.a;renderFake()});
+  const cam=$('fakeCam');if(cam)cam.onchange=e=>{const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{fakePhoto=r.result;renderFake()};r.readAsDataURL(f)};
+  const re=$('fakeRe');if(re)re.onclick=()=>{fakePhoto='';renderFake()};
+}
+{let tm;$('fakeQ').oninput=()=>{clearTimeout(tm);tm=setTimeout(async()=>{
+  const t=$('fakeQ').value.trim();if(t.length<2){$('fakeDrop').hidden=true;return}
+  await tcgIndex();const res=localSearch(t,8);
+  $('fakeDrop').innerHTML=res.map((c,i)=>`<li><button data-i="${i}"><span>${esc(c.name)} <small style="color:var(--soft)">${esc(c.set?.name||'')} ${esc(c.number+'/'+(c.set?.printedTotal||''))}</small></span><b>${money(priceFor(c,bestVariant(c)))}</b></button></li>`).join('')||'<li style="padding:10px" class="empty">No matches</li>';
+  $('fakeDrop').hidden=false;
+  $('fakeDrop').querySelectorAll('button').forEach(b=>b.onclick=()=>{fakeCard=res[+b.dataset.i];fakeAns={};fakePhoto='';$('fakeQ').value='';$('fakeDrop').hidden=true;renderFake()});
+},150)}}
+$('fakeJump').onclick=()=>go('fake');
+
+/* ---------- bulk value ---------- */
+const BULKDEF=[['Commons & uncommons',0,4/1000,'about $4 per 1,000'],['Reverse holos',0,.03,''],['Holo rares',0,.08,''],['ex, V, GX & other ultra rares',0,.25,''],['Energy cards',0,1/1000,'']];
+let bulk=(()=>{try{const b=JSON.parse(localStorage.getItem('hvl-bulk'));if(Array.isArray(b)&&b.length===BULKDEF.length)return b}catch(e){}return BULKDEF.map(d=>[d[1],d[2]])})();
+function renderBulk(){
+  const tot=bulk.reduce((a,[n,r])=>a+(+n||0)*(+r||0),0),cnt=bulk.reduce((a,[n])=>a+(+n||0),0);
+  $('bulkCalc').innerHTML=`<div class="bulkg"><b>Type</b><b>How many</b><b>$ each</b>${BULKDEF.map((d,i)=>`<span>${d[0]}${d[3]?`<small class="meta" style="display:block;font-size:12px">${d[3]}</small>`:''}</span><input type="number" inputmode="numeric" min="0" data-i="${i}" data-f="0" value="${bulk[i][0]||''}" placeholder="0"><input type="number" inputmode="decimal" min="0" step="0.001" data-i="${i}" data-f="1" value="${bulk[i][1]}">`).join('')}</div>
+  <div class="big" style="margin-top:12px" id="bulkTot">${money(tot)}</div><p class="meta" id="bulkCnt">for ${cnt.toLocaleString()} cards at buylist prices. Check that cards are really bulk before selling: some commons and uncommons are worth dollars.</p>
+  <div class="row"><button class="ghost" id="bulkReset">Reset counts</button></div>`;
+  $('bulkCalc').querySelectorAll('input').forEach(x=>x.oninput=()=>{bulk[+x.dataset.i][+x.dataset.f]=+x.value||0;try{localStorage.setItem('hvl-bulk',JSON.stringify(bulk))}catch(e){}
+    const t=bulk.reduce((a,[n,r])=>a+n*r,0),c=bulk.reduce((a,[n])=>a+n,0);$('bulkTot').textContent=money(t);$('bulkCnt').firstChild.textContent=`for ${c.toLocaleString()} cards at buylist prices. Check that cards are really bulk before selling: some commons and uncommons are worth dollars.`});
+  $('bulkReset').onclick=()=>{bulk.forEach(b=>b[0]=0);try{localStorage.setItem('hvl-bulk',JSON.stringify(bulk))}catch(e){}renderBulk()};
+  const cheap=col.filter(x=>num(x.price)&&unitVal(x)<.5&&!x.sealed&&!isSealedId(x.id)),keep=col.filter(x=>num(x.price)&&unitVal(x)>=1);
+  const n=cheap.reduce((a,x)=>a+x.qty,0),v=cheap.reduce((a,x)=>a+unitVal(x)*x.qty,0);
+  $('bulkMine').innerHTML=col.length?`<h2>In your collection</h2><p class="meta"><b>${n.toLocaleString()}</b> card${n===1?'':'s'} under $0.50 each, worth ${money(v)} at market. Those are your bulk.</p><p class="meta"><b>${keep.reduce((a,x)=>a+x.qty,0).toLocaleString()}</b> cards are worth $1 or more. Pull those out and sell them on their own.</p>`:'<p class="meta">Scan your cards to see how much of your collection is bulk.</p>';
+}
+$('bulkJump').onclick=()=>go('bulk');
+
+/* ---------- sell list ---------- */
+let sellPct=+(localStorage.getItem('hvl-sellpct')||90);
+function sellList(items,title){
+  items=items.filter(x=>num(x.price)).sort((a,b)=>unitVal(b)-unitVal(a));if(!items.length){toast('None of these cards have prices yet.');return}
+  const text=()=>{const lines=items.map(x=>`• ${x.name} (${x.set||''}${x.num?' '+x.num:''})${isGraded(x)?' '+gradeLabel(x):x.cond&&x.cond!=='Near Mint'?' ['+x.cond+']':''}${x.qty>1&&!x._extra?' ×'+x.qty:''} - ${money(Math.max(.25,Math.round(unitVal(x)*sellPct)/100))}${x.qty>1&&!x._extra?' each':''}`);
+    const tot=items.reduce((a,x)=>a+Math.max(.25,Math.round(unitVal(x)*sellPct)/100)*(x._extra?1:x.qty),0);
+    return `${title}\n\n${lines.join('\n')}\n\nTotal: ${money(tot)}${sellPct<100?` (${sellPct}% of TCGplayer market)`:' (TCGplayer market)'}\nOpen to offers and bundles!`};
+  const sh=sheet(`<h2>Sell list</h2><p class="meta">Ready to paste into Facebook groups, Discord, Reddit or Instagram.</p>
+  <label class="meta">Price at <b id="slPctL">${sellPct}%</b> of market</label><input type="range" id="slPct" min="50" max="120" step="5" value="${sellPct}" style="width:100%">
+  <textarea id="slText" rows="12" style="width:100%;margin-top:8px;font:inherit;font-size:14px;padding:10px;border-radius:12px"></textarea>
+  <div class="row"><button id="slCopy">Copy</button>${navigator.share?'<button class="ghost" id="slShare">Share</button>':''}</div>`);
+  const upd=()=>{$('slText').value=text();$('slPctL').textContent=sellPct+'%'};upd();
+  $('slPct').oninput=e=>{sellPct=+e.target.value;try{localStorage.setItem('hvl-sellpct',sellPct)}catch(_){}upd()};
+  $('slCopy').onclick=async()=>{try{await navigator.clipboard.writeText($('slText').value);toast('Copied! Paste it into your post.')}catch(e){$('slText').select();document.execCommand('copy');toast('Copied!')}};
+  if($('slShare'))$('slShare').onclick=()=>navigator.share({text:$('slText').value}).catch(()=>{});
+}
+$('selSell').onclick=()=>{if(!selected.size)return;sellList(col.filter(x=>selected.has(x.id)),'Pokémon cards for sale')};
+$('dupeSell').onclick=()=>{sellList(col.filter(x=>x.qty>1).map(x=>({...x,qty:x.qty-1})),'Pokémon cards for sale')};
 /* ---------- navigation ---------- */
 let view='home';
 function route(){
   if(location.hash.startsWith('#s=')){if(!$('sharedView')&&!window._shOpen){window._shOpen=1;showShared(location.hash.slice(3)).finally(()=>{window._shOpen=0})}return}
-  const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack','insights','game','deal','center'].includes(h)?h:'home';view=v;
+  const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack','insights','game','deal','center','fake','bulk'].includes(h)?h:'home';view=v;
   document.querySelectorAll('.view').forEach(s=>s.hidden=s.id!=='v-'+v);
   document.querySelectorAll('.tabbar a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   if(v==='sets'){if(curSet)renderSetDetail(curSet);else renderSets()}
@@ -2045,6 +2159,8 @@ function route(){
   if(v==='insights')renderInsights();
   if(v==='game')renderGame();
   if(v==='deal')renderDeal();
+  if(v==='fake')renderFake();
+  if(v==='bulk')renderBulk();
   if(v!=='col'&&typeof setSelecting==='function'&&selecting)setSelecting(false);
   window.scrollTo(0,0);
 }
