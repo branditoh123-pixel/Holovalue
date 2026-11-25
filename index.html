@@ -59,7 +59,8 @@ h2 small{font-size:14px;font-weight:500;color:var(--soft)}
 .port-s span{font-size:12px;opacity:.7}
 .acts{margin-top:16px}
 .acts .scanbtn{max-width:none}
-.acts2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.acts2{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:10px}
+.acts2 .act{min-height:86px!important;padding:10px 9px!important;font-size:14px;line-height:1.15;border-radius:16px}.acts2 .act small{font-size:11px;line-height:1.2}.acts2 .act svg{width:22px;height:22px}
 .act{min-height:64px;border-radius:18px;background:var(--paper)!important;color:var(--ink)!important;border:0;justify-content:flex-start;text-align:left;padding:10px 14px;font-size:16px;box-shadow:0 4px 14px #0001;white-space:normal;display:grid;grid-template-columns:auto 1fr;column-gap:10px;align-items:center}
 .act svg{width:24px;height:24px;grid-row:span 2}
 .act small{font-size:12px;font-weight:500;color:var(--soft)}
@@ -182,7 +183,7 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .tabbar a[aria-current=page]{color:#ffd23f}
 .tabbar .tscan{align-self:center;justify-self:center;width:62px;height:62px;border-radius:50%;background:#ffd23f;color:#16141a;border:4px solid #16141a;margin-top:-26px;display:grid;place-items:center;box-shadow:0 6px 18px #0006;padding:0;min-height:0}
 .tabbar .tscan svg{width:30px;height:30px}
-.acts2{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+.acts2{grid-template-columns:repeat(3,minmax(0,1fr))!important}
 .act{grid-template-columns:1fr!important;justify-items:start;row-gap:2px;min-height:78px!important}
 .act svg{grid-row:auto!important}
 .alert{display:flex;gap:10px;align-items:center;background:#1d7a3c;color:#fff;border-radius:16px;padding:12px 14px;margin-top:14px;cursor:pointer;border:0;width:100%;font:inherit;text-align:left;font-weight:500}
@@ -217,6 +218,10 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .pcell .pst{position:absolute;top:8px;right:8px;font-size:12px;font-weight:800;border-radius:999px;padding:1px 7px;background:#1f9d55;color:#fff}.pcell .pst.q{background:#e08a00}.pcell.empty{opacity:.45}.pcell.off{opacity:.35}
 .cinfo .atk{border-top:1px solid var(--line);padding:8px 0}.cinfo .atk b{display:flex;gap:6px;align-items:center}.cinfo .atk p{margin:4px 0 0;font-size:14px;color:var(--soft)}
 .cinfo .dmg{margin-left:auto;font-size:18px;font-weight:800}
+.dexg{display:grid;grid-template-columns:repeat(auto-fill,minmax(74px,1fr));gap:6px;margin-top:12px}
+.dexs{display:block!important;min-height:0!important;padding:4px!important;border-radius:10px!important;background:var(--paper)!important;color:var(--ink)!important;border:0!important;text-align:center;font-size:11px;font-weight:700;line-height:1.15;white-space:normal!important}
+.dexs img{width:100%;aspect-ratio:63/88;object-fit:contain;border-radius:4px;display:block}.dexs .no{display:flex;align-items:center;justify-content:center;aspect-ratio:63/88;border-radius:4px;background:#0000000d;color:var(--soft);font-size:15px;font-weight:800}
+.dexs .nm{display:block;margin-top:3px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dexs.miss{opacity:.75}
 .trow{gap:10px}.trow img,.trow .ph{width:44px;height:61px;object-fit:contain;border-radius:4px;flex:none}.trow>span{flex:1}
 .jpb{font-size:11px;background:var(--ink);color:var(--paper);border-radius:6px;padding:0 5px}
 .shopl{padding-left:22px;margin:10px 0;max-height:46vh;overflow:auto}.shopl li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px solid var(--line);opacity:.55}
@@ -371,6 +376,7 @@ input[type=search]{width:100%}
         <button class="act" id="dealJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M20 12 12 20 4 12V4h8z"/><circle cx="8.5" cy="8.5" r="1.5"/></svg>Deal check<small>Card shows & buying</small></button>
         <button class="act" id="centerJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2"/><rect x="8" y="6" width="8" height="12" rx="1"/></svg>Card grader<small>Estimate the grade</small></button>
         <button class="act" id="pageJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="3" y="3" width="5" height="7" rx="1"/><rect x="9.5" y="3" width="5" height="7" rx="1"/><rect x="16" y="3" width="5" height="7" rx="1"/><rect x="3" y="14" width="5" height="7" rx="1"/><rect x="9.5" y="14" width="5" height="7" rx="1"/><rect x="16" y="14" width="5" height="7" rx="1"/></svg>Binder page scan<small>9 cards, one photo</small></button>
+        <button class="act" id="dexJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h6m6 0h6"/><circle cx="12" cy="12" r="3"/></svg>Pokédex<small>Catch ’em all in cards</small></button>
         <button class="act" id="trendJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="m3 17 6-6 4 4 8-8"/><path d="M15 7h6v6"/></svg>Trending<small>Biggest movers</small></button>
         <button class="act" id="fakeJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><path d="M12 3 4 6v6c0 5 3.5 8 8 9 4.5-1 8-4 8-9V6z"/><path d="m9 12 2 2 4-4"/></svg>Real or fake?<small>Check before you buy</small></button>
         <button class="act" id="bulkJump"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><rect x="4" y="4" width="16" height="6" rx="1"/><rect x="4" y="14" width="16" height="6" rx="1"/></svg>Bulk value<small>What's the pile worth?</small></button>
@@ -511,6 +517,15 @@ input[type=search]{width:100%}
     <label class="btn ghost" style="position:relative;overflow:hidden;flex:1 1 160px">Choose photo<input type="file" id="pagePick" accept="image/*" style="position:absolute;inset:0;opacity:0"></label></div>
     <p class="meta" style="font-size:13px">Tip: fill the photo with the page, hold the phone flat above it, and tilt the binder to avoid glare.</p>
     <div id="pageBody"></div>
+  </section>
+
+  <section class="view" id="v-dex" hidden>
+    <h1 class="vt">Pokédex tracker</h1>
+    <p class="vsub">Own at least one card of every Pokémon. Owned ones show your card, and tapping a missing one shows the cheapest card to fill it.</p>
+    <div class="dcard" id="dexHead"></div>
+    <div class="chips" id="dexGen" role="group" aria-label="Generation" style="margin-top:12px"></div>
+    <div class="chips" style="margin-top:6px"><button class="chip" id="dexMiss" aria-pressed="false">Missing only</button><button class="chip" id="dexShop">🛒 Cheapest way to fill this gen</button></div>
+    <div class="dexg" id="dexGrid"></div>
   </section>
 
   <section class="view" id="v-trend" hidden>
@@ -1549,6 +1564,7 @@ function chaseCards(){
   const out=[];for(const [k,rows] of Object.entries(tcgIdx.cards)){const [n,t]=k.split('/');for(const r of rows)if(newest.includes(r[1]))out.push([r,n,t])}
   return out.sort((a,b)=>rowMarket(b[0])-rowMarket(a[0])).slice(0,15);
 }
+let trendsCache=null;
 function renderMarket(){
   document.querySelectorAll('#mktSec [data-m]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.m===mktTab));
   if(!tcgIdx){$('mktRow').innerHTML='<p class="empty">Loading market…</p>';return}
@@ -1560,7 +1576,10 @@ function renderMarket(){
     const list=movers?.[mktTab]||[];
     $('mktNote').textContent=movers?`since ${movers.from}`:'';
     html=list.slice(0,20).map(m=>{const [n,t]=m[3].split('/');const r=rowByPid(m[3],m[2]);if(!r)return'';const c=cardFromRow(r,n,t);cache.set(c.id,c);const pc=Math.round((m[5]-m[4])/m[4]*100);return tile(c,`<span class="pct ${pc>=0?'up':'down'}">${pc>=0?'+':''}${pc}%</span>`)}).join('');
-    if(!html)html=`<p class="empty">Daily gainers and losers show up after the next nightly price update. Try ★ New set chase cards for now.</p>`;
+    if(!html&&trendsCache){const rows=(trendsCache['7']||{})[mktTab==='up'?'up':'down']||[];$('mktNote').textContent='biggest moves this week';
+      html=rows.slice(0,20).map(r=>{const c=trendCard(r);if(!c)return'';cache.set(c.id,c);const pc=Math.round(r[8]);return tile(c,`<span class="pct ${pc>=0?'up':'down'}">${pc>=0?'+':''}${pc}%</span>`)}).join('')}
+    else if(!html&&!trendsCache)loadTrends().then(t=>{if(t){trendsCache=t;renderMarket()}});
+    if(!html)html=`<p class="empty">Loading this week’s movers…</p>`;
   }
   $('mktRow').innerHTML=html;bindTiles($('mktRow'));
 }
@@ -2729,6 +2748,61 @@ function pageFix(i){
 document.querySelectorAll('#pageGrid [data-g]').forEach(b=>{b.setAttribute('aria-pressed',b.dataset.g===pageG);b.onclick=()=>{pageG=b.dataset.g;LS.set('hvl-pageg',pageG);document.querySelectorAll('#pageGrid [data-g]').forEach(x=>x.setAttribute('aria-pressed',x===b));if(pageImg)pageScan(pageImg)}});
 {const onP=e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;const u=URL.createObjectURL(f),im=new Image();im.onload=()=>pageScan(im);im.onerror=()=>toast('Couldn’t open that photo.');im.src=u};$('pageCam').onchange=onP;$('pagePick').onchange=onP}
 $('pageJump').onclick=()=>go('page');
+
+/* ---------- Pokédex tracker ---------- */
+const GENS=[[1,151],[152,251],[252,386],[387,493],[494,649],[650,721],[722,809],[810,905],[906,1025]];
+const KEEPH=new Set(['ho-oh','porygon-z','jangmo-o','hakamo-o','kommo-o','wo-chien','chien-pao','ting-lu','chi-yu']);
+const SPECIAL={'nidoran-f':'Nidoran♀','nidoran-m':'Nidoran♂','mr-mime':'Mr. Mime','mime-jr':'Mime Jr.','mr-rime':'Mr. Rime','farfetchd':'Farfetch’d','sirfetchd':'Sirfetch’d','type-null':'Type: Null','flabebe':'Flabébé'};
+let dexNames=null,dexGen=+LS.get('hvl-dexgen',1),dexMissOnly=false,dexIdx=null;
+const dexDisp=slug=>SPECIAL[slug]||(KEEPH.has(slug)?slug:slug.replace(/-/g,' ')).replace(/(^|[\s-])([a-z])/g,(m,a,b)=>a+b.toUpperCase()).replace(/-O$/,'-o');
+const dexNorm=t=>String(t).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/♀/g,' f ').replace(/♂/g,' m ').replace(/’|'/g,'').replace(/\(.*?\)/g,' ').replace(/[^a-z0-9: .-]/g,' ').replace(/[.:]/g,'').replace(/\s+/g,' ').trim();
+async function loadDexNames(){
+  if(dexNames)return dexNames;const c=LS.get('hvl-dexnames',null);if(c&&c.length>=1000){dexNames=c;return c}
+  try{const j=await fetch('https://pokeapi.co/api/v2/pokemon-species?limit=1025').then(r=>r.json());const list=(j.results||[]).map(x=>{const id=+x.url.split('/').filter(Boolean).pop();return[id,x.name]}).filter(x=>x[0]>=1&&x[0]<=1025).sort((a,b)=>a[0]-b[0]).map(x=>x[1]);
+    if(list.length>=1000){dexNames=list;LS.set('hvl-dexnames',list)}}catch(e){}
+  return dexNames;
+}
+// species name -> searchable form; card names are matched on whole words, longest species name first
+function dexMatcher(){
+  if(dexIdx)return dexIdx;const byFirst=new Map();
+  dexNames.forEach((slug,i)=>{const forms=new Set([dexNorm(slug.replace(/-/g,' ')),dexNorm(dexDisp(slug).replace(/-/g,' '))]);if(slug==='nidoran-f')forms.add('nidoran f');if(slug==='nidoran-m')forms.add('nidoran m');
+    for(const f of forms){const w=f.split(' ');const k=w[0];if(!byFirst.has(k))byFirst.set(k,[]);byFirst.get(k).push([w,i+1])}});
+  for(const v of byFirst.values())v.sort((a,b)=>b[0].length-a[0].length);
+  dexIdx={byFirst,match:name=>{const w=dexNorm(name).replace(/-/g,' ').split(' ');const out=new Set();
+    for(let i=0;i<w.length;i++){const c=byFirst.get(w[i]);if(!c)continue;for(const [sw,id] of c){if(sw.every((x,j)=>w[i+j]===x)){out.add(id);i+=sw.length-1;break}}}return[...out]}};
+  return dexIdx;
+}
+let dexCheap=null;
+function buildDexCheap(){
+  if(dexCheap||!tcgIdx)return dexCheap;const m=dexMatcher(),best={};
+  for(const [k,rows] of Object.entries(tcgIdx.cards)){const [n,t]=k.split('/');for(const r of rows){const p=rowMarket(r);if(!num(p)||p<.05)continue;for(const id of m.match(r[0])){if(!best[id]||p<best[id][3])best[id]=[r,n,t,p]}}}
+  return dexCheap=best;
+}
+function dexOwned(){const m=dexMatcher(),own={};for(const x of col){if(x.sealed||isSealedId(x.id))continue;for(const id of m.match(x.name))if(!own[id]||itemVal(x)>itemVal(own[id]))own[id]=x}return own}
+async function renderDex(){
+  const grid=$('dexGrid');if(!dexNames){grid.innerHTML='<p class="meta">Loading the Pokédex…</p>';await loadDexNames();if(!dexNames){grid.innerHTML='<p class="err">Couldn’t load the Pokédex list. Check your connection and try again.</p>';return}}
+  await tcgIndex();const own=dexOwned(),cheap=buildDexCheap()||{},total=dexNames.length,have=Object.keys(own).length;
+  $('dexHead').innerHTML=`<div style="font-size:30px;font-weight:800">${have} <span style="font-size:18px;color:var(--soft)">/ ${total}</span></div><div class="bar" style="margin-top:6px"><i style="width:${(have/total*100).toFixed(1)}%"></i></div><p class="meta" style="margin:6px 0 0">${have&&have/total<.01?"under 1":Math.round(have/total*100)}% of all Pokémon caught in cards</p>`;
+  $('dexGen').innerHTML=GENS.map(([a,b],i)=>{const h=Object.keys(own).filter(id=>id>=a&&id<=b).length;return `<button class="chip" data-g="${i+1}" aria-pressed="${dexGen===i+1}">Gen ${i+1} · ${h}/${Math.min(b,total)-a+1}</button>`}).join('');
+  $('dexGen').querySelectorAll('[data-g]').forEach(b=>b.onclick=()=>{dexGen=+b.dataset.g;LS.set('hvl-dexgen',dexGen);renderDex()});
+  $('dexMiss').setAttribute('aria-pressed',dexMissOnly);
+  const [a,b]=GENS[dexGen-1],ids=[];for(let id=a;id<=Math.min(b,total);id++)if(!dexMissOnly||!own[id])ids.push(id);
+  grid.innerHTML=ids.map(id=>{const o=own[id],nm=esc(dexDisp(dexNames[id-1]));return o?`<button class="dexs" data-own="${esc(o.id)}">${okUrl(o.img)?`<img src="${esc(o.img)}" alt="" loading="lazy">`:`<span class="no">✓</span>`}<span class="nm">#${id} ${nm}</span></button>`
+    :`<button class="dexs miss" data-id="${id}"><span class="no">#${id}</span><span class="nm">${nm}</span>${cheap[id]?`<span style="color:var(--soft);font-weight:500">from ${money(cheap[id][3])}</span>`:''}</button>`}).join('')||'<p class="empty">You’ve caught every Pokémon in this generation!</p>';
+  grid.querySelectorAll('[data-own]').forEach(b=>b.onclick=()=>openItem(b.dataset.own));
+  grid.querySelectorAll('[data-id]').forEach(b=>b.onclick=()=>{const ch=cheap[+b.dataset.id];if(!ch){toast('No priced card found for this Pokémon yet.');return}const c=cardFromRow(ch[0],ch[1],ch[2]);cache.set(c.id,c);openCard(c)});
+}
+$('dexMiss').onclick=()=>{dexMissOnly=!dexMissOnly;renderDex()};
+$('dexShop').onclick=()=>{
+  const own=dexOwned(),cheap=buildDexCheap()||{},[a,b]=GENS[dexGen-1],list=[];for(let id=a;id<=Math.min(b,dexNames?.length||0);id++)if(!own[id]&&cheap[id])list.push([id,...cheap[id]]);
+  const tot=list.reduce((s,x)=>s+x[4],0);
+  const sh=sheet(`<h2>🛒 Fill Gen ${dexGen}</h2><p class="meta">${list.length} missing Pokémon. Buying the cheapest card of each costs about <b>${money(tot)}</b>.</p>
+  <ol class="shopl">${list.map(x=>`<li class="in"><a href="https://www.tcgplayer.com/product/${+x[1][2]}" target="_blank" rel="noopener">#${x[0]} ${esc(x[1][0])} <small>${esc(String(x[1][1]).replace(/^[A-Za-z0-9.]+:\s*/,''))} ${x[2]}/${x[3]}</small></a><b>${money(x[4])}</b></li>`).join('')}</ol>
+  <div class="row"><button id="dexCopy">Copy list</button><button class="ghost" id="dexWish">Add all to wishlist</button></div>`);
+  $('dexCopy').onclick=async()=>{try{await navigator.clipboard.writeText(`Pokédex Gen ${dexGen} - cards I need\n`+list.map(x=>`#${x[0]} ${x[1][0]} (${x[1][1]} ${x[2]}/${x[3]}) - ${money(x[4])}`).join('\n'));toast('Copied!')}catch(e){toast('Couldn’t copy on this device.')}};
+  $('dexWish').onclick=()=>{let n=0;for(const x of list){const c=cardFromRow(x[1],x[2],x[3]);if(wish.some(w=>w.id===c.id))continue;cache.set(c.id,c);wish.push(itemFromCard(c,bestVariant(c)));n++}saveWish();renderAll();toast(`Added ${n} cards to your wishlist.`)};
+};
+$('dexJump').onclick=()=>go('dex');
 /* ---------- trending (whole market) ---------- */
 let trendW=LS.get('hvl-trendw','30'),trendCheap=LS.get('hvl-trendcheap',false),trendDir='up',trendsP=null;
 function loadTrends(){if(!trendsP)trendsP=fetch('history/trends.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null).then(t=>{if(!t)trendsP=null;return t});return trendsP}
@@ -2757,7 +2831,7 @@ $('trendJump').onclick=()=>go('trend');
 let view='home';
 function route(){
   if(location.hash.startsWith('#s=')){if(!$('sharedView')&&!window._shOpen){window._shOpen=1;showShared(location.hash.slice(3)).finally(()=>{window._shOpen=0})}return}
-  const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack','insights','game','deal','center','fake','bulk','trend','page'].includes(h)?h:'home';view=v;
+  const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack','insights','game','deal','center','fake','bulk','trend','page','dex'].includes(h)?h:'home';view=v;
   document.querySelectorAll('.view').forEach(s=>s.hidden=s.id!=='v-'+v);
   document.querySelectorAll('.tabbar a').forEach(a=>{if(a.dataset.v===v)a.setAttribute('aria-current','page');else a.removeAttribute('aria-current')});
   if(v==='sets'){if(curSet)renderSetDetail(curSet);else renderSets()}
@@ -2768,6 +2842,7 @@ function route(){
   if(v==='deal')renderDeal();
   if(v==='fake')renderFake();
   if(v==='trend')renderTrend();
+  if(v==='dex')renderDex();
   if(v==='col'&&colHistData&&!colHistData._shown){colHistData._shown=1;renderAll()}
   if(v==='bulk')renderBulk();
   if(v!=='col'&&typeof setSelecting==='function'&&selecting)setSelecting(false);
