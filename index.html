@@ -202,6 +202,15 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .tile .hit{position:absolute;top:12px;right:12px;background:#e5383b;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .mv{display:block;font-size:13px;font-weight:700}
 .mvl{list-style:none;padding:0;margin:6px 0 0}
+.simstage{display:flex;flex-direction:column;align-items:center;gap:10px;margin-top:8px}
+.simcard{width:min(62vw,250px);aspect-ratio:63/88;perspective:900px;border:0;padding:0!important;background:none!important;min-height:0!important;cursor:pointer}
+.simcard .in{position:relative;width:100%;height:100%;transition:transform .45s;transform-style:preserve-3d}.simcard.up .in{transform:rotateY(180deg)}
+.simcard .f,.simcard .b{position:absolute;inset:0;backface-visibility:hidden;border-radius:12px;overflow:hidden}
+.simcard .b{background:radial-gradient(circle at 50% 50%,#fff 0 9%,#222 9% 12%,transparent 12%),linear-gradient(#d33 0 48%,#222 48% 52%,#f5f5f5 52%);border:6px solid #2b5fb4}
+.simcard .f{transform:rotateY(180deg);background:#eee}.simcard .f img{width:100%;height:100%;object-fit:contain}
+.simcard.hit .f{box-shadow:0 0 0 3px #ffd84d,0 0 28px 6px #ffd84d}
+.simrow{display:grid;grid-template-columns:repeat(5,1fr);gap:5px;width:100%}.simrow div{font-size:11px;text-align:center}.simrow img{width:100%;aspect-ratio:63/88;object-fit:contain;border-radius:4px;background:#0001}
+.simrow .hit img{outline:3px solid #ffd84d}
 .pgrid{display:grid;gap:6px;margin-top:12px}.pcell{display:block!important;white-space:normal!important;min-height:0!important;width:100%;position:relative;background:var(--paper)!important;color:var(--ink)!important;border-radius:12px!important;padding:5px!important;border:0!important;font:inherit;color:var(--ink);text-align:left;cursor:pointer;min-width:0}
 .pcell img,.pcell .ph,.pcell canvas{width:100%;aspect-ratio:63/88;object-fit:contain;border-radius:6px;display:block;background:#0001}
 .pcell .pn{display:block;font-size:12px;font-weight:700;line-height:1.2;margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pcell .pp{display:block;font-size:13px;font-weight:800}
@@ -482,8 +491,8 @@ input[type=search]{width:100%}
 
   <section class="view" id="v-page" hidden>
     <h1 class="vt">Binder page scan</h1>
-    <p class="vsub">Take one photo of a whole binder page or a row of cards laid out on a table. HoloValue finds every card and its price.</p>
-    <div class="chips" id="pageGrid" role="group" aria-label="Layout"><button class="chip" data-g="3x3" aria-pressed="true">3 × 3 page</button><button class="chip" data-g="4x3" aria-pressed="false">4 × 3 page</button><button class="chip" data-g="2x2" aria-pressed="false">2 × 2 page</button><button class="chip" data-g="3x1" aria-pressed="false">3 in a row</button></div>
+    <p class="vsub">Take one photo of a whole binder page or a row of cards laid out on a table. HoloValue finds every card and its price. Pick “1 card” to check a screenshot from Marketplace, eBay or a group post.</p>
+    <div class="chips" id="pageGrid" role="group" aria-label="Layout"><button class="chip" data-g="3x3" aria-pressed="true">3 × 3 page</button><button class="chip" data-g="4x3" aria-pressed="false">4 × 3 page</button><button class="chip" data-g="2x2" aria-pressed="false">2 × 2 page</button><button class="chip" data-g="3x1" aria-pressed="false">3 in a row</button><button class="chip" data-g="1x1" aria-pressed="false">1 card / screenshot</button></div>
     <div class="row"><label class="btn" style="position:relative;overflow:hidden;flex:1 1 160px">📷 Take photo<input type="file" id="pageCam" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0"></label>
     <label class="btn ghost" style="position:relative;overflow:hidden;flex:1 1 160px">Choose photo<input type="file" id="pagePick" accept="image/*" style="position:absolute;inset:0;opacity:0"></label></div>
     <p class="meta" style="font-size:13px">Tip: fill the photo with the page, hold the phone flat above it, and tilt the binder to avoid glare.</p>
@@ -1352,6 +1361,7 @@ function renderSetDetail(name){
   <div class="big" style="margin-top:8px">${own.length}/${s.rows.length} <small style="font-size:16px;font-weight:500;color:var(--soft)">${own.length&&pc<1?'under 1':pc}% complete</small></div><div class="bar"><i style="width:${Math.max(own.length?3:0,pc)}%"></i></div>
   <div class="kv"><div><b>${money(ownVal)}</b><span>you own</span></div><div><b>${money(missVal)}</b><span>to complete</span></div><div><b>${miss.length}</b><span>missing</span></div></div></div>
   ${miss.length?`<div class="row" style="margin-bottom:12px"><button id="shopBtn">🛒 Shopping list to finish this set · ${money(missVal)}</button></div>`:''}
+  ${packEV(s)?`<div class="row" style="margin-bottom:12px"><button class="ghost" id="simBtn">🎁 Open virtual packs</button></div>`:''}
   ${evHTML(s)}
   <div class="dcard" id="boxHist" hidden style="margin-bottom:12px"></div>
   <div class="chips">${[['all','All '+s.rows.length],['miss','Missing '+miss.length],['own','Owned '+own.length]].map(([k,l])=>`<button class="chip" data-f="${k}" aria-pressed="${setFilter===k}">${l}</button>`).join('')}</div>
@@ -1360,6 +1370,7 @@ function renderSetDetail(name){
   $('setDetail').querySelectorAll('[data-f]').forEach(b=>b.onclick=()=>{setFilter=b.dataset.f;renderSetDetail(name)});
   bindTiles($('setDetail'));
   if($('shopBtn'))$('shopBtn').onclick=()=>shopList(s,miss);
+  if($('simBtn'))$('simBtn').onclick=()=>packSim(s);
   const bx=(tcgIdx?.sealed||[]).filter(r=>r[1]===s.name&&/booster box|elite trainer box/i.test(r[0])&&!/case|display|pokemon center/i.test(r[0])).sort((a,b)=>(/booster box/i.test(b[0])?1:0)-(/booster box/i.test(a[0])?1:0))[0];
   if(bx)histFor(+bx[2]).then(h=>{const el=$('boxHist');if(h&&el&&curSet===name){el.hidden=false;histChart(el,h,'📦 '+esc(bx[0].replace(s.short,'').trim())+' price',bx[0])}});
 }
@@ -2407,6 +2418,50 @@ function shopList(set,miss){
 }
 
 
+
+/* ---------- virtual pack opener (real pull rates, today's prices) ---------- */
+function packPriceFor(set){const sealed=(tcgIdx?.sealed||[]).filter(r=>r[1]===set.name);const bx=sealed.find(r=>/booster box/i.test(r[0])&&!/case|pokemon center/i.test(r[0])),pk=sealed.find(r=>/sleeved booster|booster pack$/i.test(r[0])&&!/box|case|bundle|art/i.test(r[0]));return bx?bx[3]/36:pk?pk[3]:null}
+let simStats={spent:0,got:0,packs:0,best:null};
+function simPack(set){
+  const by={};for(const [r,n,t] of set.rows){const k=r[4]||'';(by[k]=by[k]||[]).push([r,n,t])}
+  const pick=a=>a&&a.length?a[Math.floor(Math.random()*a.length)]:null;
+  const out=[];const add=(x,rev,hit)=>{if(!x)return;const [r,n,t]=x;const pr=rev?(r[3]?.['Reverse Holofoil']?.[1]??rowMarket(r)):rowMarket(r);out.push({r,n,t,p:num(pr)?pr:0,rev,hit,k:r[4]})};
+  for(let i=0;i<4;i++)add(pick(by.C));for(let i=0;i<3;i++)add(pick(by.U));
+  const revPool=[...(by.C||[]),...(by.U||[]),...(by.R||[])];
+  // second reverse slot can turn into an Illustration Rare or better; the rare slot can be a Double/Ultra Rare
+  const roll=list=>{let x=Math.random();for(const k of list){const p=by[k]?PULL[k]||0:0;if(x<p)return k;x-=p}return null};
+  add(pick(revPool),true);
+  const big=roll(['SIR','HYR','MHR','BWR','SUR','IR','SHR','ACE']);big?add(pick(by[big]),false,['SIR','HYR','MHR','BWR','SUR'].includes(big)?2:1):add(pick(revPool),true);
+  const rare=roll(['UR','DR','SR']);rare?add(pick(by[rare]),false,1):add(pick(by.R||by.HR||revPool));
+  return out;
+}
+function packSim(set){
+  const price=packPriceFor(set);simStats={spent:0,got:0,packs:0,best:null};
+  const sh=sheet(`<h2>🎁 ${esc(set.short)} packs</h2><p class="meta">Real pull rates (estimated) and today’s TCGplayer prices.${price?` A pack costs about ${money(price)}.`:''}</p>
+  <div id="simBody"></div><div id="simTally" class="meta" style="text-align:center;margin-top:8px"></div>
+  <div class="row" style="margin-top:10px"><button id="simOpen">Open a pack</button><button class="ghost" id="simBox">Open a whole box (36)</button></div>`);
+  const tally=()=>{$('simTally').innerHTML=simStats.packs?`${simStats.packs} pack${simStats.packs===1?'':'s'} opened · pulled <b>${money(simStats.got)}</b>${price?` · spent ${money(simStats.spent)} · <b class="${simStats.got>=simStats.spent?'up':'down'}">${simStats.got>=simStats.spent?'up':'down'} ${money(Math.abs(simStats.got-simStats.spent))}</b>`:''}${simStats.best?`<br>Best pull: ${esc(simStats.best.r[0])} (${money(simStats.best.p)})`:''}`:''};
+  const count=cards=>{simStats.packs++;simStats.spent+=price||0;for(const c of cards){simStats.got+=c.p;if(!simStats.best||c.p>simStats.best.p)simStats.best=c}};
+  const img=c=>cardFromRow(c.r,c.n,c.t).images?.small||'';
+  $('simOpen').onclick=()=>{
+    const cards=simPack(set);count(cards);let i=0;
+    const show=()=>{const c=cards[i];
+      $('simBody').innerHTML=`<div class="simstage"><button class="simcard${c.hit?' hit':''}" id="simC" aria-label="Flip card ${i+1} of ${cards.length}"><div class="in"><div class="b"></div><div class="f"><img src="${esc(img(c))}" alt="${esc(c.r[0])}" referrerpolicy="no-referrer"></div></div></button>
+      <div class="meta" id="simInfo" style="text-align:center;min-height:42px">Card ${i+1} of ${cards.length} · tap to flip</div></div>`;
+      $('simC').onclick=()=>{const b=$('simC');if(!b.classList.contains('up')){b.classList.add('up');$('simInfo').innerHTML=`<b>${esc(c.r[0])}</b>${c.rev?' (reverse holo)':''} · ${esc(RNAME[c.k]||({C:'Common',U:'Uncommon',R:'Rare'})[c.k]||'')}<br><b style="font-size:18px">${money(c.p)}</b> · tap for next`;if(c.hit===2||c.p>=20)confetti();return}
+        i++;if(i<cards.length)show();else summary(cards)}};
+    show();tally();
+  };
+  const summary=(cards)=>{const tot=cards.reduce((a,c)=>a+c.p,0);
+    $('simBody').innerHTML=`<div class="dverdict ${price&&tot>=price?'dv-great':'dv-fair'}">This pack: ${money(tot)}<small>${price?(tot>=price?`Beat the ${money(price)} pack price!`:`Less than the ${money(price)} pack price, which is how most packs go.`):''}</small></div>
+    <div class="simrow">${cards.map(c=>`<div class="${c.hit?'hit':''}"><img src="${esc(img(c))}" alt="" referrerpolicy="no-referrer">${money(c.p)}</div>`).join('')}</div>`;tally()};
+  $('simBox').onclick=()=>{
+    const all=[];for(let k=0;k<36;k++){const cards=simPack(set);count(cards);all.push(...cards)}
+    const tot=all.reduce((a,c)=>a+c.p,0),hits=all.filter(c=>c.hit).sort((a,b)=>b.p-a.p);
+    $('simBody').innerHTML=`<div class="dverdict ${price&&tot>=price*36?'dv-great':'dv-fair'}">36 packs: ${money(tot)}<small>${price?`The box costs about ${money(price*36)}. ${tot>=price*36?'You came out ahead!':'You came out behind.'} `:''}${hits.length} hits.</small></div>
+    <div class="simrow">${hits.slice(0,10).map(c=>`<div class="hit"><img src="${esc(img(c))}" alt="" referrerpolicy="no-referrer">${money(c.p)}</div>`).join('')}</div>`;
+    if(hits[0]&&hits[0].p>=50)confetti();tally()};
+}
 /* ---------- binder page scan ---------- */
 let pageG=LS.get('hvl-pageg','3x3'),pageRes=[],pageImg=null,pageRun=0;
 function cellStats(src,r){const c=document.createElement('canvas');c.width=48;c.height=64;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(src,r.x,r.y,r.w,r.h,0,0,48,64);const d=x.getImageData(0,0,48,64).data;let s=0,s2=0,n=d.length/4;for(let i=0;i<d.length;i+=4){const g=.299*d[i]+.587*d[i+1]+.114*d[i+2];s+=g;s2+=g*g}return Math.sqrt(Math.max(0,s2/n-(s/n)**2))}
@@ -2423,7 +2478,7 @@ async function pageScan(img){
     // tighten to the card inside the pocket when its edges can be found
     let rect={x:p.cell.x+p.cell.w*.04,y:p.cell.y+p.cell.h*.03,w:p.cell.w*.92,h:p.cell.h*.94};
     try{const cv=cellCanvas(img,p.cell,360),NA={oL:NaN,oR:NaN,oT:NaN,oB:NaN,iL:NaN,iR:NaN,iT:NaN,iB:NaN},L=cenDetect(cv,NA);
-      if([L.oL,L.oR,L.oT,L.oB].every(x=>!isNaN(x))){const rw=(L.oR-L.oL),rh=(L.oB-L.oT),asp=rw*p.cell.w/(rh*p.cell.h);if(rw>.55&&rh>.55&&asp>.6&&asp<.85)rect={x:p.cell.x+L.oL*p.cell.w,y:p.cell.y+L.oT*p.cell.h,w:rw*p.cell.w,h:rh*p.cell.h}}}catch(e){}
+      if([L.oL,L.oR,L.oT,L.oB].every(x=>!isNaN(x))){const rw=(L.oR-L.oL),rh=(L.oB-L.oT),asp=rw*p.cell.w/(rh*p.cell.h);const mn=pageG==='1x1'?.2:.55;if(rw>mn&&rh>mn&&asp>.6&&asp<.85)rect={x:p.cell.x+L.oL*p.cell.w,y:p.cell.y+L.oT*p.cell.h,w:rw*p.cell.w,h:rh*p.cell.h}}}catch(e){}
     p.rect=rect;
     if(cellStats(img,rect)<14){p.st='empty';renderPage();continue}
     try{
