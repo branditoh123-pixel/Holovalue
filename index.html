@@ -2286,10 +2286,11 @@ async function fakeAnalyze(){
       const st=dot(ti);let bi=-1,bs=-1;for(let i=0;i<meta.n;i++){if(i===ti)continue;const s2=dot(i);if(s2>bs){bs=s2;bi=i}}
       const hit=bi>=0?v.pidMap.get(+meta.pids[bi]):null,other=hit?cardFromRow(hit[1],...hit[0].split('/'),hit[2]):null;
       const sameName=other&&other.name.replace(/\s*\(.*$/,'')===c.name.replace(/\s*\(.*$/,'');
-      if(st>=bs-.01&&st>=.5)steps.push({id:'art',st:'ok',t:'Artwork matches the real card',d:`${Math.round(st*100)}% match with the real ${esc(c.name)}, closer than any of the other ${meta.n.toLocaleString()} cards.`});
-      else if(other&&!sameName&&bs-st>.06&&bs>=.55){fakeAuto.alt=other;cache.set(other.id,other);steps.push({id:'art',st:'bad',t:'Artwork looks like a different card',d:`It matches ${esc(other.name)} (${esc(other.set?.name||'')} ${esc(other.number)}) better than the real ${esc(c.name)}. Either a different card was picked, or the art doesn’t match.`,alt:1})}
-      else if(st<.42)steps.push({id:'art',st:'warn',t:'Artwork is a weak match',d:`Only ${Math.round(st*100)}% match with the real card. Retake the photo straight on with no glare. If it stays low, compare the art closely.`});
-      else steps.push({id:'art',st:'ok',t:'Artwork is close to the real card',d:`${Math.round(st*100)}% match.${sameName?' It’s also close to another version of this card, so check the set symbol and number.':''}`});
+      const A=meta.accept?.score||.5,Mg=meta.accept?.margin||.04;
+      if(st>=bs-.01&&st>=A*.8)steps.push({id:'art',st:'ok',t:'Artwork matches the real card',d:`Your photo matches the real ${esc(c.name)} better than any of the other ${meta.n.toLocaleString()} cards.`});
+      else if(other&&!sameName&&bs-st>Math.max(.06,Mg)&&bs>=A){fakeAuto.alt=other;cache.set(other.id,other);steps.push({id:'art',st:'bad',t:'Artwork looks like a different card',d:`It matches ${esc(other.name)} (${esc(other.set?.name||'')} ${esc(other.number)}) better than the real ${esc(c.name)}. Either a different card was picked, or the art doesn’t match.`,alt:1})}
+      else if(st<A*.6)steps.push({id:'art',st:'warn',t:'Artwork is a weak match',d:'Your photo doesn’t match the real card’s art closely. Retake it straight on with no glare. If it stays weak, compare the art closely.'});
+      else steps.push({id:'art',st:'ok',t:'Artwork is close to the real card',d:`Close to the real card.${sameName?' It’s also close to another version of this card, so check the set symbol and number.':''}`});
       // 5. colors
       set('Comparing colors…');
       const cdb=await loadColors();if(run!==fakeRun)return;
