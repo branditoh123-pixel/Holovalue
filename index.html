@@ -201,6 +201,9 @@ body{padding-bottom:calc(92px + env(safe-area-inset-bottom))}
 .tile .own{position:absolute;top:12px;right:12px;background:#1d7a3c;color:#fff;font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .hit{position:absolute;top:12px;right:12px;background:#e5383b;color:#fff;font-size:11px;font-weight:700;border-radius:999px;padding:1px 8px}
 .tile .mv{display:block;font-size:13px;font-weight:700}
+.mvl{list-style:none;padding:0;margin:6px 0 0}.mvl li+li{margin-top:6px}
+.mvr{width:100%;justify-content:space-between;text-align:left;border-radius:14px!important;min-height:52px;white-space:normal}
+.mvr small{display:block;font-weight:400;color:var(--soft);font-size:12px}.mvr b{text-align:right;white-space:nowrap;flex:none}.mvr>span{min-width:0}
 .hchart{position:relative;margin-top:8px}.hchart svg{display:block;width:100%;height:auto;touch-action:pan-y}
 .hchart .tip{position:absolute;top:0;transform:translateX(-50%);background:var(--ink);color:var(--paper);font-size:12px;font-weight:700;padding:3px 8px;border-radius:8px;pointer-events:none;white-space:nowrap}
 .hstats{display:flex;gap:14px;flex-wrap:wrap;margin-top:6px;font-size:13px}.hstats b{font-size:15px}
@@ -402,9 +405,10 @@ input[type=search]{width:100%}
     <h1 class="vt">Insights</h1>
     <p class="vsub" id="insSub"></p>
     <div class="panel">
-      <div class="chips" role="group" aria-label="Range"><button class="chip" data-r="7" aria-pressed="false">7 days</button><button class="chip" data-r="30" aria-pressed="true">30 days</button><button class="chip" data-r="0" aria-pressed="false">All time</button></div>
+      <div class="chips" role="group" aria-label="Range"><button class="chip" data-r="30" aria-pressed="true">1 month</button><button class="chip" data-r="91" aria-pressed="false">3 months</button><button class="chip" data-r="183" aria-pressed="false">6 months</button><button class="chip" data-r="0" aria-pressed="false">1 year</button></div>
       <div class="bigchart"><svg id="bigChart" role="img" aria-label="Collection value over time"></svg></div>
       <p class="msg" id="chartNote"></p>
+      <div id="colMovers"></div>
     </div>
     <div class="panel"><h2>Achievements <small id="achNote" style="font-weight:500;color:var(--soft);font-size:14px"></small></h2><div class="achgrid" id="achGrid"></div></div>
     <div class="insgrid">
@@ -1144,9 +1148,10 @@ const unitVal=(x,p)=>{p=p??x.price;if(isGraded(x)&&num(x.gval))return x.gval;ret
 const itemVal=x=>unitVal(x)*(x.qty||1);
 const gradeLabel=x=>isGraded(x)&&x.gco?`${x.gco} ${x.gr||''}`.trim():'';
 const delta=x=>num(x.prev)&&num(x.price)?x.price-x.prev:0;
+function trendTag(x){const m=colHistData?.movers?.find(m=>m.x.id===x.id);if(!m||Math.abs(m.pct)<3)return'';return `<span class="mv ${m.pct>0?'up':'down'}">${m.pct>0?'▲':'▼'} ${Math.abs(Math.round(m.pct))}% · 30d</span>`}
 function ownedTile(x){
   const d=delta(x);
-  return `<button class="tile" data-cid="${esc(x.id)}">${imgTag(x.img)}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}${gradeLabel(x)?`<span class="slab">${esc(gradeLabel(x))}</span>`:''}${x.jp||isJPid(x.id)?'<span class="jp">JP</span>':''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${x.sealed||isSealedId(x.id)?'Sealed':esc(x.num)}</span><span class="tp">${money(num(x.price)?itemVal(x):null)}</span>${d?`<span class="mv ${d>0?'up':'down'}">${d>0?'▲':'▼'} ${money(Math.abs(d))}</span>`:''}</button>`;
+  return `<button class="tile" data-cid="${esc(x.id)}">${imgTag(x.img)}${x.qty>1?`<span class="badge">×${x.qty}</span>`:''}${gradeLabel(x)?`<span class="slab">${esc(gradeLabel(x))}</span>`:''}${x.jp||isJPid(x.id)?'<span class="jp">JP</span>':''}<span class="tn">${esc(x.name)}</span><span class="ts">${esc(x.set)} · ${x.sealed||isSealedId(x.id)?'Sealed':esc(x.num)}</span><span class="tp">${money(num(x.price)?itemVal(x):null)}</span>${d?`<span class="mv ${d>0?'up':'down'}">${d>0?'▲':'▼'} ${money(Math.abs(d))}</span>`:trendTag(x)}</button>`;
 }
 function renderCol(){renderAll()}
 function renderAll(){
@@ -1557,13 +1562,17 @@ function renderResults(){
 let insRange=30;
 function bandOf(p){return p<1?'Under $1':p<10?'$1 – $10':p<50?'$10 – $50':p<200?'$50 – $200':'$200+'}
 function barsHTML(entries,total){const mx=Math.max(...entries.map(e=>e[1]),1);return entries.map(([k,v,extra])=>`<li><div class="lab"><span>${esc(k)}</span><span>${money(v)}${extra?` <small style="color:var(--soft);font-weight:500">${esc(extra)}</small>`:''}</span></div><div class="bar"><i style="width:${Math.max(2,v/mx*100).toFixed(1)}%"></i></div></li>`).join('')||'<li class="empty">Add cards to see this.</li>'}
+const insLbl=(k,keys)=>{const t=new Date(k+'T00:00:00Z'),span=(new Date(keys[keys.length-1])-new Date(keys[0]))/864e5;return t.toLocaleDateString('en-US',span>200?{month:'short',year:'numeric',timeZone:'UTC'}:{month:'short',day:'numeric',timeZone:'UTC'})};
 function renderInsights(){
   document.querySelectorAll('#v-insights [data-r]').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.r===insRange));
   const tot=col.reduce((a,x)=>a+itemVal(x),0),n=col.reduce((a,x)=>a+x.qty,0);
   $('insSub').textContent=`${n} cards · ${money(tot)} · condition-adjusted`;
   // chart
-  const h=LS.get('hvl-hist',{});let keys=Object.keys(h).sort();
+  let h=LS.get('hvl-hist',{});const ch0=colHistData&&colHistData.sig===colSig()?colHistData:null;
+  if(ch0)h=ch0.byDate;else colHistory().then(d=>{if(d&&view==='insights')renderInsights()});
+  let keys=Object.keys(h).sort();
   if(insRange){const cut=new Date(Date.now()-insRange*864e5).toISOString().slice(0,10);keys=keys.filter(k=>k>=cut)}
+  $('colMovers').innerHTML=ch0?moversHTML(ch0):'';
   const sv=$('bigChart'),W=sv.clientWidth||340,H=sv.clientHeight||220;
   if(keys.length<2){sv.innerHTML=`<text x="${W/2}" y="${H/2}" text-anchor="middle" font-size="14" fill="currentColor" fill-opacity=".6">Your chart fills in as you use HoloValue each day</text>`;$('chartNote').textContent=keys.length?`Tracking since ${keys[0]}.`:'';}
   else{
@@ -1574,8 +1583,8 @@ function renderInsights(){
     sv.innerHTML=`${ticks.map(t=>`<line x1="${L}" x2="${W-Rr}" y1="${Y(t)}" y2="${Y(t)}" stroke="currentColor" stroke-opacity=".1"/><text x="${L-6}" y="${Y(t)+4}" text-anchor="end" font-size="11" fill="currentColor" fill-opacity=".6">${esc(money(t).replace(/\.\d\d$/,''))}</text>`).join('')}
     <path d="${d}L${X(pts.length-1)},${H-B}L${X(0)},${H-B}Z" fill="${col2}" fill-opacity=".14"/><path d="${d}" fill="none" stroke="${col2}" stroke-width="3" stroke-linejoin="round"/>
     <circle cx="${X(pts.length-1)}" cy="${Y(pts[pts.length-1])}" r="5" fill="${col2}"/>
-    <text x="${L}" y="${H-6}" font-size="11" fill="currentColor" fill-opacity=".6">${esc(keys[0].slice(5))}</text><text x="${W-Rr}" y="${H-6}" font-size="11" text-anchor="end" fill="currentColor" fill-opacity=".6">${esc(keys[keys.length-1].slice(5))}</text>`;
-    const ch=pts[pts.length-1]-pts[0];$('chartNote').innerHTML=`<span class="${ch>=0?'up':'down'}" style="font-weight:700">${ch>=0?'▲':'▼'} ${money(Math.abs(ch))} (${pts[0]?Math.round(ch/pts[0]*100):0}%)</span> over this period`;
+    <text x="${L}" y="${H-6}" font-size="11" fill="currentColor" fill-opacity=".6">${esc(insLbl(keys[0],keys))}</text><text x="${W-Rr}" y="${H-6}" font-size="11" text-anchor="end" fill="currentColor" fill-opacity=".6">${esc(insLbl(keys[keys.length-1],keys))}</text>`;
+    const ch=pts[pts.length-1]-pts[0];$('chartNote').innerHTML=`<span class="${ch>=0?'up':'down'}" style="font-weight:700">${ch>=0?'▲':'▼'} ${money(Math.abs(ch))} (${pts[0]?Math.round(ch/pts[0]*100):0}%)</span> over this period${ch0?'<br><small style="font-weight:400">Based on what the cards you own now were worth on each day.</small>':''}`;
   }
   // breakdowns
   const agg=f=>{const m={};col.forEach(x=>{const k=f(x);m[k]=(m[k]||[0,0]);m[k][0]+=itemVal(x);m[k][1]+=x.qty});return Object.entries(m).sort((a,b)=>b[1][0]-a[1][0])};
@@ -2067,6 +2076,40 @@ $('centerJump').onclick=()=>go('center');
 $('dupeTrade').onclick=()=>{let n=0;col.filter(x=>x.qty>1).forEach(x=>{for(let i=1;i<x.qty;i++){trade.give.push({id:x.id,name:x.name,set:x.set,num:x.num,img:x.img,price:num(x.price)?unitVal(x):x.price});n++}});saveTrade();toast(`Added ${n} extra card${n===1?'':'s'} to Trade check.`);go('trade')};
 
 
+
+/* ---------- collection value over the past year (from price history) ---------- */
+let colHistData=null,colHistBusy=null;
+const colSig=()=>(histMeta&&histMeta.then?'':'')+col.map(x=>x.id+'*'+x.qty+(x.v||'')+(x.cond||'')+(x.gval||'')).join(',');
+async function colHistory(){
+  const sig=colSig();if(colHistData&&colHistData.sig===sig)return colHistData;if(colHistBusy)return colHistBusy;
+  colHistBusy=(async()=>{
+    const m=await histMetaP();if(!m||!col.length)return null;
+    const items=col.map(x=>({x,val:itemVal(x),pid:pidOf(x.id)||+x.pid||0,graded:isGraded(x)&&num(x.gval)})).filter(i=>i.val>0).sort((a,b)=>b.val-a.val);
+    const total=items.reduce((a,i)=>a+i.val,0),need=new Set();let cum=0;
+    for(const i of items){if(!i.pid||i.graded)continue;const k=i.pid%64;if(!need.has(k)&&(need.size>=40||cum>=total*.97))continue;need.add(k);cum+=i.val}
+    await Promise.all([...need].map(k=>{if(!histShards.has(k))histShards.set(k,fetch(`history/h${k}.json?d=${m.today}`).then(r=>r.ok?r.json():{}).catch(()=>({})));return histShards.get(k)}));
+    const sh={};for(const k of need)sh[k]=await histShards.get(k);
+    const days=m.dates,ep=new Date(m.epoch+'T00:00:00Z').getTime(),tot=new Array(days.length).fill(0),mv=[];
+    for(const i of items){
+      const sr=!i.graded&&i.pid&&sh[i.pid%64]?.[String(i.pid)];
+      if(!sr||sr.length<3){for(let j=0;j<days.length;j++)tot[j]+=i.val;continue}
+      const pts=sr.slice(1),last=pts[pts.length-1][1]||1;let pi=0,cur=pts[0][1];
+      for(let j=0;j<days.length;j++){while(pi<pts.length&&pts[pi][0]<=days[j]){cur=pts[pi][1];pi++}tot[j]+=i.val*cur/last}
+      const lastD=pts[pts.length-1][0];let p30=null;for(const [d,p] of pts)if(d<=lastD-28)p30=p;
+      if(p30)mv.push({x:i.x,val:i.val,chg:i.val-i.val*p30/last,pct:(last-p30)/p30*100});
+    }
+    tot[tot.length-1]=total;const byDate={};days.forEach((d,j)=>{byDate[new Date(ep+d*864e5).toISOString().slice(0,10)]=Math.round(tot[j]*100)/100});
+    colHistData={sig,byDate,movers:mv};if(view==='col')renderAll();return colHistData;
+  })().finally(()=>{colHistBusy=null});
+  return colHistBusy;
+}
+function moversHTML(d){
+  const up=d.movers.filter(m=>m.chg>=.5).sort((a,b)=>b.chg-a.chg).slice(0,3),dn=d.movers.filter(m=>m.chg<=-.5).sort((a,b)=>a.chg-b.chg).slice(0,3);
+  if(!up.length&&!dn.length)return'';
+  const li=m=>`<li><button class="ghost mvr" data-id="${esc(m.x.id)}"><span>${esc(m.x.name)}<small>${esc(m.x.set||'')}</small></span><b class="${m.chg>=0?'up':'down'}">${m.chg>=0?'▲ +':'▼ −'}${money(Math.abs(m.chg))}<small>${m.pct>=0?'+':''}${Math.round(m.pct)}%</small></b></button></li>`;
+  return `<h2 style="margin-top:14px">Your biggest movers · 30 days</h2>${up.length?`<ul class="mvl">${up.map(li).join('')}</ul>`:''}${dn.length?`<ul class="mvl">${dn.map(li).join('')}</ul>`:''}`;
+}
+document.addEventListener('click',e=>{const b=e.target.closest('.mvr');if(!b)return;openItem(b.dataset.id)});
 /* ---------- price history ---------- */
 let histMeta=null,histShards=new Map(),histRange=LS.get('hvl-hrange','3M');
 function histMetaP(){if(!histMeta)histMeta=fetch('history/meta.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null).then(m=>{if(!m)histMeta=null;return m});return histMeta}
@@ -2319,6 +2362,7 @@ function route(){
   if(v==='game')renderGame();
   if(v==='deal')renderDeal();
   if(v==='fake')renderFake();
+  if(v==='col'&&colHistData&&!colHistData._shown){colHistData._shown=1;renderAll()}
   if(v==='bulk')renderBulk();
   if(v!=='col'&&typeof setSelecting==='function'&&selecting)setSelecting(false);
   window.scrollTo(0,0);
