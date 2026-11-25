@@ -1,0 +1,51 @@
+name: Build card color profiles
+
+on:
+  workflow_dispatch: {}
+  workflow_run:
+    workflows: ["Build visual scanner index"]
+    types: [completed]
+  push:
+    branches: [main]
+    paths:
+      - "scripts/build_colors.py"
+      - ".github/workflows/colors.yml"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: colors
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Restore card image cache
+        uses: actions/cache/restore@v4
+        with:
+          path: img-cache
+          key: card-images-colors-${{ github.run_id }}
+          restore-keys: card-images-
+      - name: Install
+        run: |
+          pip install --quiet torch==2.5.1 torchvision==0.20.1 --index-url https://download.pytorch.org/whl/cpu
+          pip install --quiet numpy pillow
+      - name: Build color profiles
+        run: python scripts/build_colors.py
+      - name: Commit
+        run: |
+          git config user.name "holovalue-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add vis/color.bin vis/color.json
+          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
+          git commit -m "Update card color profiles $(date -u +%F)"
+          for i in 1 2 3; do git pull --rebase origin main && git push && break; sleep 5; done

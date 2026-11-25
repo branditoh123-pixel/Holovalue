@@ -1509,7 +1509,7 @@ function sheetExtras(c){
   html+=oddsHTML(c,g);
   html+=`<div class="row" style="margin-top:10px"><button class="ghost" id="fakeFromCard">🛡️ Real or fake? Compare with the real card</button></div>`;
   sh.insertAdjacentHTML('beforeend',html);
-  $('fakeFromCard').onclick=()=>{closeSheet();fakeCard=c;go('fake')};
+  $('fakeFromCard').onclick=()=>{closeSheet();fakeCard=c;fakeAns={};fakeAuto=null;fakeImg=null;fakePhoto='';go('fake')};
   if(g)$('viewSet').onclick=()=>{closeSheet();curSet=g;setFilter='all';go('sets');setTimeout(()=>renderSetDetail(g),0)};
   sh.querySelectorAll('#otherSec .tile[data-id]').forEach(b=>b.onclick=()=>{const x=cache.get(b.dataset.id);if(x){openCard(x);document.querySelector('.sheet')?.scrollTo(0,0)}});
 }
@@ -1997,7 +1997,7 @@ function evHTML(set){
 
 /* ---------- centering checker ---------- */
 let cen={img:null,side:'front',L:{oL:.03,oR:.97,oT:.03,oB:.97,iL:.08,iR:.92,iT:.06,iB:.94}};
-function cenDetect(img){
+function cenDetect(img,base){
   const W=300,H=Math.round(img.height*W/img.width),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(img,0,0,W,H);
   const d=x.getImageData(0,0,W,H).data,g=new Float32Array(W*H);for(let i=0,j=0;i<d.length;i+=4,j++)g[j]=.299*d[i]+.587*d[i+1]+.114*d[i+2];
   const col=new Float32Array(W),row=new Float32Array(H);
@@ -2008,7 +2008,7 @@ function cenDetect(img){
     const idx=[];const st=dir>0?Math.floor(from*n):Math.floor(to*n)-1;for(let i=st;dir>0?i<to*n:i>=from*n;i+=dir){if(sm[i]>mean+1.6*sd&&sm[i]>=sm[i-1]&&sm[i]>=sm[i+1]){if(!idx.length||Math.abs(i-idx[idx.length-1])>=minGap*n)idx.push(i);if(idx.length===2)break}}
     return idx.map(i=>i/n)};
   const l=peaks(col,.0,.35,1,.015),r=peaks(col,.65,1,-1,.015),t=peaks(row,0,.3,1,.012),b=peaks(row,.7,1,-1,.012);
-  const L={...cen.L};if(l.length===2){L.oL=l[0];L.iL=l[1]}if(r.length===2){L.oR=r[0];L.iR=r[1]}if(t.length===2){L.oT=t[0];L.iT=t[1]}if(b.length===2){L.oB=b[0];L.iB=b[1]}
+  const L={...(base||cen.L)};if(l.length===2){L.oL=l[0];L.iL=l[1]}if(r.length===2){L.oR=r[0];L.iR=r[1]}if(t.length===2){L.oT=t[0];L.iT=t[1]}if(b.length===2){L.oB=b[0];L.iB=b[1]}
   return L;
 }
 function cenGrade(worst,side){
@@ -2078,7 +2078,7 @@ function oddsHTML(c,g){
 }
 
 /* ---------- real or fake? ---------- */
-let fakeCard=null,fakePhoto='',fakeAns={};
+let fakeCard=null,fakePhoto='',fakeAns={},fakeImg=null,fakeAuto=null,fakeRun=0;
 const FAKE=[
  ['Text and font','Words, HP and attack damage use the same font, size and spacing as the real card. Fakes often have thin, blurry or wrongly spaced letters, and spelling mistakes.'],
  ['Colors','Colors match the real card. Fakes are often washed out or too dark and oversaturated, especially the yellow border and the blue back.'],
@@ -2094,23 +2094,127 @@ function renderFake(){
   const ok=Object.values(fakeAns).filter(x=>x==='ok').length,bad=Object.values(fakeAns).filter(x=>x==='bad').length;
   const verdict=bad>=2?['dv-bad','⚠️ Very likely fake',`${bad} checks failed. Don't buy it, or ask for more photos.`]:bad===1?['dv-fair','🤔 Be careful','One check failed. Look closer, or compare with a card you know is real.']:ok>=6?['dv-great','✅ Looks real',`Passed ${ok} checks. No photo check is 100%. For expensive cards, buy graded or from trusted sellers.`]:null;
   b.innerHTML=`<div class="fakecmp"><figure>${imgTag(c.images?.large||c.images?.small)}<figcaption>Real card</figcaption></figure>
-  <figure>${fakePhoto?`<img src="${fakePhoto}" alt="Your card">`:'<label class="ph" style="display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;font-weight:700">📷 Add photo<input type="file" id="fakeCam" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0"></label>'}<figcaption>Yours</figcaption></figure></div>
+  <figure>${fakePhoto?`<img src="${fakePhoto}" alt="Your card">`:'<label class="ph" style="display:flex;align-items:center;justify-content:center;position:relative;cursor:pointer;font-weight:700">📷 Take photo<input type="file" id="fakeCam" accept="image/*" capture="environment" style="position:absolute;inset:0;opacity:0"></label>'}<figcaption>Yours</figcaption></figure></div>
   <p class="meta" style="margin-top:8px"><b>${esc(c.name)}</b> · ${esc(c.set?.name||'')} ${esc(c.number||'')}${c.set?.printedTotal?'/'+esc(c.set.printedTotal):''} · market ${money(p)}${fakePhoto?' · <button class="ghost" id="fakeRe" style="min-height:32px;padding:0 10px">Retake</button>':''}</p>
-  ${verdict?`<div class="dverdict ${verdict[0]}">${verdict[1]}<small>${verdict[2]}</small></div>`:''}
+  ${fakePhoto?'':'<p class="meta" style="margin:4px 0 0">Photo tips: card flat on a dark table, straight from above, no glare. <label style="position:relative;overflow:hidden;text-decoration:underline;font-weight:700">Or choose a photo<input type="file" id="fakePick" accept="image/*" style="position:absolute;inset:0;opacity:0"></label></p>'}
+  <div class="row" style="margin-top:8px;align-items:center"><label class="meta" for="fakeAsk" style="flex:1">Seller’s price (optional)</label><input type="number" inputmode="decimal" id="fakeAsk" placeholder="$" value="${fakeAsk||''}" style="width:120px"></div>
+  ${fakeAutoHTML()}
+  ${verdict?`<h2 style="margin-top:14px">Your checks</h2><div class="dverdict ${verdict[0]}">${verdict[1]}<small>${verdict[2]}</small></div>`:'<h2 style="margin-top:14px">Hands-on checks</h2>'}
   <ul class="chk">${FAKE.map(([t,d],i)=>`<li><div><b>${t}</b><small>${d}</small></div><div class="yn"><button class="ghost ok" data-i="${i}" data-a="ok" aria-pressed="${fakeAns[i]==='ok'}">✓</button><button class="ghost bad" data-i="${i}" data-a="bad" aria-pressed="${fakeAns[i]==='bad'}">✗</button></div></li>`).join('')}</ul>`;
   b.querySelectorAll('.yn button').forEach(x=>x.onclick=()=>{const i=x.dataset.i;fakeAns[i]=fakeAns[i]===x.dataset.a?undefined:x.dataset.a;renderFake()});
-  const cam=$('fakeCam');if(cam)cam.onchange=e=>{const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{fakePhoto=r.result;renderFake()};r.readAsDataURL(f)};
-  const re=$('fakeRe');if(re)re.onclick=()=>{fakePhoto='';renderFake()};
+  const onPhoto=e=>{const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=()=>{fakePhoto=r.result;const im=new Image();im.onload=()=>{fakeImg=im;fakeAnalyze()};im.src=r.result;renderFake()};r.readAsDataURL(f)};
+  ['fakeCam','fakePick'].forEach(id=>{const el=$(id);if(el)el.onchange=onPhoto});
+  const re=$('fakeRe');if(re)re.onclick=()=>{fakePhoto='';fakeImg=null;fakeAuto=null;fakeRun++;renderFake()};
+  $('fakeAsk').onchange=e=>{fakeAsk=+e.target.value||0;if(fakeAuto&&!fakeAuto.busy)fakeAuto.checks=fakeAuto.checks.filter(x=>x.id!=='price').concat(priceCheck());autoFill();renderFake()};
+  const sw=$('fakeSwitch');if(sw)sw.onclick=()=>{const alt=fakeAuto?.alt;if(!alt)return;fakeCard=alt;fakeAns={};fakeAnalyze()};
 }
 {let tm;$('fakeQ').oninput=()=>{clearTimeout(tm);tm=setTimeout(async()=>{
   const t=$('fakeQ').value.trim();if(t.length<2){$('fakeDrop').hidden=true;return}
   await tcgIndex();const res=localSearch(t,8);
   $('fakeDrop').innerHTML=res.map((c,i)=>`<li><button data-i="${i}"><span>${esc(c.name)} <small style="color:var(--soft)">${esc(c.set?.name||'')} ${esc(c.number+'/'+(c.set?.printedTotal||''))}</small></span><b>${money(priceFor(c,bestVariant(c)))}</b></button></li>`).join('')||'<li style="padding:10px" class="empty">No matches</li>';
   $('fakeDrop').hidden=false;
-  $('fakeDrop').querySelectorAll('button').forEach(b=>b.onclick=()=>{fakeCard=res[+b.dataset.i];fakeAns={};fakePhoto='';$('fakeQ').value='';$('fakeDrop').hidden=true;renderFake()});
+  $('fakeDrop').querySelectorAll('button').forEach(b=>b.onclick=()=>{fakeCard=res[+b.dataset.i];fakeAns={};$('fakeQ').value='';if(fakeImg){fakeAnalyze();return}fakePhoto='';$('fakeDrop').hidden=true;renderFake()});
 },150)}}
 $('fakeJump').onclick=()=>go('fake');
 
+
+/* ---------- automatic photo analysis for Real or fake ---------- */
+let fakeAsk=0,colorP=null,visIdx=null;
+function loadColors(){
+  if(colorP)return colorP;
+  colorP=(async()=>{const v=await loadVis();if(!v)return null;
+    const m=await fetch('vis/color.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null);
+    if(!m||m.n!==v.meta.n||m.first!==v.meta.pids[0]||m.last!==v.meta.pids[v.meta.n-1])return null;
+    const b=await fetch('vis/color.bin?b='+encodeURIComponent(m.built||'')).then(r=>r.ok?r.arrayBuffer():null).catch(()=>null);
+    return b&&b.byteLength===m.n*72?new Uint8Array(b):null})().catch(()=>null);
+  colorP.then(x=>{if(!x)colorP=null});return colorP;
+}
+const pidIndex=pid=>{if(!vis)return -1;if(!visIdx){visIdx=new Map();vis.meta.pids.forEach((p,i)=>visIdx.set(+p,i))}const i=visIdx.get(+pid);return i==null?-1:i};
+function photoGrid(src,r){const c=document.createElement('canvas');c.width=40;c.height=60;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(src,r.x,r.y,r.w,r.h,0,0,40,60);
+  const d=x.getImageData(0,0,40,60).data,g=new Float32Array(72);for(let y=0;y<60;y++)for(let xx=0;xx<40;xx++){const i=(y*40+xx)*4,k=(Math.floor(y/10)*4+Math.floor(xx/10))*3;g[k]+=d[i];g[k+1]+=d[i+1];g[k+2]+=d[i+2]}
+  for(let k=0;k<72;k++)g[k]/=100;return g}
+// gray-world balance both, so room lighting matters less; then compare vividness and where the colors sit
+function colorCompare(p,r){
+  const bal=g=>{const m=[0,0,0];for(let i=0;i<72;i++)m[i%3]+=g[i]/24;return Array.from(g,(v,i)=>v/(m[i%3]||1)*128)};
+  const P=bal(p),Q=bal(r),chroma=g=>{let s=0;for(let i=0;i<72;i+=3)s+=Math.max(g[i],g[i+1],g[i+2])-Math.min(g[i],g[i+1],g[i+2]);return s/24};
+  const mp=P.reduce((a,b)=>a+b,0)/72,mq=Q.reduce((a,b)=>a+b,0)/72;let sxy=0,sx=0,sy=0;for(let i=0;i<72;i++){sxy+=(P[i]-mp)*(Q[i]-mq);sx+=(P[i]-mp)**2;sy+=(Q[i]-mq)**2}
+  return{vivid:chroma(P)/(chroma(Q)||1),corr:sxy/Math.sqrt(sx*sy||1)};
+}
+function photoQuality(src,r){
+  const W=320,H=Math.round(W*r.h/r.w),c=document.createElement('canvas');c.width=W;c.height=H;const x=c.getContext('2d',{willReadFrequently:true});x.drawImage(src,r.x,r.y,r.w,r.h,0,0,W,H);
+  const d=x.getImageData(0,0,W,H).data,g=new Float32Array(W*H);let glare=0;for(let i=0,j=0;i<d.length;i+=4,j++){g[j]=.299*d[i]+.587*d[i+1]+.114*d[i+2];if(d[i]>248&&d[i+1]>248&&d[i+2]>248)glare++}
+  let s=0,s2=0,n=0;for(let y=1;y<H-1;y++)for(let xx=1;xx<W-1;xx++){const j=y*W+xx,l=4*g[j]-g[j-1]-g[j+1]-g[j-W]-g[j+W];s+=l;s2+=l*l;n++}
+  return{sharp:s2/n-(s/n)**2,glare:glare/(W*H)};
+}
+function priceCheck(){
+  const c=fakeCard,m=priceFor(c,bestVariant(c));if(!fakeAsk||!num(m)||m<5)return[];
+  const r=fakeAsk/m;
+  return[r<.3?{id:'price',st:'bad',t:'Price is way too low',d:`${money(fakeAsk)} is only ${r<.01?'under 1':Math.round(r*100)}% of the ${money(m)} market price. Prices this low are one of the most common signs of a fake.`}
+   :r<.55?{id:'price',st:'warn',t:'Price is suspiciously low',d:`${money(fakeAsk)} is ${Math.round(r*100)}% of market (${money(m)}). Could be a good deal, but be extra careful.`}
+   :{id:'price',st:'ok',t:'Price looks normal',d:`${Math.round(r*100)}% of the ${money(m)} market price.`}];
+}
+async function fakeAnalyze(){
+  const run=++fakeRun,c=fakeCard,img=fakeImg;if(!c||!img)return;
+  const steps=[];fakeAuto={busy:'Finding the card in your photo…',checks:steps};renderFake();
+  const set=(t)=>{if(run!==fakeRun)throw 'stale';fakeAuto.busy=t;renderFake()};
+  try{
+    // 1. find the card
+    const NA={oL:NaN,oR:NaN,oT:NaN,oB:NaN,iL:NaN,iR:NaN,iT:NaN,iB:NaN};let L={};try{L=cenDetect(img,NA)}catch(e){}
+    const W=img.width,H=img.height,found=[L.oL,L.oR,L.oT,L.oB].every(v=>!isNaN(v));
+    let rect={x:0,y:0,w:W,h:H},aspect=null;
+    if(found){const rw=(L.oR-L.oL)*W,rh=(L.oB-L.oT)*H;if(rw>W*.3&&rh>H*.3){rect={x:L.oL*W,y:L.oT*H,w:rw,h:rh};aspect=rw/rh}}
+    // 2. photo quality
+    const q=photoQuality(img,rect),blurry=q.sharp<18,glare=q.glare>.06;
+    if(blurry||glare)steps.push({id:'qual',st:'warn',t:blurry?'Photo is blurry':'Too much glare',d:(blurry?'The photo is too soft to judge small details. ':'Bright reflections hide parts of the card. ')+'Retake it for a more accurate check.'});
+    else steps.push({id:'qual',st:'ok',t:'Photo is clear enough',d:found?'Card found in the photo.':'Couldn’t find the card edges, so the whole photo was used. Fill the frame with the card for best results.'});
+    if(aspect){const dev=Math.abs(aspect/(63/88)-1);steps.push(dev>.08?{id:'shape',st:'warn',t:'Card shape looks off',d:`The card measures ${Math.round(dev*100)}% away from real card proportions (63 × 88 mm). Photo angle can cause this, so retake it straight from above. If it still looks off, the card may be the wrong size.`}:{id:'shape',st:'ok',t:'Card shape matches',d:'Proportions match a real Pokémon card.'})}
+    // 3. card number
+    set('Reading the card number…');
+    try{let num1=null;for(const side of ['L','R']){const r=await readNumber(img,rect,side);if(r){num1=r;break}}if(run!==fakeRun)return;
+      const want=+c.number,tot=+(c.set?.printedTotal||0);
+      if(num1&&want){const hits=num1.exact?[num1]:num1.fuzzy;const ok=hits.some(h=>+h.n===want&&(!tot||+h.tot===tot));
+        if(ok)steps.push({id:'num',st:'ok',t:'Card number matches',d:`Reads ${want}/${tot||'?'}, same as the real card.`});
+        else if(num1.exact)steps.push({id:'num',st:'bad',t:'Card number doesn’t match',d:`Your card reads ${num1.n}/${num1.tot}. The real ${esc(c.name)} is ${want}/${tot||'?'}. Fakes often have wrong numbers. Double-check you picked the right card.`});
+        else steps.push({id:'num',st:'unk',t:'Couldn’t read the number clearly',d:'Get closer so the bottom of the card is sharp.'});
+      }else steps.push({id:'num',st:'unk',t:'Couldn’t read the number',d:'Get closer so the number at the bottom is sharp and readable.'});
+    }catch(e){if(e==='stale')throw e;steps.push({id:'num',st:'unk',t:'Number reader unavailable',d:'Check the number yourself against the real card.'})}
+    // 4. artwork
+    set('Comparing the artwork with the real card…');
+    const v=await loadVis();const ti=v?pidIndex(pidOf(c.id)):-1;
+    if(v&&ti>=0){
+      const e1=await visEmbed(img,rect),e2=await visEmbed(img,{x:rect.x+rect.w*.05,y:rect.y+rect.h*.04,w:rect.w*.9,h:rect.h*.92});if(run!==fakeRun)return;
+      const e=normVec(e1.map((x,i)=>x+e2[i])),{emb,D,meta}=v;
+      const dot=i=>{let s=0;const o=i*D;for(let j=0;j<D;j++)s+=e[j]*emb[o+j];return s/127};
+      const st=dot(ti);let bi=-1,bs=-1;for(let i=0;i<meta.n;i++){if(i===ti)continue;const s2=dot(i);if(s2>bs){bs=s2;bi=i}}
+      const hit=bi>=0?v.pidMap.get(+meta.pids[bi]):null,other=hit?cardFromRow(hit[1],...hit[0].split('/'),hit[2]):null;
+      const sameName=other&&other.name.replace(/\s*\(.*$/,'')===c.name.replace(/\s*\(.*$/,'');
+      if(st>=bs-.01&&st>=.5)steps.push({id:'art',st:'ok',t:'Artwork matches the real card',d:`${Math.round(st*100)}% match with the real ${esc(c.name)}, closer than any of the other ${meta.n.toLocaleString()} cards.`});
+      else if(other&&!sameName&&bs-st>.06&&bs>=.55){fakeAuto.alt=other;cache.set(other.id,other);steps.push({id:'art',st:'bad',t:'Artwork looks like a different card',d:`It matches ${esc(other.name)} (${esc(other.set?.name||'')} ${esc(other.number)}) better than the real ${esc(c.name)}. Either a different card was picked, or the art doesn’t match.`,alt:1})}
+      else if(st<.42)steps.push({id:'art',st:'warn',t:'Artwork is a weak match',d:`Only ${Math.round(st*100)}% match with the real card. Retake the photo straight on with no glare. If it stays low, compare the art closely.`});
+      else steps.push({id:'art',st:'ok',t:'Artwork is close to the real card',d:`${Math.round(st*100)}% match.${sameName?' It’s also close to another version of this card, so check the set symbol and number.':''}`});
+      // 5. colors
+      set('Comparing colors…');
+      const cdb=await loadColors();if(run!==fakeRun)return;
+      if(cdb&&cdb[ti*72+0]+cdb[ti*72+1]+cdb[ti*72+2]>0){
+        const cc=colorCompare(photoGrid(img,rect),cdb.subarray(ti*72,ti*72+72));const pct=Math.round(Math.abs(cc.vivid-1)*100);
+        if(cc.corr<.55)steps.push({id:'color',st:'warn',t:'Colors don’t line up with the real card',d:'The color layout is quite different from the real card. Check the photo shows the whole card, then compare colors closely.'});
+        else if(cc.vivid>1.5)steps.push({id:'color',st:'warn',t:'Colors look too strong',d:`About ${pct}% more vivid than the real card. Oversaturated colors are a common sign of a fake, though warm lighting can do this too.`});
+        else if(cc.vivid<.55)steps.push({id:'color',st:'warn',t:'Colors look washed out',d:`About ${pct}% duller than the real card. Faded colors are a common sign of a fake, though dim lighting can do this too.`});
+        else steps.push({id:'color',st:'ok',t:'Colors match the real card',d:'Color strength and layout are in line with the real card.'});
+      }else steps.push({id:'color',st:'unk',t:'Color check unavailable',d:'Color profiles for this card aren’t ready yet. Compare the colors yourself.'});
+    }else steps.push({id:'art',st:'unk',t:'Artwork check unavailable',d:v?'This card isn’t in the picture index yet.':'Picture recognition couldn’t load. Check your connection.'});
+    steps.push(...priceCheck());
+    fakeAuto.busy='';autoFill();renderFake();
+  }catch(e){if(e!=='stale'){console.warn(e);fakeAuto={checks:steps,busy:'',err:1};renderFake()}}
+}
+function autoFill(){const map={num:6,color:1,price:7};for(const x of fakeAuto?.checks||[]){const i=map[x.id];if(i==null)continue;if(x.st==='ok')fakeAns[i]='ok';else if(x.st==='bad')fakeAns[i]='bad'}}
+function fakeAutoHTML(){
+  const a=fakeAuto;if(!a)return'';const ic={ok:'✅',warn:'⚠️',bad:'❌',unk:'❔'};
+  const bad=a.checks.filter(x=>x.st==='bad').length,warn=a.checks.filter(x=>x.st==='warn').length,ok=a.checks.filter(x=>x.st==='ok').length,qual=a.checks.find(x=>x.id==='qual')?.st==='warn';
+  const v=a.busy?null:bad>=2?['dv-bad','❌ Very likely fake',`${bad} photo checks failed.`]:bad===1?['dv-bad','⚠️ Suspicious','One photo check failed. Look at it below before you buy.']:qual?['dv-fair','📷 Retake the photo','The photo isn’t clear enough for a reliable check.']:warn?['dv-fair','🤔 Mostly OK, a few things to look at',`${ok} checks passed, ${warn} need a closer look.`]:['dv-great','✅ Passed the photo checks',`${ok} checks passed.`];
+  return `<h2 style="margin-top:14px">Photo analysis</h2>${a.busy?`<p class="meta">⏳ ${a.busy}</p>`:''}${v?`<div class="dverdict ${v[0]}">${v[1]}<small>${v[2]} A photo can’t check thickness or the inner layer, so do the light test and feel test below too.</small></div>`:''}
+  <ul class="chk">${a.checks.map(x=>`<li><span style="font-size:20px">${ic[x.st]}</span><div><b>${x.t}</b><small>${x.d}</small>${x.alt?'<button class="ghost" id="fakeSwitch" style="margin-top:6px;min-height:36px">Check it as that card instead</button>':''}</div></li>`).join('')}</ul>`;
+}
 /* ---------- bulk value ---------- */
 const BULKDEF=[['Commons & uncommons',0,4/1000,'about $4 per 1,000'],['Reverse holos',0,.03,''],['Holo rares',0,.08,''],['ex, V, GX & other ultra rares',0,.25,''],['Energy cards',0,1/1000,'']];
 let bulk=(()=>{try{const b=JSON.parse(localStorage.getItem('hvl-bulk'));if(Array.isArray(b)&&b.length===BULKDEF.length)return b}catch(e){}return BULKDEF.map(d=>[d[1],d[2]])})();
