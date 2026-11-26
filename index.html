@@ -556,6 +556,8 @@ input[type=search]{width:100%}
   <section class="view" id="v-trade" hidden>
     <h1 class="vt">Trade check</h1>
     <p class="vsub">Add the cards on each side to see if a trade is fair, using today’s market prices.</p>
+    <div class="dcard" style="margin-bottom:12px"><b>🔁 Trade matcher</b><p class="meta" style="margin:4px 0 8px">Send a friend your link. When they open it, HoloValue shows which of their extras are on your wishlist and which of yours are on theirs.</p>
+    <div class="row"><button id="tmShare">Share my trade list</button></div><p class="meta" id="tmInfo" style="font-size:13px;margin:6px 0 0"></p></div>
     <div class="trade">
       <div class="tside"><h2>You give</h2><input type="search" id="tqGive" placeholder="Add a card…" aria-label="Add a card you give" autocomplete="off"><ul class="drop" id="tdGive" hidden></ul><ul class="tlist" id="tlGive"></ul><p class="msg" id="ttGive">$0.00</p></div>
       <div class="tside"><h2>You get</h2><input type="search" id="tqGet" placeholder="Add a card…" aria-label="Add a card you get" autocomplete="off"><ul class="drop" id="tdGet" hidden></ul><ul class="tlist" id="tlGet"></ul><p class="msg" id="ttGet">$0.00</p></div>
@@ -1435,7 +1437,7 @@ function renderSetDetail(name){
 $('setQ').oninput=renderSets;
 
 /* ---------- trade check ---------- */
-function renderTrade(){
+function renderTrade(){try{tmInfo()}catch(e){}
   const sum=a=>a.reduce((s,x)=>s+(num(x.price)?x.price:0),0),g=sum(trade.give),r=sum(trade.get);
   [['give','Give'],['get','Get']].forEach(([k,K])=>{
     $('tl'+K).innerHTML=trade[k].map((x,i)=>`<li>${imgTag(x.img)}<div class="nm">${esc(x.name)}<small>${esc(x.set)} · ${esc(x.num)}</small></div><b>${money(x.price)}</b><button data-k="${k}" data-i="${i}" aria-label="Remove ${esc(x.name)}">×</button></li>`).join('');
@@ -1624,12 +1626,13 @@ function sheetExtras(c){
   if(g)html+=`<div class="row" style="margin-top:10px"><button class="ghost" id="viewSet">See the ${esc(String(g).replace(/^[A-Za-z0-9.]+:\s*/,''))} set</button></div>`;
   if(others.length){others.forEach(o=>cache.set(o.id,o));html+=`<div class="sec" id="otherSec"><b>Other versions of ${esc(c.name.replace(/\s*\(.*$/,''))}</b><div class="hrow" style="margin-top:10px">${others.map(o=>tile(o)).join('')}</div></div>`}
   html+='<div class="sec" id="histSec" hidden></div>';
+  html+=myPhotosHTML(c);
   html+=infoHTML(c);
   html+=oddsHTML(c,g);
   if(!c._sealed&&num(priceFor(c,bestVariant(c)))&&priceFor(c,bestVariant(c))>=5)html+=`<div class="row" style="margin-top:10px"><button class="ghost" id="gradeBtn">💎 Should I grade it?</button></div>`;
   html+=`<div class="row" style="margin-top:10px"><button class="ghost" id="fakeFromCard">🛡️ Real or fake? Compare with the real card</button></div>`;
   sh.insertAdjacentHTML('beforeend',html);
-  histFill(c);
+  histFill(c);myPhotosBind(c);
   if($('gradeBtn'))$('gradeBtn').onclick=()=>gradeCalc(c);
   $('fakeFromCard').onclick=()=>{closeSheet();fakeCard=c;fakeAns={};fakeAuto=null;fakeImg=null;fakePhoto='';go('fake')};
   if(g)$('viewSet').onclick=()=>{closeSheet();curSet=g;setFilter='all';go('sets');setTimeout(()=>renderSetDetail(g),0)};
@@ -1945,6 +1948,71 @@ async function showShared(code){
   $('shClose').onclick=()=>{el.remove();document.body.style.overflow='';history.replaceState(null,'',location.pathname);route()};
 }
 
+
+/* ---------- trade matcher ---------- */
+const forTrade=x=>/trade/i.test(x.binder||'');
+function myHaves(){const out=[];for(const x of col){if(x.sealed||isSealedId(x.id))continue;const extra=forTrade(x)?x.qty:x.qty-1;if(extra>0)out.push({x,extra})}return out}
+function tmInfo(){const h=myHaves(),n=h.reduce((a,y)=>a+y.extra,0);$('tmInfo').textContent=`Your list: ${n} card${n===1?'':'s'} to trade (your duplicates${binders.some(b=>/trade/i.test(b))?' and your trade binder':''}) and ${wish.length} on your wishlist.${!binders.some(b=>/trade/i.test(b))?' Tip: make a binder named “Trade” for cards you’d trade even with just one copy.':''}`}
+async function shareTrades(){
+  const h=myHaves();if(!h.length&&!wish.length){toast('Add duplicates or wishlist cards first.');return}
+  const data={k:'trade',d:new Date().toISOString().slice(0,10),n:LS.get('hvl-tname',''),
+    h:h.slice(0,300).map(({x,extra})=>[x.pid||0,x.name,x.set,x.num,Math.round(unitVal(x)*100)/100,extra,gradeLabel(x)||'']),
+    w:wish.slice(0,300).map(w=>[w.pid||0,w.name,w.set,w.num,num(w.price)?Math.round(w.price*100)/100:0])};
+  const raw=new TextEncoder().encode(JSON.stringify(data));let code='j'+b64u(raw);
+  if(window.CompressionStream){const cs=new Blob([raw]).stream().pipeThrough(new CompressionStream('deflate-raw'));code='z'+b64u(await new Response(cs).arrayBuffer())}
+  const url=location.origin+location.pathname.replace(/index\.html$/,'')+'#t='+code;
+  try{if(navigator.share){await navigator.share({title:'My Pokémon trade list',text:'Open this to see what we can trade (HoloValue):',url});return}}catch(e){if(e?.name==='AbortError')return}
+  try{await navigator.clipboard.writeText(url);toast('Link copied. Send it to a friend.')}catch(e){prompt('Copy this link:',url)}
+}
+const sameCard=(a,b)=>(a.pid&&b.pid&&+a.pid===+b.pid)||(a.name===b.name&&String(a.num||'').split('/')[0]===String(b.num||'').split('/')[0]&&(+String(a.num).split('/')[0]>0));
+async function showTradeMatch(code){
+  let d;try{d=await unpackShare(code)}catch(e){toast('That trade link looks broken.');return}
+  if(d.k!=='trade'){toast('That isn’t a trade link.');return}
+  const theirH=(d.h||[]).map(a=>({pid:+a[0]||0,name:String(a[1]||''),set:String(a[2]||''),num:String(a[3]||''),price:num(a[4])?a[4]:0,qty:+a[5]||1,g:String(a[6]||'')}));
+  const theirW=(d.w||[]).map(a=>({pid:+a[0]||0,name:String(a[1]||''),set:String(a[2]||''),num:String(a[3]||''),price:num(a[4])?a[4]:0}));
+  const get=theirH.filter(t=>wish.some(w=>sameCard(w,t))),mine=myHaves(),give=mine.filter(({x})=>theirW.some(w=>sameCard(w,x)));
+  const gv=get.reduce((a,t)=>a+t.price,0),yv=give.reduce((a,{x})=>a+unitVal(x),0),who=d.n?esc(d.n):'Your friend';
+  const card=(pid,name,set,num,price,extra)=>`<div class="tile">${imgTag(pid?`https://tcgplayer-cdn.tcgplayer.com/product/${pid}_200w.jpg`:'')}<span class="tn">${esc(name)}</span><span class="ts">${esc(set)}${num?' · '+esc(num):''}</span><b class="tp">${money(price)}</b>${extra||''}</div>`;
+  const el=document.createElement('div');el.className='shared';el.id='sharedView';
+  const nm=get.length+give.length;
+  el.innerHTML=`<div class="wrapin"><div class="row" style="justify-content:space-between"><div class="brand">HoloValue<small>Trade matcher · list from ${esc(d.d||'')}</small></div><button class="ghost" id="shClose">Close</button></div>
+  <section class="port" style="margin-top:14px"><div class="port-l">${who} and you</div><div class="port-v" style="font-size:30px">${nm?`${nm} possible trade${nm===1?'':'s'}`:'No matches yet'}</div>
+  <div class="port-c">They have ${get.length} card${get.length===1?'':'s'} you want (${money(gv)}) · you have ${give.length} they want (${money(yv)})</div></section>
+  ${get.length?`<h2 style="margin-top:16px">They have, you want</h2><div class="grid">${get.map(t=>card(t.pid,t.name,t.set,t.num,t.price)).join('')}</div>`:''}
+  ${give.length?`<h2 style="margin-top:16px">You have, they want</h2><div class="grid">${give.map(({x})=>card(x.pid,x.name,x.set,x.num,unitVal(x))).join('')}</div>`:''}
+  ${!nm?`<p class="meta" style="margin-top:14px">Nothing lines up yet. They have ${theirH.length} cards to trade and want ${theirW.length}. Add cards to your wishlist, or send them your list so they can see your extras.</p>`:''}
+  <div class="row" style="margin-top:16px">${nm?'<button id="tmToCheck">Check the trade is fair</button>':''}<button class="ghost" id="tmBack">Send them my list</button></div>
+  ${theirH.length?`<details style="margin-top:14px"><summary class="meta">Everything they have to trade (${theirH.length})</summary><div class="grid" style="margin-top:8px">${theirH.map(t=>card(t.pid,t.name,t.set,t.num,t.price,t.qty>1?`<span class="badge">×${t.qty}</span>`:'')).join('')}</div></details>`:''}
+  <p class="fine">Prices are TCGplayer market values. Their prices are from when they shared the link.</p></div>`;
+  document.body.appendChild(el);document.body.style.overflow='hidden';
+  const close=()=>{el.remove();document.body.style.overflow='';history.replaceState(null,'',location.pathname);route()};
+  $('shClose').onclick=close;$('tmBack').onclick=shareTrades;
+  if($('tmToCheck'))$('tmToCheck').onclick=()=>{trade={give:give.map(({x})=>({id:x.id,name:x.name,set:x.set,num:x.num,img:x.img,price:unitVal(x)})),get:get.map(t=>({id:'tm:'+(t.pid||t.name),name:t.name,set:t.set,num:t.num,img:t.pid?`https://tcgplayer-cdn.tcgplayer.com/product/${t.pid}_200w.jpg`:'',price:t.price}))};saveTrade();close();go('trade')};
+}
+$('tmShare').onclick=shareTrades;
+
+/* ---------- my photos & notes on owned cards ---------- */
+async function idbGet(k){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction('kv','readonly'),r=t.objectStore('kv').get(k);r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
+async function idbDel(k){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').delete(k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error)})}
+function shrinkPhoto(file){return new Promise((res,rej)=>{const u=URL.createObjectURL(file),im=new Image();im.onload=()=>{const sc=Math.min(1,1400/Math.max(im.width,im.height)),c=document.createElement('canvas');c.width=Math.round(im.width*sc);c.height=Math.round(im.height*sc);c.getContext('2d').drawImage(im,0,0,c.width,c.height);URL.revokeObjectURL(u);c.toBlob(b=>b?res(b):rej(new Error('photo')),'image/jpeg',.85)};im.onerror=()=>rej(new Error('photo'));im.src=u})}
+async function myPhotosFill(x){
+  const ids=x.photos||[],urls=[];for(const k of ids){try{const b=await idbGet('ph:'+k);if(b)urls.push([k,URL.createObjectURL(b)])}catch(e){}}
+  const box=document.querySelector('.sheet #myPhGrid');if(!box)return;
+  box.innerHTML=urls.map(([k,u])=>`<figure style="margin:0;position:relative"><a href="${u}" target="_blank" rel="noopener"><img src="${u}" alt="Your photo" style="width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:10px;display:block"></a><button class="ghost" data-del="${k}" aria-label="Delete photo" style="position:absolute;top:4px;right:4px;min-height:30px;padding:0 9px;background:var(--paper)!important">✕</button></figure>`).join('');
+  box.querySelectorAll('[data-del]').forEach(b=>b.onclick=async()=>{if(!confirm('Delete this photo?'))return;await idbDel('ph:'+b.dataset.del).catch(()=>{});x.photos=(x.photos||[]).filter(k=>k!==b.dataset.del);save();myPhotosFill(x)});
+}
+function myPhotosHTML(c){
+  const x=col.find(i=>i.id===c.id);if(!x)return'';
+  return `<div class="sec" id="myPh"><b>📸 My photos & notes</b><p class="meta" style="margin:4px 0 8px">Keep pictures of your actual card (front, back, any flaws) and notes. They stay on this phone.</p>
+  <div id="myPhGrid" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px"></div>
+  <div class="row" style="margin-top:8px"><label class="btn ghost" style="position:relative;overflow:hidden">📷 Add photo<input type="file" id="myPhIn" accept="image/*" style="position:absolute;inset:0;opacity:0"></label></div>
+  <textarea id="myNote" rows="2" placeholder="Notes: where you got it, what you paid, condition…" style="width:100%;margin-top:8px;font:inherit;padding:10px;border-radius:12px;border:2px solid var(--line);background:var(--paper);color:var(--ink)">${esc(x.note||'')}</textarea></div>`;
+}
+function myPhotosBind(c){
+  const x=col.find(i=>i.id===c.id);if(!x||!$('myPhIn'))return;myPhotosFill(x);
+  $('myPhIn').onchange=async e=>{const f=e.target.files?.[0];e.target.value='';if(!f)return;try{const b=await shrinkPhoto(f),k=Date.now().toString(36)+Math.random().toString(36).slice(2,6);await idbSet('ph:'+k,b);x.photos=[...(x.photos||[]),k].slice(-12);save();myPhotosFill(x);toast('Photo saved.')}catch(err){toast('Couldn’t save that photo.')}};
+  let tm;$('myNote').oninput=e=>{clearTimeout(tm);tm=setTimeout(()=>{x.note=e.target.value.slice(0,1000);save()},400)};
+}
 /* ---------- price alerts (notifications) ---------- */
 const SUBNAME={normal:'Normal',holofoil:'Holofoil',reverseHolofoil:'Reverse Holofoil','1stEditionHolofoil':'1st Edition Holofoil','1stEditionNormal':'1st Edition Normal',unlimitedHolofoil:'Unlimited Holofoil',unlimitedNormal:'Unlimited Normal'};
 function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('holovalue',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -2855,6 +2923,7 @@ $('trendJump').onclick=()=>go('trend');
 /* ---------- navigation ---------- */
 let view='home';
 function route(){
+  if(location.hash.startsWith('#t=')){if(!$('sharedView')&&!window._shOpen){window._shOpen=1;showTradeMatch(location.hash.slice(3)).finally(()=>{window._shOpen=0})}return}
   if(location.hash.startsWith('#s=')){if(!$('sharedView')&&!window._shOpen){window._shOpen=1;showShared(location.hash.slice(3)).finally(()=>{window._shOpen=0})}return}
   const h=location.hash.slice(1),v=['home','col','sets','wish','trade','pack','insights','game','deal','center','fake','bulk','trend','page','dex'].includes(h)?h:'home';view=v;
   document.querySelectorAll('.view').forEach(s=>s.hidden=s.id!=='v-'+v);
