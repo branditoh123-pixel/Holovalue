@@ -623,7 +623,6 @@ input[type=search]{width:100%}
 <div id="sheetHost"></div>
 <div id="toastHost"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
 <script>
 {
 const API='https://api.pokemontcg.io/v2/cards';
@@ -682,12 +681,18 @@ function sim(a,b){ // bigram similarity
 /* ---------- OCR ---------- */
 let worker=null,workerP=null,readerStatus='';
 const dbg=t=>{const e=$('sdbg');if(e)e.textContent=t};
+// Scanner libraries are hosted on this site (lib/) so scanning works on weak Wi-Fi and offline; the public CDN is only a fallback.
+const absUrl=p=>new URL(p,location.href).href;
+let libOkP=null;const libOk=()=>libOkP||(libOkP=fetch('lib/ok.json',{cache:'no-cache'}).then(r=>r.ok).catch(()=>false));
+const loadScript=src=>new Promise((res,rej)=>{const sc=document.createElement('script');sc.src=src;sc.onload=res;sc.onerror=()=>{sc.remove();rej(new Error('load '+src))};document.head.appendChild(sc)});
+let tessP=null;
+function ensureTesseract(){if(window.Tesseract)return Promise.resolve();return tessP||(tessP=(async()=>{const local=await libOk();
+  try{await loadScript(local?'lib/tesseract/tesseract.min.js':'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js')}catch(e){if(!local)throw e;await loadScript('https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js')}})().catch(e=>{tessP=null;throw e}))}
 function getWorker(){
   if(worker)return Promise.resolve(worker);
-  if(!window.Tesseract)return Promise.reject(new Error('The card reader didn’t load. Check your internet connection and reload.'));
   if(!workerP){
     const logger=m=>{if(!m||worker)return;const pct=num(m.progress)?Math.round(m.progress*100):null;readerStatus=(/language/i.test(m.status)?'Downloading card reader':/core|wasm/i.test(m.status)?'Loading card reader':'Starting card reader')+(pct!==null?` ${pct}%`:'')+'…';if(!$('scanner').hidden&&!loopOn)chip(readerStatus);dbg(readerStatus)};
-    workerP=Tesseract.createWorker('eng',1,{logger}).then(async w=>{await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789/ '});readerStatus='ready';return w})
+    workerP=ensureTesseract().then(()=>libOk()).then(local=>Tesseract.createWorker('eng',1,{logger,...(local&&window.Tesseract._hvLocal!==false?{workerPath:absUrl('lib/tesseract/worker.min.js'),corePath:absUrl('lib/tesseract-core'),langPath:absUrl('lib/tessdata'),gzip:true}:{})})).then(async w=>{await w.setParameters({tessedit_pageseg_mode:'7',tessedit_char_whitelist:'0123456789/ '});readerStatus='ready';return w})
       .then(w=>{worker=w;return w}).catch(e=>{workerP=null;throw new Error('The card reader didn’t load. Check your connection and reload.')});
   }
   return workerP;
@@ -971,8 +976,11 @@ function loadVis(){
   visP=(async()=>{
     const meta=await fetch('vis/meta.json',{cache:'no-cache'}).then(r=>r.ok?r.json():null).catch(()=>null);
     if(!meta||!meta.n)return null;
-    if(!window.ort)await new Promise((res,rej)=>{const sc=document.createElement('script');sc.src=`https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VER}/dist/ort.min.js`;sc.onload=res;sc.onerror=rej;document.head.appendChild(sc)});
-    ort.env.wasm.wasmPaths=`https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VER}/dist/`;ort.env.wasm.numThreads=1;
+    let ortLocal=false;
+    if(!window.ort){const local=await libOk();if(local){try{await loadScript('lib/ort/ort.wasm.min.js');ortLocal=true}catch(e){}}
+      if(!window.ort)await loadScript(`https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VER}/dist/ort.min.js`)}
+    else ortLocal=!!window.ort._hvLocal;
+    if(ort.env?.wasm){ort.env.wasm.wasmPaths=ortLocal?absUrl('lib/ort/'):`https://cdn.jsdelivr.net/npm/onnxruntime-web@${ORT_VER}/dist/`;ort.env.wasm.numThreads=1}
     const v2=meta.v===2,bust='?b='+encodeURIComponent(meta.built||'');
     const [sess,pca,emb]=await Promise.all([
       ort.InferenceSession.create('vis/model.onnx'+bust,{executionProviders:['wasm'],graphOptimizationLevel:'all'}),
@@ -1194,7 +1202,7 @@ function openCard(c,variant){
   sheet(`<div class="holo" id="holo"><div class="holo-card">${okUrl(c.images?.large||c.images?.small)?`<img src="${esc(c.images.large||c.images.small)}" alt="${esc(c.name)} card" onerror="this.outerHTML='<span class=&quot;ph&quot;></span>'">`:'<span class="ph"></span>'}<i class="glare"></i></div></div>
   <div class="sinfo"><div><h3>${esc(c.name)}</h3><p class="meta">${c._sealed?`${esc(c.set?.name||'')} · ${esc(c.rarity)}`:`${esc(c.set?.name||'')} · #${esc(c.number)}/${esc(c.set?.printedTotal||'')}${c.rarity?' · '+esc(c.rarity):''}`}</p>
   <div class="sticker"><small>Market${v?' · '+esc(vName(v)):''}</small><strong>${money(p)}</strong></div>
-  ${c._live?`<p class="meta live">● Live TCGplayer price via TCGdex · checked ${esc(ago(c._live))}</p>`:c.tcgplayer?.updatedAt?`<p class="meta">TCGplayer market · updated ${esc(niceDate(String(c._sealed||c._jp?(c._jp?jpIdx:tcgIdx)?.source||c.tcgplayer.updatedAt:tcgIdx?.source||c.tcgplayer.updatedAt)))}${!c._sealed&&!c._jp&&!c._liveDone?' · checking live…':''}</p>`:''}
+  ${c._live?`<p class="meta live">● Live TCGplayer price via TCGdex · checked ${esc(ago(c._live))}</p>`:c.tcgplayer?.updatedAt?`<p class="meta">TCGplayer market · updated ${esc(niceDate(String(c._sealed||c._jp?(c._jp?jpIdx:tcgIdx)?.source||c.tcgplayer.updatedAt:tcgIdx?.source||c.tcgplayer.updatedAt)))}${!c._sealed&&!c._jp&&!c._liveDone&&navigator.onLine?' · checking live…':''}</p>`:''}
   ${own&&num(own.prev)&&own.prev!==own.price?`<p class="meta ${own.price>own.prev?'up':'down'}">${own.price>own.prev?'▲':'▼'} ${money(Math.abs(own.price-own.prev))} since last update</p>`:''}</div></div>
   ${keys.length?`<table class="pick"><thead><tr><th>Version</th><th>Low</th><th>Market</th></tr></thead><tbody>${keys.map(k=>{const r=prices[k]||{};return `<tr data-v="${esc(k)}" class="${k===v?'sel':''}"><td>${k===v?'● ':''}${esc(vName(k))}</td><td>${money(r.low)}</td><td>${money(r.market)}</td></tr>`}).join('')}</tbody></table><p class="meta">Tap a version to pick yours.</p>`:(c._enriched?'<p class="meta">No price database lists this card yet. Check eBay sold listings below.</p>':'<p class="meta">Getting the price…</p>')}
   <div class="sec" id="histSec" hidden style="border-top:0;margin-top:4px;padding-top:4px"></div>
@@ -1284,7 +1292,8 @@ function renderAll(){
   $('count').innerHTML=`${n} card${n===1?'':'s'}${ch}`;
   const paidItems=col.filter(x=>num(x.paid));
   if(paidItems.length){const cost=paidItems.reduce((a,x)=>a+x.paid*x.qty,0),now=paidItems.reduce((a,x)=>a+itemVal(x),0),g=now-cost;$('gainLine').hidden=false;$('gainLine').innerHTML=`Paid ${money(cost)} · <span style="color:${g>=0?'#6fdc95':'#ff7b7d'}">${g>=0?'+':'−'}${money(Math.abs(g))}</span> on cards with a price paid`}else $('gainLine').hidden=true;
-  if(tcgIdx?.updated)$('upd').textContent=nightlyAgeH()>30?'TCGplayer data is late · using live prices':'Prices updated '+niceDate(tcgIdx.source||tcgIdx.updated);
+  if(!navigator.onLine)$('upd').textContent='📴 Offline · prices from '+niceDate(tcgIdx?.source||tcgIdx?.updated);
+  else if(tcgIdx?.updated)$('upd').textContent=nightlyAgeH()>30?'TCGplayer data is late · using live prices':'Prices updated '+niceDate(tcgIdx.source||tcgIdx.updated);
   // home rows
   $('onboard').hidden=col.length>0;
   const top=col.filter(x=>num(x.price)).sort((a,b)=>b.price-a.price);
@@ -1795,6 +1804,7 @@ function applyType(t){
 applyType(LS.get('hvl-type','electric'));
 function applyTheme(m){const r=document.documentElement;if(m==='light'||m==='dark')r.dataset.theme=m;else delete r.dataset.theme;LS.set('hvl-theme',m)}
 applyTheme(LS.get('hvl-theme','auto'));
+window.addEventListener('online',()=>{renderAll();toast('Back online.')});window.addEventListener('offline',()=>{renderAll();toast('You’re offline. Prices from the last update still work.')});
 document.addEventListener('click',e=>{const b=e.target.closest('#themeSeg [data-th]');if(!b)return;applyTheme(b.dataset.th);document.querySelectorAll('#themeSeg [data-th]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
 function typePickerHTML(){const cur=LS.get('hvl-type','electric');return `<div class="typepick">${Object.entries(TYPES).map(([k,T])=>`<button data-type="${k}" aria-pressed="${k===cur}" style="background:${T.sw}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${ICONS[T.icon]}" ${T.icon==='leaf'||T.icon==='swirl'?'fill="none" stroke="#16141a" stroke-width="2.2" stroke-linecap="round"':'fill="#16141a"'}/></svg>${k[0].toUpperCase()+k.slice(1)}</button>`).join('')}</div>`}
 function bindTypePicker(root){root.querySelectorAll('[data-type]').forEach(b=>b.onclick=()=>{applyType(b.dataset.type);root.querySelectorAll('[data-type]').forEach(x=>x.setAttribute('aria-pressed',x===b));toast(`${b.textContent.trim()} theme on.`)})}
@@ -1893,6 +1903,7 @@ const liveCache=LS.get('hvl-live',{}); // id -> {t, prices, at}
 function saveLive(){const ks=Object.keys(liveCache);if(ks.length>400)ks.sort((a,b)=>liveCache[a].t-liveCache[b].t).slice(0,ks.length-400).forEach(k=>delete liveCache[k]);LS.set('hvl-live',liveCache)}
 async function livePrice(c,maxAgeMin=30){
   const hit=liveCache[c.id];if(hit&&Date.now()-hit.t<maxAgeMin*60000)return hit;
+  if(!navigator.onLine)return hit||null;
   const found=await tdxFind(c.number,c.set?.printedTotal).catch(()=>[]);
   const m=found.map(o=>[o,sim(o.name.toLowerCase(),c.name.toLowerCase())]).sort((a,b)=>b[1]-a[1])[0];
   if(!m||m[1]<.6)return null;
