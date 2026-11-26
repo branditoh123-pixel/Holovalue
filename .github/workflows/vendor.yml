@@ -1,0 +1,55 @@
+name: Host scanner libraries
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/vendor.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  vendor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+      - name: Fetch packages
+        run: |
+          set -e
+          mkdir -p /tmp/v && cd /tmp/v
+          npm pack --silent tesseract.js@5.1.1 tesseract.js-core@5.1.1 onnxruntime-web@1.20.1 @tesseract.js-data/eng@1.0.0
+          for f in *.tgz; do mkdir -p "x-${f%.tgz}"; tar -xzf "$f" -C "x-${f%.tgz}"; done
+          ls
+      - name: Copy into lib/
+        run: |
+          set -e
+          cd "$GITHUB_WORKSPACE"
+          rm -rf lib && mkdir -p lib/tesseract lib/tesseract-core lib/tessdata lib/ort
+          T=$(ls -d /tmp/v/x-tesseract.js-5*)/package
+          C=$(ls -d /tmp/v/x-tesseract.js-core-*)/package
+          O=$(ls -d /tmp/v/x-onnxruntime-web-*)/package
+          D=$(ls -d /tmp/v/x-tesseract.js-data-eng-*)/package
+          cp "$T/dist/tesseract.min.js" "$T/dist/worker.min.js" lib/tesseract/
+          cp "$C"/tesseract-core*lstm*.wasm.js lib/tesseract-core/ 2>/dev/null || true
+          cp "$C"/tesseract-core*.wasm.js lib/tesseract-core/
+          ls "$D"
+          cp "$D/4.0.0_best_int/eng.traineddata.gz" lib/tessdata/
+          cp "$O/dist/ort.wasm.min.js" "$O/dist/ort-wasm-simd-threaded.mjs" "$O/dist/ort-wasm-simd-threaded.wasm" lib/ort/
+          echo '{"tesseract":"5.1.1","ort":"1.20.1","ok":true}' > lib/ok.json
+          du -sh lib/*
+      - name: Commit
+        run: |
+          git config user.name "holovalue-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add lib
+          if git diff --cached --quiet; then echo "No changes"; exit 0; fi
+          git commit -m "Host scanner libraries on the site"
+          for i in 1 2 3; do git pull --rebase origin main && git push && break; sleep 5; done
