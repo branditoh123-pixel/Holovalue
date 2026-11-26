@@ -1163,7 +1163,10 @@ async function cardForItem(x){
   if(c){if(row&&!hasPrice(c))tcgFill(c);cache.set(c.id,c)}
   return c;
 }
-async function openItem(id,list){const x=(list||col).find(i=>i.id===id)||wish.find(i=>i.id===id);if(!x)return;const c=await cardForItem(x);if(c)openCard(c);else toast('Couldn’t load that card. Check your connection.')}
+async function openItem(id,list){const x=(list||col).find(i=>i.id===id)||wish.find(i=>i.id===id);if(!x)return;let c=null;try{c=await cardForItem(x)}catch(e){}
+  // not in any price list (a custom or imported card): still open it so it can be managed
+  if(!c){const [n,t]=String(x.num||'').split('/');c={id:x.id,name:x.name||'Unknown card',number:n||'',set:{name:x.set||'',printedTotal:t||''},images:{small:okUrl(x.img)?x.img:'',large:okUrl(x.img)?x.img:''},tcgplayer:{prices:{}},_enriched:1,_liveDone:1};cache.set(c.id,c)}
+  openCard(c)}
 
 /* ---------- daily price update + history ---------- */
 function updatePrices(){
@@ -1583,8 +1586,8 @@ async function shareCollection(){
   x.fillStyle='#ffd23f';x.font='500 36px Rubik, system-ui, sans-serif';x.fillText('Collection value',110,610);
   x.font='800 120px Rubik, system-ui, sans-serif';x.fillText(money(tot),105,740);
   x.font='500 36px Rubik, system-ui, sans-serif';x.fillText(`${n} cards · ${col.length} unique`,110,800);
-  const top=col.filter(i=>num(i.price)).sort((a,b)=>b.price-a.price).slice(0,4);
-  x.font='700 38px Rubik, system-ui, sans-serif';top.forEach((i,k)=>{const y=900+k*72;x.fillStyle='#f6f2e6';const nm=i.name.length>26?i.name.slice(0,25)+'…':i.name;x.fillText(nm,110,y);x.fillStyle='#ffd23f';x.textAlign='right';x.fillText(money(i.price),W-110,y);x.textAlign='left'});
+  const top=col.filter(i=>num(unitVal(i))).sort((a,b)=>unitVal(b)-unitVal(a)).slice(0,4);
+  x.font='700 38px Rubik, system-ui, sans-serif';top.forEach((i,k)=>{const y=900+k*72;x.fillStyle='#f6f2e6';const nm=i.name.length>26?i.name.slice(0,25)+'…':i.name;x.fillText(nm,110,y);x.fillStyle='#ffd23f';x.textAlign='right';x.fillText(money(unitVal(i)),W-110,y);x.textAlign='left'});
   x.fillStyle='#16141a';x.font='700 34px Rubik, system-ui, sans-serif';x.fillText('Priced with HoloValue · '+location.host+location.pathname.replace(/index\.html$/,''),70,1300);
   const blob=await new Promise(r=>cv.toBlob(r,'image/png'));const file=new File([blob],'my-pokemon-collection.png',{type:'image/png'});
   try{if(navigator.canShare?.({files:[file]})){await navigator.share({files:[file],title:'My Pokémon collection'});return}}catch(e){if(e?.name==='AbortError')return}
